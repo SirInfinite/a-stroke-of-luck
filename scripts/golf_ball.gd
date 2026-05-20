@@ -2,6 +2,7 @@ extends RigidBody2D
 
 signal shot_finished
 signal sink_animation_finished
+signal hazard_sink_finished
 
 @export var max_impulse := 900.0
 @export var power_scale := 4.5
@@ -121,6 +122,10 @@ func sink_to(hole_position: Vector2) -> void:
 	call_deferred("_apply_sink_to", hole_position)
 
 
+func sink_for_reset(hazard_position: Vector2) -> void:
+	call_deferred("_apply_hazard_sink", hazard_position)
+
+
 func _apply_sink_to(hole_position: Vector2) -> void:
 	if shot_in_progress:
 		_finish_shot()
@@ -141,6 +146,28 @@ func _apply_sink_to(hole_position: Vector2) -> void:
 
 	visible = false
 	sink_animation_finished.emit()
+
+
+func _apply_hazard_sink(hazard_position: Vector2) -> void:
+	if shot_in_progress:
+		_finish_shot()
+
+	selected = false
+	sunk = true
+	freeze = true
+	linear_velocity = Vector2.ZERO
+	angular_velocity = 0.0
+	collision_shape.set_deferred("disabled", true)
+	_hide_previews()
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(self, "position", hazard_position, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "scale", Vector2.ZERO, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await tween.finished
+
+	visible = false
+	hazard_sink_finished.emit()
 
 
 func can_shoot() -> bool:
