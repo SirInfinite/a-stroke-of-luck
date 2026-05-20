@@ -1,3 +1,6 @@
-[gd_scene format=3 uid="uid://d2a6laspdvraf"]
+[gd_scene load_steps=2 format=3 uid="uid://d2a6laspdvraf"]
 
-[node name="Main" type="Node3D" unique_id=1688480379]
+[ext_resource type="Script" path="res://scripts/main.gd" id="1_n82vm"]
+
+[node name="Main" type="Node2D" unique_id=1688480379]
+script = ExtResource("1_n82vm")
