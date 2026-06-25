@@ -21,10 +21,15 @@ signal hazard_sink_finished
 @onready var aim_line: Line2D = $AimLine
 @onready var trajectory_preview: Node2D = $TrajectoryPreview
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
+@onready var ball_art: Node2D = $BallArt
 
 const POWER_LOW_COLOR := Color(1.0, 0.94, 0.18, 0.9)
 const POWER_HIGH_COLOR := Color(1.0, 0.12, 0.05, 0.95)
 const TRAJECTORY_COLOR := Color(1.0, 1.0, 1.0, 0.72)
+const BALL_VISUAL_RADIUS := 12.4
+const BALL_OUTLINE_RADIUS := 13.5
+const DIMPLE_RADIUS := 0.9
+const DIMPLE_GRID_SPACING := 3.05
 
 var selected := false
 var sunk := false
@@ -40,6 +45,7 @@ var trajectory_dot_bonus := 0
 
 
 func _ready() -> void:
+	_create_ball_art()
 	keyboard_power = keyboard_starting_power
 	power_gradient = Gradient.new()
 	power_gradient.set_color(0, POWER_LOW_COLOR)
@@ -48,6 +54,53 @@ func _ready() -> void:
 	aim_line.set_as_top_level(true)
 	trajectory_preview.set_as_top_level(true)
 	_create_trajectory_preview()
+
+
+func _create_ball_art() -> void:
+	for child in ball_art.get_children():
+		child.free()
+
+	_add_ball_circle(BALL_OUTLINE_RADIUS, Color(0.48, 0.5, 0.53, 1.0))
+	_add_ball_circle(BALL_VISUAL_RADIUS, Color(0.91, 0.93, 0.95, 1.0))
+	_add_ball_circle(11.2, Color(0.78, 0.8, 0.84, 0.16), Vector2(1.8, 2.1))
+	_add_ball_circle(8.8, Color(1.0, 1.0, 1.0, 0.17), Vector2(-2.6, -2.8))
+	_add_ball_circle(5.3, Color(1.0, 1.0, 1.0, 0.1), Vector2(-4.2, -4.0))
+	_add_honeycomb_dimples()
+
+
+func _add_ball_circle(radius: float, color: Color, offset := Vector2.ZERO) -> void:
+	var circle := Polygon2D.new()
+	circle.position = offset
+	circle.polygon = _circle_polygon(radius, 48)
+	circle.color = color
+	ball_art.add_child(circle)
+
+
+func _add_honeycomb_dimples() -> void:
+	var row_spacing := DIMPLE_GRID_SPACING * sqrt(3.0) * 0.5
+	var row_index := 0
+	var y := -BALL_VISUAL_RADIUS + DIMPLE_GRID_SPACING
+
+	while y <= BALL_VISUAL_RADIUS - DIMPLE_GRID_SPACING:
+		var x_offset := 0.0 if row_index % 2 == 0 else DIMPLE_GRID_SPACING * 0.5
+		var x := -BALL_VISUAL_RADIUS + DIMPLE_GRID_SPACING + x_offset
+
+		while x <= BALL_VISUAL_RADIUS - DIMPLE_GRID_SPACING:
+			var dimple_position := Vector2(x, y)
+			if dimple_position.length() <= BALL_VISUAL_RADIUS - DIMPLE_RADIUS - 0.35:
+				_add_dimple(dimple_position)
+			x += DIMPLE_GRID_SPACING
+
+		y += row_spacing
+		row_index += 1
+
+
+func _add_dimple(dimple_position: Vector2) -> void:
+	var dimple := Polygon2D.new()
+	dimple.position = dimple_position
+	dimple.polygon = _rounded_hex_polygon(DIMPLE_RADIUS)
+	dimple.color = Color(0.5, 0.54, 0.59, 0.92)
+	ball_art.add_child(dimple)
 
 
 func _on_input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
@@ -347,4 +400,25 @@ func _circle_polygon(radius: float, segments := 12) -> PackedVector2Array:
 	for i in range(segments):
 		var angle := TAU * float(i) / float(segments)
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
+
+func _rounded_hex_polygon(radius: float) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	var corner_radius := radius * 0.22
+	var vertices: Array[Vector2] = []
+	for i in range(6):
+		var angle := TAU * float(i) / 6.0 + PI / 6.0
+		vertices.append(Vector2(cos(angle), sin(angle)) * radius)
+
+	for i in range(6):
+		var previous: Vector2 = vertices[(i + 5) % 6]
+		var current: Vector2 = vertices[i]
+		var next: Vector2 = vertices[(i + 1) % 6]
+		var toward_previous := (previous - current).normalized()
+		var toward_next := (next - current).normalized()
+		points.append(current + toward_previous * corner_radius)
+		points.append(current + (toward_previous + toward_next).normalized() * corner_radius * 0.45)
+		points.append(current + toward_next * corner_radius)
+
 	return points

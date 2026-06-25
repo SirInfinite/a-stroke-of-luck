@@ -33,15 +33,21 @@ class PowerMeter:
 	const HIGH_COLOR := Color(1.0, 0.08, 0.02, 0.98)
 	const TRACK_COLOR := Color(0.08, 0.075, 0.055, 0.72)
 	const OUTLINE_COLOR := Color(0.03, 0.025, 0.018, 0.95)
+	const FILL_SPEED := 5.5
 
 	var power := 0.0
+	var displayed_power := 0.0
 
 	func _init() -> void:
 		custom_minimum_size = Vector2(64.0, 170.0)
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		set_process(true)
 
 	func set_power(new_power: float) -> void:
 		power = clampf(new_power, 0.0, 1.0)
+
+	func _process(delta: float) -> void:
+		displayed_power = move_toward(displayed_power, power, FILL_SPEED * delta)
 		queue_redraw()
 
 	func _draw() -> void:
@@ -55,29 +61,40 @@ class PowerMeter:
 		_draw_fill(top_y, bottom_y, center_x)
 
 	func _draw_fill(top_y: float, bottom_y: float, center_x: float) -> void:
-		if power <= 0.0:
+		if displayed_power <= 0.0:
 			return
 
-		var fill_top := lerpf(bottom_y - FILL_INSET, top_y + FILL_INSET, power)
-		var fill_bottom := bottom_y - FILL_INSET
-		var fill_height := fill_bottom - fill_top
-		for i in range(FILL_STEPS):
-			var step_bottom := fill_bottom - fill_height * float(i) / float(FILL_STEPS)
-			var step_top := fill_bottom - fill_height * float(i + 1) / float(FILL_STEPS)
-			var color_power := 1.0 - ((step_top - top_y) / (bottom_y - top_y))
-			var color := LOW_COLOR.lerp(HIGH_COLOR, clampf(color_power, 0.0, 1.0))
-			draw_colored_polygon(_meter_band_polygon(step_top, step_bottom, center_x, top_y, bottom_y), color)
+		var inner_top := top_y + FILL_INSET
+		var inner_bottom := bottom_y - FILL_INSET
+		var fill_top := lerpf(inner_bottom, inner_top, displayed_power)
+		if inner_bottom - fill_top < 1.0:
+			return
+
+		if displayed_power >= 0.995:
+			var fill_polygon := _meter_polygon(inner_top, inner_bottom, center_x, FILL_INSET)
+			draw_polygon(fill_polygon, _meter_vertex_colors(fill_polygon, top_y, bottom_y))
+			return
+
+		var fill_polygon := _meter_partial_fill_polygon(fill_top, inner_bottom, center_x, inner_top, inner_bottom)
+		draw_polygon(fill_polygon, _meter_vertex_colors(fill_polygon, top_y, bottom_y))
 
 	func _meter_polygon(top_y: float, bottom_y: float, center_x: float, inset := 0.0, closed := false) -> PackedVector2Array:
 		var points := PackedVector2Array()
-		var top_cap_center_y := top_y + TOP_CAP_HEIGHT
-		var bottom_cap_center_y := bottom_y - BOTTOM_CAP_HEIGHT
+		var height := bottom_y - top_y
+		if height <= 0.0:
+			return points
+
+		var cap_scale := minf(1.0, height / (TOP_CAP_HEIGHT + BOTTOM_CAP_HEIGHT))
+		var top_cap_height := TOP_CAP_HEIGHT * cap_scale
+		var bottom_cap_height := BOTTOM_CAP_HEIGHT * cap_scale
+		var top_cap_center_y := top_y + top_cap_height
+		var bottom_cap_center_y := bottom_y - bottom_cap_height
 		var top_half_width := maxf(2.0, WIDTH_TOP * 0.5 - inset)
 		var bottom_half_width := maxf(2.0, WIDTH_BOTTOM * 0.5 - inset)
 
 		for i in range(13):
 			var angle := lerpf(PI, 0.0, float(i) / 12.0)
-			points.append(Vector2(center_x + cos(angle) * top_half_width, top_cap_center_y - sin(angle) * TOP_CAP_HEIGHT))
+			points.append(Vector2(center_x + cos(angle) * top_half_width, top_cap_center_y - sin(angle) * top_cap_height))
 
 		for i in range(1, 12):
 			var t := float(i) / 12.0
@@ -86,7 +103,7 @@ class PowerMeter:
 
 		for i in range(13):
 			var angle := lerpf(0.0, PI, float(i) / 12.0)
-			points.append(Vector2(center_x + cos(angle) * bottom_half_width, bottom_cap_center_y + sin(angle) * BOTTOM_CAP_HEIGHT))
+			points.append(Vector2(center_x + cos(angle) * bottom_half_width, bottom_cap_center_y + sin(angle) * bottom_cap_height))
 
 		for i in range(11, 0, -1):
 			var t := float(i) / 12.0
@@ -97,20 +114,51 @@ class PowerMeter:
 			points.append(points[0])
 		return points
 
-	func _meter_band_polygon(top_y: float, bottom_y: float, center_x: float, outer_top_y: float, outer_bottom_y: float) -> PackedVector2Array:
-		return PackedVector2Array([
-			Vector2(center_x - _half_width_at_y(bottom_y, outer_top_y, outer_bottom_y, FILL_INSET), bottom_y),
-			Vector2(center_x + _half_width_at_y(bottom_y, outer_top_y, outer_bottom_y, FILL_INSET), bottom_y),
-			Vector2(center_x + _half_width_at_y(top_y, outer_top_y, outer_bottom_y, FILL_INSET), top_y),
-			Vector2(center_x - _half_width_at_y(top_y, outer_top_y, outer_bottom_y, FILL_INSET), top_y)
-		])
-
 	func _half_width_at_y(y: float, top_y: float, bottom_y: float, inset: float) -> float:
 		var t := clampf((y - top_y) / (bottom_y - top_y), 0.0, 1.0)
 		return _half_width_at_t(t, inset)
 
 	func _half_width_at_t(t: float, inset: float) -> float:
 		return maxf(2.0, lerpf(WIDTH_TOP, WIDTH_BOTTOM, t) * 0.5 - inset)
+
+	func _meter_partial_fill_polygon(fill_top: float, fill_bottom: float, center_x: float, inner_top: float, inner_bottom: float) -> PackedVector2Array:
+		var points := PackedVector2Array()
+		var fill_height := fill_bottom - fill_top
+		if fill_height <= 0.0:
+			return points
+
+		var top_cap_height := minf(10.0, fill_height * 0.45)
+		var top_cap_center_y := fill_top + top_cap_height
+		var top_cap_half_width := _half_width_at_y(top_cap_center_y, inner_top, inner_bottom, FILL_INSET)
+		var bottom_cap_height := minf(BOTTOM_CAP_HEIGHT, fill_height * 0.45)
+		var bottom_cap_center_y := fill_bottom - bottom_cap_height
+		var bottom_cap_half_width := _half_width_at_y(bottom_cap_center_y, inner_top, inner_bottom, FILL_INSET)
+
+		for i in range(13):
+			var angle := lerpf(PI, 0.0, float(i) / 12.0)
+			points.append(Vector2(center_x + cos(angle) * top_cap_half_width, top_cap_center_y - sin(angle) * top_cap_height))
+
+		for i in range(1, 13):
+			var t := float(i) / 12.0
+			var y := lerpf(top_cap_center_y, bottom_cap_center_y, t)
+			points.append(Vector2(center_x + _half_width_at_y(y, inner_top, inner_bottom, FILL_INSET), y))
+
+		for i in range(13):
+			var angle := lerpf(0.0, PI, float(i) / 12.0)
+			points.append(Vector2(center_x + cos(angle) * bottom_cap_half_width, bottom_cap_center_y + sin(angle) * bottom_cap_height))
+
+		for i in range(12, 0, -1):
+			var t := float(i) / 12.0
+			var y := lerpf(top_cap_center_y, bottom_cap_center_y, t)
+			points.append(Vector2(center_x - _half_width_at_y(y, inner_top, inner_bottom, FILL_INSET), y))
+		return points
+
+	func _meter_vertex_colors(points: PackedVector2Array, top_y: float, bottom_y: float) -> PackedColorArray:
+		var colors := PackedColorArray()
+		for point in points:
+			var color_power := 1.0 - ((point.y - top_y) / (bottom_y - top_y))
+			colors.append(LOW_COLOR.lerp(HIGH_COLOR, clampf(color_power, 0.0, 1.0)))
+		return colors
 
 const SHOP_CARDS := [
 	{
@@ -494,12 +542,17 @@ func _create_hole_depth_visual(pos: Vector2) -> void:
 		Color(0.06, 0.12, 0.065, 0.78),
 		Color(0.02, 0.018, 0.015, 1.0)
 	]
-	var ring_radii := [36.0, 31.0, 26.0, 22.0]
+	var ring_sizes := [
+		Vector2(44.0, 28.0),
+		Vector2(38.0, 24.0),
+		Vector2(32.0, 20.0),
+		Vector2(27.0, 17.0)
+	]
 
-	for i in range(ring_radii.size()):
+	for i in range(ring_sizes.size()):
 		var ring := Polygon2D.new()
 		ring.position = pos
-		ring.polygon = _circle_polygon(ring_radii[i])
+		ring.polygon = _ellipse_polygon(ring_sizes[i])
 		ring.color = ring_colors[i]
 		level_root.add_child(ring)
 
@@ -990,6 +1043,14 @@ func _circle_polygon(radius: float, segments := 32) -> PackedVector2Array:
 	for i in range(segments):
 		var angle := TAU * float(i) / float(segments)
 		points.append(Vector2(cos(angle), sin(angle)) * radius)
+	return points
+
+
+func _ellipse_polygon(radii: Vector2, segments := 32) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i in range(segments):
+		var angle := TAU * float(i) / float(segments)
+		points.append(Vector2(cos(angle) * radii.x, sin(angle) * radii.y))
 	return points
 
 
