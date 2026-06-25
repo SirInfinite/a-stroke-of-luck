@@ -35,6 +35,9 @@ var stopped_frames := 0
 var keyboard_active := false
 var keyboard_direction := Vector2.RIGHT
 var keyboard_power := 0.35
+var impulse_multiplier := 1.0
+var drag_multiplier := 1.0
+var trajectory_dot_bonus := 0
 
 
 func _ready() -> void:
@@ -100,6 +103,13 @@ func shoot(impulse: Vector2) -> void:
 	stopped_frames = 0
 	sleeping = false
 	apply_central_impulse(impulse)
+
+
+func apply_card_modifiers(new_impulse_multiplier: float, new_drag_multiplier: float, new_trajectory_dot_bonus: int) -> void:
+	impulse_multiplier = maxf(new_impulse_multiplier, 0.2)
+	drag_multiplier = maxf(new_drag_multiplier, 0.35)
+	trajectory_dot_bonus = maxi(new_trajectory_dot_bonus, -trajectory_dot_count + 2)
+	_create_trajectory_preview()
 
 
 func reset_to(new_position: Vector2) -> void:
@@ -176,7 +186,7 @@ func can_shoot() -> bool:
 
 func get_aim_power() -> float:
 	if selected:
-		return clampf(_shot_impulse().length() / max_impulse, 0.0, 1.0)
+		return clampf(_shot_impulse().length() / _effective_max_impulse(), 0.0, 1.0)
 	if keyboard_active and can_shoot():
 		return keyboard_power
 	return 0.0
@@ -201,15 +211,15 @@ func has_active_aim() -> bool:
 
 func _shot_impulse() -> Vector2:
 	var drag := global_position - get_global_mouse_position()
-	return (drag.limit_length(max_drag_distance) * power_scale).limit_length(max_impulse)
+	return (drag.limit_length(_effective_max_drag_distance()) * power_scale).limit_length(_effective_max_impulse())
 
 
 func _keyboard_shot_impulse() -> Vector2:
-	return keyboard_direction * keyboard_power * max_impulse
+	return keyboard_direction * keyboard_power * _effective_max_impulse()
 
 
 func _drag_vector() -> Vector2:
-	return (get_global_mouse_position() - global_position).limit_length(max_drag_distance)
+	return (get_global_mouse_position() - global_position).limit_length(_effective_max_drag_distance())
 
 
 func _select_if_mouse_is_on_ball() -> void:
@@ -238,13 +248,13 @@ func _update_previews() -> void:
 	if selected:
 		_update_shot_previews(_drag_vector(), _shot_impulse())
 	elif keyboard_active and can_shoot():
-		_update_shot_previews(-keyboard_direction * keyboard_power * max_drag_distance, _keyboard_shot_impulse())
+		_update_shot_previews(-keyboard_direction * keyboard_power * _effective_max_drag_distance(), _keyboard_shot_impulse())
 	else:
 		_hide_previews()
 
 
 func _update_shot_previews(power_line: Vector2, impulse: Vector2) -> void:
-	var power: float = clampf(impulse.length() / max_impulse, 0.0, 1.0)
+	var power: float = clampf(impulse.length() / _effective_max_impulse(), 0.0, 1.0)
 	var power_color := POWER_LOW_COLOR.lerp(POWER_HIGH_COLOR, power)
 
 	aim_line.global_position = Vector2.ZERO
@@ -257,7 +267,10 @@ func _update_shot_previews(power_line: Vector2, impulse: Vector2) -> void:
 
 
 func _create_trajectory_preview() -> void:
-	for i in range(trajectory_dot_count):
+	for child in trajectory_preview.get_children():
+		child.free()
+
+	for i in range(_effective_trajectory_dot_count()):
 		var dot := Polygon2D.new()
 		dot.name = "Dot%d" % [i + 1]
 		dot.polygon = _circle_polygon(trajectory_dot_radius)
@@ -281,11 +294,12 @@ func _update_trajectory_preview(impulse: Vector2, power: float) -> void:
 		return
 
 	var direction := impulse.normalized()
-	var visible_dots: int = max(2, int(round(lerpf(3.0, float(trajectory_dot_count), power))))
+	var dot_count := _effective_trajectory_dot_count()
+	var visible_dots: int = max(2, int(round(lerpf(3.0, float(dot_count), power))))
 	trajectory_preview.global_position = Vector2.ZERO
 	trajectory_preview.visible = true
 
-	for i in range(trajectory_dot_count):
+	for i in range(dot_count):
 		var dot := trajectory_preview.get_node("Dot%d" % [i + 1]) as Polygon2D
 		dot.visible = i < visible_dots
 		dot.position = global_position + direction * trajectory_dot_spacing * float(i + 1)
@@ -305,6 +319,18 @@ func _hide_previews() -> void:
 
 func _is_stopped() -> bool:
 	return linear_velocity.length() <= stopped_speed and absf(angular_velocity) <= stopped_angular_speed
+
+
+func _effective_max_impulse() -> float:
+	return max_impulse * impulse_multiplier
+
+
+func _effective_max_drag_distance() -> float:
+	return max_drag_distance * drag_multiplier
+
+
+func _effective_trajectory_dot_count() -> int:
+	return maxi(2, trajectory_dot_count + trajectory_dot_bonus)
 
 
 func _finish_shot() -> void:
