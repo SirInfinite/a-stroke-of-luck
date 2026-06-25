@@ -1,0 +1,97 @@
+[gd_scene format=3 uid="uid://cd5fyco2x88lx"]
+
+[ext_resource type="Script" uid="uid://1cvckvkl7ay2" path="res://scripts/golf_ball.gd" id="1_s1xsf"]
+
+[sub_resource type="PhysicsMaterial" id="PhysicsMaterial_70p3a"]
+friction = 0.4
+rough = true
+bounce = 0.35
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_h2yge"]
+radius = 12.0
+
+[sub_resource type="Curve" id="Curve_f6b3g"]
+_data = [Vector2(0, 1), 0.0, 0.0, 0, 0, Vector2(1, 1), 0.0, 0.0, 0, 0]
+point_count = 2
+
+[node name="GolfBall" type="RigidBody2D" unique_id=397104181]
+physics_material_override = SubResource("PhysicsMaterial_70p3a")
+gravity_scale = 0.0
+linear_damp = 1.2
+angular_damp = 2.0
+script = ExtResource("1_s1xsf")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=303948608]
+shape = SubResource("CircleShape2D_h2yge")
+
+[node name="BallSprite" type="Polygon2D" parent="." unique_id=1831362113]
+color = Color(0.92, 0.94, 0.96, 1)
+polygon = PackedVector2Array(12, 0, 10.3923, 6, 6, 10.3923, 0, 12, -6, 10.3923, -10.3923, 6, -12, 0, -10.3923, -6, -6, -10.3923, 0, -12, 6, -10.3923, 10.3923, -6)
+
+[node name="Dimple1" type="Polygon2D" parent="." unique_id=69467834]
+position = Vector2(-5, -1)
+color = Color(0.45, 0.48, 0.52, 0.5)
+polygon = PackedVector2Array(1.4, 0, 0.7, 1.21244, -0.7, 1.21244, -1.4, 0, -0.7, -1.21244, 0.7, -1.21244)
+
+[node name="Dimple2" type="Polygon2D" parent="." unique_id=1049545192]
+position = Vector2(0, -5)
+color = Color(0.45, 0.48, 0.52, 0.45)
+polygon = PackedVector2Array(1.2, 0, 0.6, 1.03923, -0.6, 1.03923, -1.2, 0, -0.6, -1.03923, 0.6, -1.03923)
+
+[node name="Dimple3" type="Polygon2D" parent="." unique_id=982046262]
+position = Vector2(5, -1)
+color = Color(0.45, 0.48, 0.52, 0.5)
+polygon = PackedVector2Array(1.4, 0, 0.7, 1.21244, -0.7, 1.21244, -1.4, 0, -0.7, -1.21244, 0.7, -1.21244)
+
+[node name="Dimple4" type="Polygon2D" parent="." unique_id=898050637]
+position = Vector2(-2, 4)
+color = Color(0.45, 0.48, 0.52, 0.45)
+polygon = PackedVector2Array(1.25, 0, 0.625, 1.08253, -0.625, 1.08253, -1.25, 0, -0.625, -1.08253, 0.625, -1.08253)
+
+[node name="Dimple5" type="Polygon2D" parent="." unique_id=1298714775]
+position = Vector2(4, 5)
+color = Color(0.45, 0.48, 0.52, 0.42)
+polygon = PackedVector2Array(1.1, 0, 0.55, 0.95263, -0.55, 0.95263, -1.1, 0, -0.55, -0.95263, 0.55, -0.95263)
+
+[node name="Dimple6" type="Polygon2D" parent="." unique_id=601946926]
+position = Vector2(-7, 5)
+color = Color(0.45, 0.48, 0.52, 0.35)
+polygon = PackedVector2Array(1, 0, 0.5, 0.86603, -0.5, 0.86603, -1, 0, -0.5, -0.86603, 0.5, -0.86603)
+
+[node name="Dimple7" type="Polygon2D" parent="." unique_id=224826132]
+position = Vector2(7, -6)
+color = Color(0.45, 0.48, 0.52, 0.35)
+polygon = PackedVector2Array(1, 0, 0.5, 0.86603, -0.5, 0.86603, -1, 0, -0.5, -0.86603, 0.5, -0.86603)
+
+[node name="Dimple8" type="Polygon2D" parent="." unique_id=518657625]
+position = Vector2(-2, 8)
+color = Color(0.45, 0.48, 0.52, 0.35)
+polygon = PackedVector2Array(1, 0, 0.5, 0.86603, -0.5, 0.86603, -1, 0, -0.5, -0.86603, 0.5, -0.86603)
+
+[node name="Dimple9" type="Polygon2D" parent="." unique_id=1742436895]
+position = Vector2(-5, -7)
+color = Color(0.45, 0.48, 0.52, 0.5)
+polygon = PackedVector2Array(1.4, 0, 0.7, 1.21244, -0.7, 1.21244, -1.4, 0, -0.7, -1.21244, 0.7, -1.21244)
+
+[node name="Dimple10" type="Polygon2D" parent="." unique_id=1277805456]
+position = Vector2(3, -8)
+color = Color(0.45, 0.48, 0.52, 0.45)
+polygon = PackedVector2Array(1.25, 0, 0.625, 1.08253, -0.625, 1.08253, -1.25, 0, -0.625, -1.08253, 0.625, -1.08253)
+
+[node name="Highlight" type="Polygon2D" parent="." unique_id=1336304408]
+position = Vector2(-3, -4)
+color = Color(1, 1, 1, 0.8)
+polygon = PackedVector2Array(4, 0, 3.4641, 2, 2, 3.4641, 0, 4, -2, 3.4641, -3.4641, 2, -4, 0, -3.4641, -2, -2, -3.4641, 0, -4, 2, -3.4641, 3.4641, -2)
+
+[node name="AimLine" type="Line2D" parent="." unique_id=718604594]
+visible = false
+width = 6.0
+width_curve = SubResource("Curve_f6b3g")
+default_color = Color(1, 0.95, 0.45, 0.85)
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="TrajectoryPreview" type="Node2D" parent="." unique_id=270359343]
+visible = false
+
+[connection signal="input_event" from="." to="." method="_on_input_event"]
