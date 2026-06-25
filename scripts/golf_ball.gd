@@ -5,7 +5,6 @@ signal sink_animation_finished
 signal hazard_sink_finished
 
 @export var max_impulse := 900.0
-@export var power_scale := 4.5
 @export var max_drag_distance := 180.0
 @export var drag_pick_radius := 18.0
 @export var trajectory_dot_count := 12
@@ -211,7 +210,8 @@ func has_active_aim() -> bool:
 
 func _shot_impulse() -> Vector2:
 	var drag := global_position - get_global_mouse_position()
-	return (drag.limit_length(_effective_max_drag_distance()) * power_scale).limit_length(_effective_max_impulse())
+	var drag_power := drag.limit_length(_effective_max_drag_distance()) / _effective_max_drag_distance()
+	return drag_power * _effective_max_impulse()
 
 
 func _keyboard_shot_impulse() -> Vector2:

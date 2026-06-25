@@ -20,6 +20,98 @@ const SHOP_BOUNCE_OVERSHOOT_OFFSET := Vector2(0.0, -34.0)
 const SHOP_BOUNCE_RISE_DURATION := 0.2
 const SHOP_BOUNCE_SETTLE_DURATION := 0.45
 
+class PowerMeter:
+	extends Control
+
+	const WIDTH_TOP := 44.0
+	const WIDTH_BOTTOM := 18.0
+	const TOP_CAP_HEIGHT := 20.0
+	const BOTTOM_CAP_HEIGHT := 10.0
+	const FILL_INSET := 5.0
+	const FILL_STEPS := 36
+	const LOW_COLOR := Color(1.0, 0.9, 0.08, 0.95)
+	const HIGH_COLOR := Color(1.0, 0.08, 0.02, 0.98)
+	const TRACK_COLOR := Color(0.08, 0.075, 0.055, 0.72)
+	const OUTLINE_COLOR := Color(0.03, 0.025, 0.018, 0.95)
+
+	var power := 0.0
+
+	func _init() -> void:
+		custom_minimum_size = Vector2(64.0, 170.0)
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	func set_power(new_power: float) -> void:
+		power = clampf(new_power, 0.0, 1.0)
+		queue_redraw()
+
+	func _draw() -> void:
+		var rect := Rect2(Vector2.ZERO, size)
+		var top_y := 4.0
+		var bottom_y := rect.size.y - 4.0
+		var center_x := rect.size.x * 0.5
+
+		draw_colored_polygon(_meter_polygon(top_y, bottom_y, center_x), OUTLINE_COLOR)
+		draw_colored_polygon(_meter_polygon(top_y + 2.0, bottom_y - 2.0, center_x, 2.0), TRACK_COLOR)
+		_draw_fill(top_y, bottom_y, center_x)
+
+	func _draw_fill(top_y: float, bottom_y: float, center_x: float) -> void:
+		if power <= 0.0:
+			return
+
+		var fill_top := lerpf(bottom_y - FILL_INSET, top_y + FILL_INSET, power)
+		var fill_bottom := bottom_y - FILL_INSET
+		var fill_height := fill_bottom - fill_top
+		for i in range(FILL_STEPS):
+			var step_bottom := fill_bottom - fill_height * float(i) / float(FILL_STEPS)
+			var step_top := fill_bottom - fill_height * float(i + 1) / float(FILL_STEPS)
+			var color_power := 1.0 - ((step_top - top_y) / (bottom_y - top_y))
+			var color := LOW_COLOR.lerp(HIGH_COLOR, clampf(color_power, 0.0, 1.0))
+			draw_colored_polygon(_meter_band_polygon(step_top, step_bottom, center_x, top_y, bottom_y), color)
+
+	func _meter_polygon(top_y: float, bottom_y: float, center_x: float, inset := 0.0, closed := false) -> PackedVector2Array:
+		var points := PackedVector2Array()
+		var top_cap_center_y := top_y + TOP_CAP_HEIGHT
+		var bottom_cap_center_y := bottom_y - BOTTOM_CAP_HEIGHT
+		var top_half_width := maxf(2.0, WIDTH_TOP * 0.5 - inset)
+		var bottom_half_width := maxf(2.0, WIDTH_BOTTOM * 0.5 - inset)
+
+		for i in range(13):
+			var angle := lerpf(PI, 0.0, float(i) / 12.0)
+			points.append(Vector2(center_x + cos(angle) * top_half_width, top_cap_center_y - sin(angle) * TOP_CAP_HEIGHT))
+
+		for i in range(1, 12):
+			var t := float(i) / 12.0
+			var y := lerpf(top_cap_center_y, bottom_cap_center_y, t)
+			points.append(Vector2(center_x + _half_width_at_t(t, inset), y))
+
+		for i in range(13):
+			var angle := lerpf(0.0, PI, float(i) / 12.0)
+			points.append(Vector2(center_x + cos(angle) * bottom_half_width, bottom_cap_center_y + sin(angle) * BOTTOM_CAP_HEIGHT))
+
+		for i in range(11, 0, -1):
+			var t := float(i) / 12.0
+			var y := lerpf(top_cap_center_y, bottom_cap_center_y, t)
+			points.append(Vector2(center_x - _half_width_at_t(t, inset), y))
+
+		if closed:
+			points.append(points[0])
+		return points
+
+	func _meter_band_polygon(top_y: float, bottom_y: float, center_x: float, outer_top_y: float, outer_bottom_y: float) -> PackedVector2Array:
+		return PackedVector2Array([
+			Vector2(center_x - _half_width_at_y(bottom_y, outer_top_y, outer_bottom_y, FILL_INSET), bottom_y),
+			Vector2(center_x + _half_width_at_y(bottom_y, outer_top_y, outer_bottom_y, FILL_INSET), bottom_y),
+			Vector2(center_x + _half_width_at_y(top_y, outer_top_y, outer_bottom_y, FILL_INSET), top_y),
+			Vector2(center_x - _half_width_at_y(top_y, outer_top_y, outer_bottom_y, FILL_INSET), top_y)
+		])
+
+	func _half_width_at_y(y: float, top_y: float, bottom_y: float, inset: float) -> float:
+		var t := clampf((y - top_y) / (bottom_y - top_y), 0.0, 1.0)
+		return _half_width_at_t(t, inset)
+
+	func _half_width_at_t(t: float, inset: float) -> float:
+		return maxf(2.0, lerpf(WIDTH_TOP, WIDTH_BOTTOM, t) * 0.5 - inset)
+
 const SHOP_CARDS := [
 	{
 		"name": "Overdrive Driver",
@@ -87,10 +179,10 @@ const LEVELS := [
 		"hole_cell": Vector2i(8, 4),
 		"par": 3,
 		"hazards": [
-			{"type": "sand", "pos": Vector2(-180.0, -40.0), "size": Vector2(160.0, 120.0)}
+			{"type": "sand", "pos": Vector2(-200.0, -50.0), "size": Vector2(200.0, 100.0)}
 		],
 		"obstacles": [
-			{"pos": Vector2(0.0, 0.0), "size": Vector2(45.0, 320.0)}
+			{"pos": Vector2(0.0, 0.0), "size": Vector2(WALL_THICKNESS, 300.0)}
 		]
 	},
 	{
@@ -106,11 +198,11 @@ const LEVELS := [
 		"hole_cell": Vector2i(8, 1),
 		"par": 4,
 		"hazards": [
-			{"type": "water", "pos": Vector2(0.0, 0.0), "size": Vector2(180.0, 140.0)}
+			{"type": "water", "pos": Vector2(0.0, 0.0), "size": Vector2(200.0, 200.0)}
 		],
 		"obstacles": [
-			{"pos": Vector2(-140.0, 20.0), "size": Vector2(45.0, 320.0)},
-			{"pos": Vector2(140.0, -20.0), "size": Vector2(45.0, 320.0)}
+			{"pos": Vector2(-150.0, 0.0), "size": Vector2(WALL_THICKNESS, 300.0)},
+			{"pos": Vector2(150.0, 0.0), "size": Vector2(WALL_THICKNESS, 300.0)}
 		]
 	},
 	{
@@ -126,12 +218,12 @@ const LEVELS := [
 		"hole_cell": Vector2i(9, 3),
 		"par": 4,
 		"hazards": [
-			{"type": "direction", "pos": Vector2(-240.0, 0.0), "size": Vector2(110.0, 90.0), "direction": Vector2.RIGHT},
-			{"type": "sand", "pos": Vector2(220.0, -120.0), "size": Vector2(150.0, 110.0)}
+			{"type": "direction", "pos": Vector2(-250.0, 50.0), "size": Vector2(100.0, 100.0), "direction": Vector2.RIGHT},
+			{"type": "sand", "pos": Vector2(250.0, -50.0), "size": Vector2(100.0, 100.0)}
 		],
 		"obstacles": [
-			{"pos": Vector2(-80.0, -140.0), "size": Vector2(260.0, 45.0)},
-			{"pos": Vector2(80.0, 140.0), "size": Vector2(260.0, 45.0)}
+			{"pos": Vector2(-100.0, -150.0), "size": Vector2(300.0, WALL_THICKNESS)},
+			{"pos": Vector2(100.0, 150.0), "size": Vector2(300.0, WALL_THICKNESS)}
 		]
 	},
 	{
@@ -147,14 +239,14 @@ const LEVELS := [
 		"hole_cell": Vector2i(9, 5),
 		"par": 5,
 		"hazards": [
-			{"type": "water", "pos": Vector2(-260.0, 40.0), "size": Vector2(160.0, 130.0)},
-			{"type": "direction", "pos": Vector2(0.0, -150.0), "size": Vector2(120.0, 90.0), "direction": Vector2.DOWN},
-			{"type": "direction", "pos": Vector2(260.0, 70.0), "size": Vector2(120.0, 90.0), "direction": Vector2.RIGHT}
+			{"type": "water", "pos": Vector2(-50.0, 50.0), "size": Vector2(100.0, 100.0)},
+			{"type": "direction", "pos": Vector2(50.0, -50.0), "size": Vector2(100.0, 100.0), "direction": Vector2.DOWN},
+			{"type": "direction", "pos": Vector2(250.0, 50.0), "size": Vector2(100.0, 100.0), "direction": Vector2.RIGHT}
 		],
 		"obstacles": [
-			{"pos": Vector2(-160.0, -60.0), "size": Vector2(45.0, 300.0)},
-			{"pos": Vector2(20.0, 80.0), "size": Vector2(45.0, 300.0)},
-			{"pos": Vector2(200.0, -60.0), "size": Vector2(45.0, 300.0)}
+			{"pos": Vector2(-150.0, -50.0), "size": Vector2(WALL_THICKNESS, 300.0)},
+			{"pos": Vector2(50.0, 50.0), "size": Vector2(WALL_THICKNESS, 300.0)},
+			{"pos": Vector2(250.0, -50.0), "size": Vector2(WALL_THICKNESS, 300.0)}
 		]
 	}
 ]
@@ -179,7 +271,10 @@ var tokens_label: Label
 var obstacles_label: Label
 var aim_label: Label
 var cards_label: Label
-var power_meter: ProgressBar
+var power_debug_label: Label
+var debug_hud: VBoxContainer
+var debug_visible := true
+var power_meter: PowerMeter
 var loading_next_level := false
 var shop_overlay: Control
 var shop_tokens_label: Label
@@ -220,6 +315,8 @@ func _physics_process(_delta: float) -> void:
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("reset_level"):
 		_reset_current_level()
+	if event.is_action_pressed("toggle_debug"):
+		_toggle_debug_hud()
 
 
 func _create_world() -> void:
@@ -237,30 +334,28 @@ func _create_world() -> void:
 	var canvas_layer := CanvasLayer.new()
 	add_child(canvas_layer)
 
-	var hud := VBoxContainer.new()
-	hud.position = Vector2(16, 16)
-	hud.custom_minimum_size = Vector2(260, 0)
-	canvas_layer.add_child(hud)
+	debug_hud = VBoxContainer.new()
+	debug_hud.position = Vector2(16, 16)
+	debug_hud.custom_minimum_size = Vector2(260, 0)
+	canvas_layer.add_child(debug_hud)
 
-	hole_label = _create_hud_label(hud)
-	stroke_label = _create_hud_label(hud)
-	par_label = _create_hud_label(hud)
-	timer_label = _create_hud_label(hud)
-	tokens_label = _create_hud_label(hud)
-	obstacles_label = _create_hud_label(hud)
-	aim_label = _create_hud_label(hud)
-	cards_label = _create_hud_label(hud)
+	hole_label = _create_hud_label(debug_hud)
+	stroke_label = _create_hud_label(debug_hud)
+	par_label = _create_hud_label(debug_hud)
+	timer_label = _create_hud_label(debug_hud)
+	tokens_label = _create_hud_label(debug_hud)
+	obstacles_label = _create_hud_label(debug_hud)
+	aim_label = _create_hud_label(debug_hud)
+	cards_label = _create_hud_label(debug_hud)
+	power_debug_label = _create_hud_label(debug_hud)
 
-	var power_label := _create_hud_label(hud)
-	power_label.text = "Power"
-
-	power_meter = ProgressBar.new()
-	power_meter.min_value = 0.0
-	power_meter.max_value = 100.0
-	power_meter.value = 0.0
-	power_meter.show_percentage = true
-	power_meter.custom_minimum_size = Vector2(220, 18)
-	hud.add_child(power_meter)
+	power_meter = PowerMeter.new()
+	power_meter.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	power_meter.offset_left = 16.0
+	power_meter.offset_top = -186.0
+	power_meter.offset_right = 80.0
+	power_meter.offset_bottom = -16.0
+	canvas_layer.add_child(power_meter)
 
 	_create_shop_overlay(canvas_layer)
 	_center_camera_on_ball()
@@ -288,7 +383,7 @@ func _load_level(next_index: int) -> void:
 	_create_hazards(level)
 
 	for obstacle in level.obstacles:
-		_create_box(obstacle.pos, obstacle.size, Color(0.45, 0.5, 0.55))
+		_create_box(obstacle.pos, obstacle.size, BORDER_BROWN)
 
 	ball.reset_to(start_position)
 	_update_status()
@@ -325,17 +420,37 @@ func _create_floor(level: Dictionary) -> void:
 
 func _create_bounds(level: Dictionary) -> void:
 	var directions := [
-		{"cell": Vector2i(0, -1), "offset": Vector2(0.0, -GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0), "size": Vector2(GRID_CELL_SIZE + WALL_THICKNESS * 2.0, WALL_THICKNESS)},
-		{"cell": Vector2i(1, 0), "offset": Vector2(GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0, 0.0), "size": Vector2(WALL_THICKNESS, GRID_CELL_SIZE + WALL_THICKNESS * 2.0)},
-		{"cell": Vector2i(0, 1), "offset": Vector2(0.0, GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0), "size": Vector2(GRID_CELL_SIZE + WALL_THICKNESS * 2.0, WALL_THICKNESS)},
-		{"cell": Vector2i(-1, 0), "offset": Vector2(-GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0, 0.0), "size": Vector2(WALL_THICKNESS, GRID_CELL_SIZE + WALL_THICKNESS * 2.0)}
+		{"cell": Vector2i(0, -1), "offset": Vector2(0.0, -GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0), "size": Vector2(GRID_CELL_SIZE, WALL_THICKNESS)},
+		{"cell": Vector2i(1, 0), "offset": Vector2(GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0, 0.0), "size": Vector2(WALL_THICKNESS, GRID_CELL_SIZE)},
+		{"cell": Vector2i(0, 1), "offset": Vector2(0.0, GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0), "size": Vector2(GRID_CELL_SIZE, WALL_THICKNESS)},
+		{"cell": Vector2i(-1, 0), "offset": Vector2(-GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0, 0.0), "size": Vector2(WALL_THICKNESS, GRID_CELL_SIZE)}
 	]
+	var corners := [
+		{"side_a": Vector2i(0, -1), "side_b": Vector2i(-1, 0), "offset": Vector2(-GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0, -GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0)},
+		{"side_a": Vector2i(0, -1), "side_b": Vector2i(1, 0), "offset": Vector2(GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0, -GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0)},
+		{"side_a": Vector2i(0, 1), "side_b": Vector2i(1, 0), "offset": Vector2(GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0, GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0)},
+		{"side_a": Vector2i(0, 1), "side_b": Vector2i(-1, 0), "offset": Vector2(-GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0, GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0)}
+	]
+	var created_corners := {}
 
 	for cell in _playable_cells(level):
+		var cell_center := _cell_to_world(level, cell)
 		for direction in directions:
 			var neighbor: Vector2i = cell + direction.cell
 			if not _is_playable_cell(level, neighbor):
-				_create_box(_cell_to_world(level, cell) + direction.offset, direction.size, BORDER_BROWN)
+				_create_box(cell_center + direction.offset, direction.size, BORDER_BROWN)
+
+		for corner in corners:
+			if _is_playable_cell(level, cell + corner.side_a) or _is_playable_cell(level, cell + corner.side_b):
+				continue
+
+			var corner_position: Vector2 = cell_center + corner.offset
+			var corner_key := "%d,%d" % [roundi(corner_position.x), roundi(corner_position.y)]
+			if created_corners.has(corner_key):
+				continue
+
+			created_corners[corner_key] = true
+			_create_box(corner_position, Vector2(WALL_THICKNESS, WALL_THICKNESS), BORDER_BROWN)
 
 
 func _create_box(pos: Vector2, size: Vector2, color: Color) -> void:
@@ -356,11 +471,8 @@ func _create_box(pos: Vector2, size: Vector2, color: Color) -> void:
 
 
 func _create_hole(pos: Vector2) -> void:
-	var marker := Polygon2D.new()
-	marker.position = pos
-	marker.polygon = _circle_polygon(22.0)
-	marker.color = Color(0.02, 0.018, 0.015)
-	level_root.add_child(marker)
+	_create_hole_depth_visual(pos)
+	_create_hole_flag(pos)
 
 	var area := Area2D.new()
 	area.name = "Hole"
@@ -375,8 +487,63 @@ func _create_hole(pos: Vector2) -> void:
 	area.add_child(collision)
 
 
+func _create_hole_depth_visual(pos: Vector2) -> void:
+	var ring_colors := [
+		Color(GREEN_DARK.r, GREEN_DARK.g, GREEN_DARK.b, 0.15),
+		Color(0.13, 0.28, 0.14, 0.45),
+		Color(0.06, 0.12, 0.065, 0.78),
+		Color(0.02, 0.018, 0.015, 1.0)
+	]
+	var ring_radii := [36.0, 31.0, 26.0, 22.0]
+
+	for i in range(ring_radii.size()):
+		var ring := Polygon2D.new()
+		ring.position = pos
+		ring.polygon = _circle_polygon(ring_radii[i])
+		ring.color = ring_colors[i]
+		level_root.add_child(ring)
+
+
+func _create_hole_flag(pos: Vector2) -> void:
+	var flag_root := Node2D.new()
+	flag_root.position = pos
+	level_root.add_child(flag_root)
+
+	var segment_height := 14.0
+	var stem_top := -78.0
+	var stem_bottom := -8.0
+	var segment_index := 0
+	for y in range(int(stem_bottom), int(stem_top), -int(segment_height)):
+		var next_y := maxf(float(y) - segment_height, stem_top)
+		var segment := Line2D.new()
+		segment.width = 4.0
+		segment.default_color = Color.WHITE if segment_index % 2 == 0 else Color(0.85, 0.05, 0.04)
+		segment.points = PackedVector2Array([Vector2(0.0, float(y)), Vector2(0.0, next_y)])
+		flag_root.add_child(segment)
+		segment_index += 1
+
+	var flag := Polygon2D.new()
+	flag.polygon = PackedVector2Array([
+		Vector2(0.0, stem_top),
+		Vector2(48.0, stem_top + 13.0),
+		Vector2(0.0, stem_top + 26.0)
+	])
+	flag.color = Color(0.9, 0.03, 0.03)
+	flag_root.add_child(flag)
+
+	var separator := Line2D.new()
+	separator.width = 3.0
+	separator.default_color = Color(0.32, 0.0, 0.0)
+	separator.points = PackedVector2Array([Vector2(0.0, stem_top), Vector2(0.0, stem_top + 26.0)])
+	flag_root.add_child(separator)
+
+
 func _create_hazards(level: Dictionary) -> void:
 	for hazard in level.hazards:
+		if not _hazard_fits_playable_map(level, hazard):
+			push_warning("Skipping %s hazard because it does not fit the playable grid." % hazard.get("type", "unknown"))
+			continue
+
 		match hazard.type:
 			"sand":
 				_create_sand_tile(hazard.pos, hazard.size)
@@ -535,8 +702,16 @@ func _update_status() -> void:
 	tokens_label.text = "Tokens: %d" % tokens
 	obstacles_label.text = "Obstacles: %s" % _obstacle_summary(level)
 	cards_label.text = "Cards: %s" % _cards_summary()
-	power_meter.value = ball.get_aim_power() * 100.0 if ball else 0.0
+	var aim_power: float = ball.get_aim_power() if ball else 0.0
+	power_meter.set_power(aim_power)
+	power_debug_label.text = "Power: %d%%" % roundi(aim_power * 100.0)
 	aim_label.text = "Aim: %.0f deg" % ball.get_aim_direction_degrees() if ball and ball.has_active_aim() else "Aim: none"
+
+
+func _toggle_debug_hud() -> void:
+	debug_visible = not debug_visible
+	if debug_hud:
+		debug_hud.visible = debug_visible
 
 
 func _create_hud_label(parent: Control) -> Label:
@@ -590,15 +765,62 @@ func _is_playable_cell(level: Dictionary, cell: Vector2i) -> bool:
 	return row[cell.x] != " "
 
 
+func _hazard_fits_playable_map(level: Dictionary, hazard: Dictionary) -> bool:
+	if not hazard.has("pos") or not hazard.has("size"):
+		return false
+
+	var size: Vector2 = hazard.size
+	if size.x <= 0.0 or size.y <= 0.0:
+		return false
+
+	var rect := Rect2(hazard.pos - size / 2.0, size)
+	var top_left := _map_top_left(level)
+	if not _rect_aligns_to_grid(rect, top_left):
+		return false
+
+	var min_cell := Vector2i(
+		floori((rect.position.x - top_left.x) / GRID_CELL_SIZE),
+		floori((rect.position.y - top_left.y) / GRID_CELL_SIZE)
+	)
+	var max_cell := Vector2i(
+		floori((rect.end.x - top_left.x - 0.001) / GRID_CELL_SIZE),
+		floori((rect.end.y - top_left.y - 0.001) / GRID_CELL_SIZE)
+	)
+
+	for y in range(min_cell.y, max_cell.y + 1):
+		for x in range(min_cell.x, max_cell.x + 1):
+			if not _is_playable_cell(level, Vector2i(x, y)):
+				return false
+
+	return true
+
+
+func _rect_aligns_to_grid(rect: Rect2, grid_origin: Vector2) -> bool:
+	return (
+		_value_aligns_to_grid(rect.position.x, grid_origin.x)
+		and _value_aligns_to_grid(rect.position.y, grid_origin.y)
+		and _value_aligns_to_grid(rect.end.x, grid_origin.x)
+		and _value_aligns_to_grid(rect.end.y, grid_origin.y)
+	)
+
+
+func _value_aligns_to_grid(value: float, origin: float) -> bool:
+	var cell_position := (value - origin) / GRID_CELL_SIZE
+	return absf(cell_position - roundf(cell_position)) < 0.001
+
+
 func _cell_to_world(level: Dictionary, cell: Vector2i) -> Vector2:
+	return _map_top_left(level) + Vector2(float(cell.x) + 0.5, float(cell.y) + 0.5) * GRID_CELL_SIZE
+
+
+func _map_top_left(level: Dictionary) -> Vector2:
 	var rows: Array = level.map
 	var columns := 0
 	for row in rows:
 		columns = maxi(columns, String(row).length())
 
 	var map_size := Vector2(float(columns), float(rows.size())) * GRID_CELL_SIZE
-	var top_left := -map_size / 2.0
-	return top_left + Vector2(float(cell.x) + 0.5, float(cell.y) + 0.5) * GRID_CELL_SIZE
+	return -map_size / 2.0
 
 
 func _token_reward_for_score(final_strokes: int, par: int) -> int:
