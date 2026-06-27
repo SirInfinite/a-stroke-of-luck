@@ -348,19 +348,27 @@ func _update_trajectory_preview(impulse: Vector2, power: float) -> void:
 
 	var direction := impulse.normalized()
 	var dot_count := _effective_trajectory_dot_count()
-	var visible_dots: int = max(2, int(round(lerpf(3.0, float(dot_count), power))))
+	var dot_progress := lerpf(3.0, float(dot_count), power)
+	var visible_dots: int = clampi(floori(dot_progress), 2, dot_count)
+	var stretch_progress := dot_progress - float(visible_dots)
+	var stretched_spacing := trajectory_dot_spacing
+	if power >= 0.995:
+		visible_dots = dot_count
+		stretch_progress = 0.0
+	elif visible_dots < dot_count:
+		stretched_spacing = lerpf(trajectory_dot_spacing, trajectory_dot_spacing * float(visible_dots + 1) / float(visible_dots), stretch_progress)
 	trajectory_preview.global_position = Vector2.ZERO
 	trajectory_preview.visible = true
 
 	for i in range(dot_count):
 		var dot := trajectory_preview.get_node("Dot%d" % [i + 1]) as Polygon2D
 		dot.visible = i < visible_dots
-		dot.position = global_position + direction * trajectory_dot_spacing * float(i + 1)
-		dot.scale = Vector2.ONE * lerp(0.75, 1.25, power)
+		dot.position = global_position + direction * stretched_spacing * float(i + 1)
+		dot.scale = Vector2.ONE
 
 	var arrow_head := trajectory_preview.get_node("ArrowHead") as Polygon2D
 	arrow_head.visible = true
-	arrow_head.position = global_position + direction * trajectory_dot_spacing * float(visible_dots + 1)
+	arrow_head.position = global_position + direction * stretched_spacing * float(visible_dots + 1)
 	arrow_head.rotation = direction.angle()
 	arrow_head.scale = Vector2.ONE * lerp(0.8, 1.15, power)
 

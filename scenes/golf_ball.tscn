@@ -20,6 +20,9 @@ gravity_scale = 0.0
 linear_damp = 1.2
 angular_damp = 2.0
 script = ExtResource("1_s1xsf")
+max_impulse = 1600.0
+trajectory_dot_count = 20
+trajectory_dot_spacing = 15.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=303948608]
 shape = SubResource("CircleShape2D_h2yge")

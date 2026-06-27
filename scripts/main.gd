@@ -4,6 +4,7 @@ const BALL_SCENE := preload("res://scenes/golf_ball.tscn")
 const LevelBuilderScript := preload("res://scripts/level_builder.gd")
 const LevelDatabase := preload("res://scripts/level_database.gd")
 const LevelValidator := preload("res://scripts/level_validator.gd")
+const RunStatsScript := preload("res://scripts/run_stats.gd")
 const ShopManagerScript := preload("res://scripts/shop_manager.gd")
 
 const STARTING_TOKENS := 2
@@ -187,6 +188,7 @@ var direction_push_modifier := 1.0
 var reward_bonus := 0
 var owned_cards: Array[String] = []
 var levels := LevelDatabase.get_levels()
+var run_stats := RunStatsScript.new()
 
 
 func _ready() -> void:
@@ -197,6 +199,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not loading_next_level:
 		level_elapsed += delta
+		run_stats.update_time(delta)
 	_center_camera_on_ball()
 	_update_status()
 
@@ -304,6 +307,9 @@ func _on_hole_body_entered(body: Node2D) -> void:
 		ball.sink_to(level_builder.level_point(level, "hole", "hole_cell"))
 		tokens += _token_reward_for_score(strokes + 1, level.par)
 		await ball.sink_animation_finished
+		if level_index == levels.size() - 1:
+			run_stats.print_summary(_total_par())
+			return
 		_show_shop(level_index + 1)
 		await shop_manager.continued
 		_load_level(level_index + 1)
@@ -313,6 +319,7 @@ func _on_sand_body_entered(body: Node2D) -> void:
 	if body != ball or hazard_resetting:
 		return
 
+	run_stats.record_hazard_entered("sand")
 	active_sand_tiles += 1
 	ball.linear_velocity *= SAND_ENTRY_SPEED_SCALE
 	ball.linear_damp = SAND_DAMP * sand_damp_modifier
@@ -331,6 +338,8 @@ func _on_water_body_entered(body: Node2D, water_position: Vector2) -> void:
 	if body != ball or hazard_resetting or loading_next_level:
 		return
 
+	run_stats.record_hazard_entered("water")
+	run_stats.record_water_reset()
 	hazard_resetting = true
 	active_sand_tiles = 0
 	active_direction_pushes.clear()
@@ -346,6 +355,7 @@ func _on_direction_body_entered(body: Node2D, area: Area2D) -> void:
 	if body != ball or hazard_resetting:
 		return
 
+	run_stats.record_hazard_entered("direction")
 	active_direction_pushes.append(area.get_meta("direction"))
 
 
@@ -359,11 +369,13 @@ func _on_direction_body_exited(body: Node2D, area: Area2D) -> void:
 func _on_ball_shot_finished() -> void:
 	strokes += 1
 	total_strokes += 1
+	run_stats.record_stroke()
 	_update_status()
 
 
 func _reset_current_level() -> void:
 	var level: Dictionary = levels[level_index]
+	run_stats.record_manual_reset()
 	_clear_hazard_effects()
 	ball.reset_to(level_builder.level_point(level, "start", "start_cell"))
 	strokes = 0
@@ -441,6 +453,13 @@ func _token_reward_for_score(final_strokes: int, par: int) -> int:
 	return reward + reward_bonus
 
 
+func _total_par() -> int:
+	var total := 0
+	for level in levels:
+		total += int(level.par)
+	return total
+
+
 func _show_shop(next_level_index: int) -> void:
 	shop_manager.show_shop(next_level_index, tokens, levels.size())
 	_update_status()
@@ -461,6 +480,7 @@ func _apply_card(card: Dictionary) -> void:
 	direction_push_modifier = maxf(0.25, direction_push_modifier + effects.get("direction", 0.0))
 	reward_bonus = maxi(0, reward_bonus + effects.get("reward", 0))
 	owned_cards.append(card.name)
+	run_stats.record_card_bought(card.name)
 	ball.apply_card_modifiers(impulse_modifier, drag_modifier, trajectory_dot_bonus)
 
 
