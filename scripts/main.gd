@@ -3,6 +3,7 @@ extends Node2D
 const BALL_SCENE := preload("res://scenes/golf_ball.tscn")
 const LevelBuilderScript := preload("res://scripts/level_builder.gd")
 const LevelDatabase := preload("res://scripts/level_database.gd")
+const LevelValidator := preload("res://scripts/level_validator.gd")
 const ShopManagerScript := preload("res://scripts/shop_manager.gd")
 
 const STARTING_TOKENS := 2
@@ -163,6 +164,7 @@ var normal_ball_linear_damp := 0.0
 var active_sand_tiles := 0
 var active_direction_pushes: Array[Vector2] = []
 var hazard_resetting := false
+var score_label: Label
 var hole_label: Label
 var stroke_label: Label
 var par_label: Label
@@ -173,7 +175,7 @@ var aim_label: Label
 var cards_label: Label
 var power_debug_label: Label
 var debug_hud: VBoxContainer
-var debug_visible := true
+var debug_visible := false
 var power_meter: PowerMeter
 var loading_next_level := false
 var shop_manager
@@ -238,9 +240,15 @@ func _create_world() -> void:
 	var canvas_layer := CanvasLayer.new()
 	add_child(canvas_layer)
 
+	score_label = Label.new()
+	score_label.position = Vector2(16, 16)
+	score_label.add_theme_font_size_override("font_size", 18)
+	canvas_layer.add_child(score_label)
+
 	debug_hud = VBoxContainer.new()
-	debug_hud.position = Vector2(16, 16)
+	debug_hud.position = Vector2(16, 46)
 	debug_hud.custom_minimum_size = Vector2(260, 0)
+	debug_hud.visible = debug_visible
 	canvas_layer.add_child(debug_hud)
 
 	hole_label = _create_hud_label(debug_hud)
@@ -279,6 +287,7 @@ func _load_level(next_index: int) -> void:
 	_clear_hazard_effects()
 
 	var level: Dictionary = levels[level_index]
+	LevelValidator.validate_level(level, level_index)
 	level_root = level_builder.build_level(level, self)
 	var start_position: Vector2 = level_builder.level_point(level, "start", "start_cell")
 	ball.reset_to(start_position)
@@ -372,6 +381,14 @@ func _clear_hazard_effects() -> void:
 
 func _update_status() -> void:
 	var level: Dictionary = levels[level_index]
+	score_label.text = "Hole: %d/%d   Strokes: %d   Total: %d   Par: %d   Tokens: %d" % [
+		level_index + 1,
+		levels.size(),
+		strokes,
+		total_strokes,
+		level.par,
+		tokens
+	]
 	hole_label.text = "Hole: %d/%d" % [level_index + 1, levels.size()]
 	stroke_label.text = "Strokes: %d  Total: %d" % [strokes, total_strokes]
 	par_label.text = "Par: %d" % level.par
@@ -458,4 +475,3 @@ func _cards_summary() -> String:
 func _center_camera_on_ball() -> void:
 	if camera and ball:
 		camera.global_position = ball.global_position
-
