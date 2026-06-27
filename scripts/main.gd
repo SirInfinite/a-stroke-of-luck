@@ -10,6 +10,9 @@ const STARTING_TOKENS := 2
 const SAND_DAMP := 12.0
 const SAND_ENTRY_SPEED_SCALE := 0.35
 const DIRECTION_PUSH_FORCE := 950.0
+const CAMERA_SHAKE_DURATION := 0.14
+const CAMERA_SHAKE_INTENSITY := 5.0
+const HOLE_COMPLETE_BANNER_DURATION := 0.9
 
 class PowerMeter:
 	extends Control
@@ -156,11 +159,14 @@ var strokes := 0
 var total_strokes := 0
 var tokens := STARTING_TOKENS
 var level_elapsed := 0.0
+var run_elapsed := 0.0
 var ball: RigidBody2D
 var camera: Camera2D
 var level_builder
 var level_root: Node2D
 var normal_ball_linear_damp := 0.0
+var camera_shake_time := 0.0
+var camera_shake_intensity := 0.0
 var active_sand_tiles := 0
 var active_direction_pushes: Array[Vector2] = []
 var hazard_resetting := false
@@ -178,6 +184,9 @@ var debug_hud: VBoxContainer
 var debug_visible := false
 var power_meter: PowerMeter
 var loading_next_level := false
+var hole_complete_banner: Control
+var run_summary_overlay: Control
+var run_summary_label: Label
 var shop_manager
 var impulse_modifier := 1.0
 var drag_modifier := 1.0
@@ -197,7 +206,9 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not loading_next_level:
 		level_elapsed += delta
+		run_elapsed += delta
 	_center_camera_on_ball()
+	_update_camera_shake(delta)
 	_update_status()
 
 
@@ -210,7 +221,7 @@ func _physics_process(_delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if event.is_action_pressed("reset_level"):
+	if event.is_action_pressed("reset_level") and not (run_summary_overlay and run_summary_overlay.visible):
 		_reset_current_level()
 	if event.is_action_pressed("toggle_debug"):
 		_toggle_debug_hud()
@@ -225,6 +236,7 @@ func _create_world() -> void:
 
 	ball = BALL_SCENE.instantiate()
 	ball.shot_finished.connect(_on_ball_shot_finished)
+	ball.wall_hit.connect(_on_ball_wall_hit)
 	add_child(ball)
 	normal_ball_linear_damp = ball.linear_damp
 
@@ -269,6 +281,9 @@ func _create_world() -> void:
 	power_meter.offset_bottom = -16.0
 	canvas_layer.add_child(power_meter)
 
+	_create_hole_complete_banner(canvas_layer)
+	_create_run_summary_overlay(canvas_layer)
+
 	shop_manager = ShopManagerScript.new()
 	shop_manager.card_bought.connect(_on_shop_card_bought)
 	add_child(shop_manager)
@@ -304,9 +319,13 @@ func _on_hole_body_entered(body: Node2D) -> void:
 		ball.sink_to(level_builder.level_point(level, "hole", "hole_cell"))
 		tokens += _token_reward_for_score(strokes + 1, level.par)
 		await ball.sink_animation_finished
-		_show_shop(level_index + 1)
-		await shop_manager.continued
-		_load_level(level_index + 1)
+		await _show_hole_complete_banner()
+		if level_index == levels.size() - 1:
+			_show_run_summary()
+		else:
+			_show_shop(level_index + 1)
+			await shop_manager.continued
+			_load_level(level_index + 1)
 
 
 func _on_sand_body_entered(body: Node2D) -> void:
@@ -335,6 +354,7 @@ func _on_water_body_entered(body: Node2D, water_position: Vector2) -> void:
 	active_sand_tiles = 0
 	active_direction_pushes.clear()
 	ball.linear_damp = normal_ball_linear_damp
+	_create_splash_effect(water_position)
 	ball.sink_for_reset(water_position)
 	await ball.hazard_sink_finished
 	var level: Dictionary = levels[level_index]
@@ -362,6 +382,11 @@ func _on_ball_shot_finished() -> void:
 	_update_status()
 
 
+func _on_ball_wall_hit() -> void:
+	camera_shake_time = CAMERA_SHAKE_DURATION
+	camera_shake_intensity = CAMERA_SHAKE_INTENSITY
+
+
 func _reset_current_level() -> void:
 	var level: Dictionary = levels[level_index]
 	_clear_hazard_effects()
@@ -377,6 +402,22 @@ func _clear_hazard_effects() -> void:
 	hazard_resetting = false
 	if ball:
 		ball.linear_damp = normal_ball_linear_damp
+
+
+func _update_camera_shake(delta: float) -> void:
+	if not camera:
+		return
+
+	if camera_shake_time <= 0.0:
+		camera.offset = Vector2.ZERO
+		return
+
+	camera_shake_time = maxf(camera_shake_time - delta, 0.0)
+	var fade := camera_shake_time / CAMERA_SHAKE_DURATION
+	camera.offset = Vector2(
+		randf_range(-camera_shake_intensity, camera_shake_intensity),
+		randf_range(-camera_shake_intensity, camera_shake_intensity)
+	) * fade
 
 
 func _update_status() -> void:
@@ -439,6 +480,152 @@ func _token_reward_for_score(final_strokes: int, par: int) -> int:
 	elif score_to_par == 1:
 		reward = 1
 	return reward + reward_bonus
+
+
+func _create_hole_complete_banner(parent: CanvasLayer) -> void:
+	hole_complete_banner = PanelContainer.new()
+	hole_complete_banner.visible = false
+	hole_complete_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hole_complete_banner.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	hole_complete_banner.offset_left = 220.0
+	hole_complete_banner.offset_top = 42.0
+	hole_complete_banner.offset_right = -220.0
+	hole_complete_banner.offset_bottom = 106.0
+	parent.add_child(hole_complete_banner)
+
+	var label := Label.new()
+	label.text = "Hole Complete"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 30)
+	hole_complete_banner.add_child(label)
+
+
+func _show_hole_complete_banner() -> void:
+	hole_complete_banner.visible = true
+	hole_complete_banner.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	hole_complete_banner.scale = Vector2(0.92, 0.92)
+
+	var tween := create_tween()
+	tween.tween_property(hole_complete_banner, "modulate:a", 1.0, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.parallel().tween_property(hole_complete_banner, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(HOLE_COMPLETE_BANNER_DURATION)
+	tween.tween_property(hole_complete_banner, "modulate:a", 0.0, 0.16).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	await tween.finished
+	hole_complete_banner.visible = false
+
+
+func _create_splash_effect(pos: Vector2) -> void:
+	var splash := Node2D.new()
+	splash.position = pos
+	splash.z_index = 4
+	level_root.add_child(splash)
+
+	var ring := Line2D.new()
+	ring.width = 3.0
+	ring.default_color = Color(0.75, 0.95, 1.0, 0.95)
+	ring.closed = true
+	ring.points = _ellipse_points(Vector2(18.0, 10.0), 28)
+	splash.add_child(ring)
+
+	for i in range(8):
+		var angle := TAU * float(i) / 8.0
+		var direction := Vector2(cos(angle), sin(angle))
+		var droplet := Line2D.new()
+		droplet.width = 2.0
+		droplet.default_color = Color(0.65, 0.9, 1.0, 0.85)
+		droplet.points = PackedVector2Array([direction * 10.0, direction * 22.0])
+		splash.add_child(droplet)
+
+	var tween := create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(splash, "scale", Vector2(1.8, 1.8), 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(splash, "modulate:a", 0.0, 0.35).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.chain().tween_callback(splash.queue_free)
+
+
+func _ellipse_points(radii: Vector2, segments: int) -> PackedVector2Array:
+	var points := PackedVector2Array()
+	for i in range(segments):
+		var angle := TAU * float(i) / float(segments)
+		points.append(Vector2(cos(angle) * radii.x, sin(angle) * radii.y))
+	return points
+
+
+func _create_run_summary_overlay(parent: CanvasLayer) -> void:
+	run_summary_overlay = PanelContainer.new()
+	run_summary_overlay.visible = false
+	run_summary_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	run_summary_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	parent.add_child(run_summary_overlay)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 64)
+	margin.add_theme_constant_override("margin_top", 48)
+	margin.add_theme_constant_override("margin_right", 64)
+	margin.add_theme_constant_override("margin_bottom", 48)
+	run_summary_overlay.add_child(margin)
+
+	var layout := VBoxContainer.new()
+	layout.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_theme_constant_override("separation", 16)
+	margin.add_child(layout)
+
+	var title := Label.new()
+	title.text = "Run Complete"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 36)
+	layout.add_child(title)
+
+	run_summary_label = Label.new()
+	run_summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	run_summary_label.add_theme_font_size_override("font_size", 20)
+	layout.add_child(run_summary_label)
+
+	var restart_button := Button.new()
+	restart_button.text = "Restart Run"
+	restart_button.custom_minimum_size = Vector2(260, 46)
+	restart_button.pressed.connect(_on_restart_run_pressed)
+	layout.add_child(restart_button)
+
+
+func _show_run_summary() -> void:
+	var total_par := _total_par()
+	var score_to_par := total_strokes - total_par
+	run_summary_label.text = "Total Strokes: %d\nTotal Par: %d\nScore: %s\nCards Bought: %s\nTime: %s" % [
+		total_strokes,
+		total_par,
+		_format_score_to_par(score_to_par),
+		_cards_bought_summary(),
+		_format_time(run_elapsed)
+	]
+	run_summary_overlay.visible = true
+	_update_status()
+
+
+func _total_par() -> int:
+	var total := 0
+	for level in levels:
+		total += int(level.par)
+	return total
+
+
+func _format_score_to_par(score_to_par: int) -> String:
+	if score_to_par == 0:
+		return "Even par"
+	if score_to_par > 0:
+		return "+%d over par" % score_to_par
+	return "%d under par" % absi(score_to_par)
+
+
+func _cards_bought_summary() -> String:
+	if owned_cards.is_empty():
+		return "None"
+	return ", ".join(owned_cards)
+
+
+func _on_restart_run_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 
 func _show_shop(next_level_index: int) -> void:

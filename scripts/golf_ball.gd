@@ -3,6 +3,7 @@ extends RigidBody2D
 signal shot_finished
 signal sink_animation_finished
 signal hazard_sink_finished
+signal wall_hit
 
 @export var max_impulse := 900.0
 @export var max_drag_distance := 180.0
@@ -42,9 +43,13 @@ var keyboard_power := 0.35
 var impulse_multiplier := 1.0
 var drag_multiplier := 1.0
 var trajectory_dot_bonus := 0
+var ball_art_tween: Tween
 
 
 func _ready() -> void:
+	contact_monitor = true
+	max_contacts_reported = 4
+	body_entered.connect(_on_body_entered)
 	_create_ball_art()
 	keyboard_power = keyboard_starting_power
 	power_gradient = Gradient.new()
@@ -154,6 +159,7 @@ func shoot(impulse: Vector2) -> void:
 	shot_in_progress = true
 	stopped_frames = 0
 	sleeping = false
+	_play_shot_pulse()
 	apply_central_impulse(impulse)
 
 
@@ -173,11 +179,27 @@ func reset_to(new_position: Vector2) -> void:
 	freeze = false
 	visible = true
 	scale = Vector2.ONE
+	ball_art.scale = Vector2.ONE
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	position = new_position
 	collision_shape.set_deferred("disabled", false)
 	_hide_previews()
+
+
+func _on_body_entered(body: Node) -> void:
+	if body is StaticBody2D and body.name != "Green" and linear_velocity.length() > stopped_speed:
+		wall_hit.emit()
+
+
+func _play_shot_pulse() -> void:
+	if ball_art_tween:
+		ball_art_tween.kill()
+
+	ball_art.scale = Vector2.ONE
+	ball_art_tween = create_tween()
+	ball_art_tween.tween_property(ball_art, "scale", Vector2(1.18, 0.86), 0.06).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	ball_art_tween.tween_property(ball_art, "scale", Vector2.ONE, 0.12).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func sink_to(hole_position: Vector2) -> void:
