@@ -13,6 +13,8 @@ const WALL_THICKNESS := 30.0
 const GREEN_DARK := Color(0.232, 0.554, 0.248, 1.0)
 const GREEN_DARKER := Color(0.161, 0.447, 0.201, 1.0)
 const BORDER_BROWN := Color(0.34, 0.19, 0.09)
+const HOLE_SCALE := 0.75
+const FLAG_OFFSET := Vector2(-7.0, 7.0)
 
 var level_root: Node2D
 
@@ -132,7 +134,7 @@ func _create_hole(pos: Vector2) -> void:
 
 	var collision := CollisionShape2D.new()
 	var shape := CircleShape2D.new()
-	shape.radius = 28.0
+	shape.radius = 28.0 * HOLE_SCALE
 	collision.shape = shape
 	area.add_child(collision)
 
@@ -145,10 +147,10 @@ func _create_hole_depth_visual(pos: Vector2) -> void:
 		Color(0.02, 0.018, 0.015, 1.0)
 	]
 	var ring_sizes := [
-		Vector2(44.0, 28.0),
-		Vector2(38.0, 24.0),
-		Vector2(32.0, 20.0),
-		Vector2(27.0, 17.0)
+		Vector2(44.0, 28.0) * HOLE_SCALE,
+		Vector2(38.0, 24.0) * HOLE_SCALE,
+		Vector2(32.0, 20.0) * HOLE_SCALE,
+		Vector2(27.0, 17.0) * HOLE_SCALE
 	]
 
 	for i in range(ring_sizes.size()):
@@ -161,7 +163,7 @@ func _create_hole_depth_visual(pos: Vector2) -> void:
 
 func _create_hole_flag(pos: Vector2) -> void:
 	var flag_root := Node2D.new()
-	flag_root.position = pos
+	flag_root.position = pos + FLAG_OFFSET
 	level_root.add_child(flag_root)
 
 	var segment_height := 14.0
@@ -179,9 +181,9 @@ func _create_hole_flag(pos: Vector2) -> void:
 
 	var flag := Polygon2D.new()
 	flag.polygon = PackedVector2Array([
-		Vector2(0.0, stem_top),
-		Vector2(48.0, stem_top + 13.0),
-		Vector2(0.0, stem_top + 26.0)
+		Vector2(3.0, stem_top),
+		Vector2(51.0, stem_top + 13.0),
+		Vector2(3.0, stem_top + 26.0)
 	])
 	flag.color = Color(0.9, 0.03, 0.03)
 	flag_root.add_child(flag)
@@ -189,7 +191,7 @@ func _create_hole_flag(pos: Vector2) -> void:
 	var separator := Line2D.new()
 	separator.width = 3.0
 	separator.default_color = Color(0.32, 0.0, 0.0)
-	separator.points = PackedVector2Array([Vector2(0.0, stem_top), Vector2(0.0, stem_top + 26.0)])
+	separator.points = PackedVector2Array([Vector2(4.0, stem_top), Vector2(4.0, stem_top + 26.0)])
 	flag_root.add_child(separator)
 
 

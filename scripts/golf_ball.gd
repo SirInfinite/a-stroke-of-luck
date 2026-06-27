@@ -28,9 +28,17 @@ const POWER_LOW_COLOR := Color(1.0, 0.94, 0.18, 0.9)
 const POWER_HIGH_COLOR := Color(1.0, 0.12, 0.05, 0.95)
 const TRAJECTORY_COLOR := Color(1.0, 1.0, 1.0, 0.72)
 const BALL_VISUAL_RADIUS := 12.4
-const BALL_OUTLINE_RADIUS := 13.5
-const DIMPLE_RADIUS := 0.9
-const DIMPLE_GRID_SPACING := 3.05
+const BALL_OUTLINE_RADIUS := 13.1
+const DIMPLE_RADIUS := 1.45
+const DIMPLE_GRID_SPACING := 4.45
+const DIMPLE_COLORS := [
+	Color(0.76, 0.77, 0.76, 0.24),
+	Color(0.71, 0.72, 0.72, 0.27),
+	Color(0.66, 0.67, 0.67, 0.30),
+	Color(0.61, 0.62, 0.62, 0.32),
+	Color(0.56, 0.57, 0.57, 0.34),
+	Color(0.51, 0.52, 0.52, 0.36)
+]
 
 var selected := false
 var sunk := false
@@ -65,11 +73,10 @@ func _create_ball_art() -> void:
 	for child in ball_art.get_children():
 		child.free()
 
-	_add_ball_circle(BALL_OUTLINE_RADIUS, Color(0.48, 0.5, 0.53, 1.0))
-	_add_ball_circle(BALL_VISUAL_RADIUS, Color(0.91, 0.93, 0.95, 1.0))
-	_add_ball_circle(11.2, Color(0.78, 0.8, 0.84, 0.16), Vector2(1.8, 2.1))
-	_add_ball_circle(8.8, Color(1.0, 1.0, 1.0, 0.17), Vector2(-2.6, -2.8))
-	_add_ball_circle(5.3, Color(1.0, 1.0, 1.0, 0.1), Vector2(-4.2, -4.0))
+	_add_ball_circle(BALL_OUTLINE_RADIUS, Color(0.63, 0.65, 0.66, 0.95))
+	_add_ball_circle(BALL_VISUAL_RADIUS, Color(0.94, 0.945, 0.935, 1.0))
+	_add_ball_circle(11.7, Color(1.0, 1.0, 0.98, 0.12), Vector2(-0.8, -0.9))
+	_add_ball_circle(11.4, Color(0.76, 0.77, 0.76, 0.08), Vector2(0.7, 1.2))
 	_add_honeycomb_dimples()
 
 
@@ -84,15 +91,15 @@ func _add_ball_circle(radius: float, color: Color, offset := Vector2.ZERO) -> vo
 func _add_honeycomb_dimples() -> void:
 	var row_spacing := DIMPLE_GRID_SPACING * sqrt(3.0) * 0.5
 	var row_index := 0
-	var y := -BALL_VISUAL_RADIUS + DIMPLE_GRID_SPACING
+	var y := -BALL_VISUAL_RADIUS + DIMPLE_GRID_SPACING * 0.42
 
-	while y <= BALL_VISUAL_RADIUS - DIMPLE_GRID_SPACING:
+	while y <= BALL_VISUAL_RADIUS - DIMPLE_GRID_SPACING * 0.42:
 		var x_offset := 0.0 if row_index % 2 == 0 else DIMPLE_GRID_SPACING * 0.5
-		var x := -BALL_VISUAL_RADIUS + DIMPLE_GRID_SPACING + x_offset
+		var x := -BALL_VISUAL_RADIUS + DIMPLE_GRID_SPACING * 0.45 + x_offset
 
-		while x <= BALL_VISUAL_RADIUS - DIMPLE_GRID_SPACING:
+		while x <= BALL_VISUAL_RADIUS - DIMPLE_GRID_SPACING * 0.45:
 			var dimple_position := Vector2(x, y)
-			if dimple_position.length() <= BALL_VISUAL_RADIUS - DIMPLE_RADIUS - 0.35:
+			if dimple_position.length() <= BALL_VISUAL_RADIUS - DIMPLE_RADIUS * 0.15:
 				_add_dimple(dimple_position)
 			x += DIMPLE_GRID_SPACING
 
@@ -104,8 +111,14 @@ func _add_dimple(dimple_position: Vector2) -> void:
 	var dimple := Polygon2D.new()
 	dimple.position = dimple_position
 	dimple.polygon = _rounded_hex_polygon(DIMPLE_RADIUS)
-	dimple.color = Color(0.5, 0.54, 0.59, 0.92)
+	dimple.color = _dimple_color_for_position(dimple_position)
 	ball_art.add_child(dimple)
+
+
+func _dimple_color_for_position(dimple_position: Vector2) -> Color:
+	var vertical_t := clampf((dimple_position.y + BALL_VISUAL_RADIUS) / (BALL_VISUAL_RADIUS * 2.0), 0.0, 0.999)
+	var color_index := clampi(floori(vertical_t * float(DIMPLE_COLORS.size())), 0, DIMPLE_COLORS.size() - 1)
+	return DIMPLE_COLORS[color_index]
 
 
 func _on_input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) -> void:
