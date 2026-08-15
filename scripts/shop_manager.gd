@@ -16,10 +16,13 @@ var shop_overlay: Control
 var shop_tokens_label: Label
 var shop_status_label: Label
 var shop_card_buttons: Array[Button] = []
+var continue_button: Button
 var current_shop_cards: Array[Dictionary] = []
 var shop_visits := 0
 var shop_intro_tween: Tween
 var tokens := 0
+var require_purchase_before_continue := false
+var bought_card_this_visit := false
 
 
 func create_overlay(parent: CanvasLayer) -> void:
@@ -70,23 +73,36 @@ func create_overlay(parent: CanvasLayer) -> void:
 	shop_status_label.add_theme_font_size_override("font_size", 18)
 	layout.add_child(shop_status_label)
 
-	var continue_button := Button.new()
+	continue_button = Button.new()
 	continue_button.text = "Continue to Next Hole"
 	continue_button.custom_minimum_size = Vector2(260, 46)
 	continue_button.pressed.connect(_on_shop_continue_pressed)
 	layout.add_child(continue_button)
 
 
-func show_shop(next_level_index: int, token_count: int, level_count: int) -> void:
+func show_shop(next_level_index: int, token_count: int, level_count: int, forced_card_names: Array[String] = [], require_purchase := false) -> void:
 	tokens = token_count
+	require_purchase_before_continue = require_purchase
+	bought_card_this_visit = false
 	current_shop_cards.clear()
 	var shop_cards := CardDatabase.get_cards()
-	for i in range(SHOP_CARD_COUNT):
-		var card_index := (shop_visits * 2 + i) % shop_cards.size()
-		current_shop_cards.append(shop_cards[card_index])
+	if forced_card_names.is_empty():
+		for i in range(SHOP_CARD_COUNT):
+			var card_index := (shop_visits * 2 + i) % shop_cards.size()
+			current_shop_cards.append(shop_cards[card_index])
+	else:
+		for card_name in forced_card_names:
+			var card := _card_by_name(card_name, shop_cards)
+			if not card.is_empty():
+				current_shop_cards.append(card)
+		var fallback_index := 0
+		while current_shop_cards.size() < SHOP_CARD_COUNT and fallback_index < shop_cards.size():
+			if not current_shop_cards.has(shop_cards[fallback_index]):
+				current_shop_cards.append(shop_cards[fallback_index])
+			fallback_index += 1
 
 	shop_visits += 1
-	shop_status_label.text = "Buy any cards you can afford, or continue to hole %d." % [next_level_index % level_count + 1]
+	shop_status_label.text = "Choose one card to continue to hole %d." % [next_level_index % level_count + 1] if require_purchase_before_continue else "Buy any cards you can afford, or continue to hole %d." % [next_level_index % level_count + 1]
 	shop_overlay.visible = true
 	_play_shop_intro_animation()
 	_refresh_shop()
@@ -107,6 +123,8 @@ func _play_shop_intro_animation() -> void:
 
 func _refresh_shop() -> void:
 	shop_tokens_label.text = "Tokens: %d" % tokens
+	if continue_button:
+		continue_button.disabled = require_purchase_before_continue and not bought_card_this_visit
 
 	for i in range(shop_card_buttons.size()):
 		var button := shop_card_buttons[i]
@@ -132,12 +150,17 @@ func _on_shop_card_pressed(card_index: int) -> void:
 		return
 
 	tokens -= cost
+	bought_card_this_visit = true
 	card_bought.emit(card)
 	shop_status_label.text = "Bought %s." % card.name
 	_refresh_shop()
 
 
 func _on_shop_continue_pressed() -> void:
+	if require_purchase_before_continue and not bought_card_this_visit:
+		shop_status_label.text = "Buy one card to see its bonus and drawback on the next hole."
+		return
+
 	if shop_intro_tween:
 		shop_intro_tween.kill()
 		shop_intro_tween = null
@@ -145,3 +168,10 @@ func _on_shop_continue_pressed() -> void:
 	shop_overlay.modulate = Color.WHITE
 	shop_overlay.visible = false
 	continued.emit()
+
+
+func _card_by_name(card_name: String, cards: Array[Dictionary]) -> Dictionary:
+	for card in cards:
+		if card.name == card_name:
+			return card
+	return {}

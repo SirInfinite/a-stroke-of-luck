@@ -4,7 +4,10 @@ extends Node
 signal hole_body_entered(body: Node2D)
 signal sand_body_entered(body: Node2D)
 signal sand_body_exited(body: Node2D)
+signal rough_body_entered(body: Node2D)
+signal rough_body_exited(body: Node2D)
 signal water_body_entered(body: Node2D, water_position: Vector2)
+signal out_body_entered(body: Node2D, out_position: Vector2)
 signal direction_body_entered(body: Node2D, area: Area2D)
 signal direction_body_exited(body: Node2D, area: Area2D)
 
@@ -24,7 +27,7 @@ func build_level(level: Dictionary, parent: Node) -> Node2D:
 	parent.add_child(level_root)
 
 	_create_course(level)
-	_create_hole(level_point(level, "hole", "hole_cell"))
+	_create_hole(level_point(level, "hole", "hole_cell"), float(level.get("cup_radius", 28.0)))
 	_create_hazards(level)
 
 	for obstacle in level.obstacles:
@@ -120,8 +123,8 @@ func _create_box(pos: Vector2, size: Vector2, color: Color) -> void:
 	body.add_child(collision)
 
 
-func _create_hole(pos: Vector2) -> void:
-	_create_hole_depth_visual(pos)
+func _create_hole(pos: Vector2, radius: float) -> void:
+	_create_hole_depth_visual(pos, radius)
 	_create_hole_flag(pos)
 
 	var area := Area2D.new()
@@ -132,23 +135,24 @@ func _create_hole(pos: Vector2) -> void:
 
 	var collision := CollisionShape2D.new()
 	var shape := CircleShape2D.new()
-	shape.radius = 28.0
+	shape.radius = radius
 	collision.shape = shape
 	area.add_child(collision)
 
 
-func _create_hole_depth_visual(pos: Vector2) -> void:
+func _create_hole_depth_visual(pos: Vector2, radius: float) -> void:
 	var ring_colors := [
 		Color(GREEN_DARK.r, GREEN_DARK.g, GREEN_DARK.b, 0.15),
 		Color(0.13, 0.28, 0.14, 0.45),
 		Color(0.06, 0.12, 0.065, 0.78),
 		Color(0.02, 0.018, 0.015, 1.0)
 	]
+	var radius_scale := radius / 28.0
 	var ring_sizes := [
-		Vector2(44.0, 28.0),
-		Vector2(38.0, 24.0),
-		Vector2(32.0, 20.0),
-		Vector2(27.0, 17.0)
+		Vector2(44.0, 28.0) * radius_scale,
+		Vector2(38.0, 24.0) * radius_scale,
+		Vector2(32.0, 20.0) * radius_scale,
+		Vector2(27.0, 17.0) * radius_scale
 	]
 
 	for i in range(ring_sizes.size()):
@@ -202,8 +206,12 @@ func _create_hazards(level: Dictionary) -> void:
 		match hazard.type:
 			"sand":
 				_create_sand_tile(hazard.pos, hazard.size)
+			"rough":
+				_create_rough_tile(hazard.pos, hazard.size)
 			"water":
 				_create_water_tile(hazard.pos, hazard.size)
+			"out":
+				_create_out_tile(hazard.pos, hazard.size)
 			"direction":
 				_create_direction_tile(hazard.pos, hazard.size, hazard.direction.normalized())
 
@@ -214,9 +222,20 @@ func _create_sand_tile(pos: Vector2, size: Vector2) -> void:
 	area.body_exited.connect(_on_sand_body_exited)
 
 
+func _create_rough_tile(pos: Vector2, size: Vector2) -> void:
+	var area := _create_hazard_area("Rough", pos, size, Color(0.12, 0.36, 0.14, 0.92))
+	area.body_entered.connect(_on_rough_body_entered)
+	area.body_exited.connect(_on_rough_body_exited)
+
+
 func _create_water_tile(pos: Vector2, size: Vector2) -> void:
 	var area := _create_hazard_area("Water", pos, size, Color(0.35, 0.72, 0.95, 0.9))
 	area.body_entered.connect(_on_water_body_entered.bind(pos))
+
+
+func _create_out_tile(pos: Vector2, size: Vector2) -> void:
+	var area := _create_hazard_area("OutOfBounds", pos, size, Color(0.72, 0.08, 0.08, 0.82))
+	area.body_entered.connect(_on_out_body_entered.bind(pos))
 
 
 func _create_direction_tile(pos: Vector2, size: Vector2, direction: Vector2) -> void:
@@ -275,8 +294,20 @@ func _on_sand_body_exited(body: Node2D) -> void:
 	sand_body_exited.emit(body)
 
 
+func _on_rough_body_entered(body: Node2D) -> void:
+	rough_body_entered.emit(body)
+
+
+func _on_rough_body_exited(body: Node2D) -> void:
+	rough_body_exited.emit(body)
+
+
 func _on_water_body_entered(body: Node2D, water_position: Vector2) -> void:
 	water_body_entered.emit(body, water_position)
+
+
+func _on_out_body_entered(body: Node2D, out_position: Vector2) -> void:
+	out_body_entered.emit(body, out_position)
 
 
 func _on_direction_body_entered(body: Node2D, area: Area2D) -> void:

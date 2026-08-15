@@ -3,6 +3,8 @@ extends Node2D
 const BALL_SCENE := preload("res://scenes/golf_ball.tscn")
 const LevelBuilderScript := preload("res://scripts/level_builder.gd")
 const LevelDatabase := preload("res://scripts/level_database.gd")
+const TutorialDatabase := preload("res://scripts/tutorial_database.gd")
+const TutorialManagerScript := preload("res://scripts/tutorial_manager.gd")
 const LevelValidator := preload("res://scripts/level_validator.gd")
 const RunStatsScript := preload("res://scripts/run_stats.gd")
 const ShopManagerScript := preload("res://scripts/shop_manager.gd")
@@ -10,6 +12,8 @@ const ShopManagerScript := preload("res://scripts/shop_manager.gd")
 const STARTING_TOKENS := 2
 const SAND_DAMP := 12.0
 const SAND_ENTRY_SPEED_SCALE := 0.35
+const ROUGH_DAMP := 5.5
+const ROUGH_ENTRY_SPEED_SCALE := 0.72
 const DIRECTION_PUSH_FORCE := 950.0
 
 class PowerMeter:
@@ -163,6 +167,7 @@ var level_builder
 var level_root: Node2D
 var normal_ball_linear_damp := 0.0
 var active_sand_tiles := 0
+var active_rough_tiles := 0
 var active_direction_pushes: Array[Vector2] = []
 var hazard_resetting := false
 var score_label: Label
@@ -178,8 +183,15 @@ var power_debug_label: Label
 var debug_hud: VBoxContainer
 var debug_visible := false
 var power_meter: PowerMeter
+var hud_canvas_layer: CanvasLayer
+var menu_button: Button
+var main_menu_overlay: PanelContainer
+var menu_resume_button: Button
+var menu_skip_button: Button
 var loading_next_level := false
 var shop_manager
+var tutorial_manager
+var tutorial_mode := false
 var impulse_modifier := 1.0
 var drag_modifier := 1.0
 var trajectory_dot_bonus := 0
@@ -188,12 +200,17 @@ var direction_push_modifier := 1.0
 var reward_bonus := 0
 var owned_cards: Array[String] = []
 var levels := LevelDatabase.get_levels()
+var normal_levels := LevelDatabase.get_levels()
+var tutorial_levels := TutorialDatabase.get_levels()
 var run_stats := RunStatsScript.new()
 
 
 func _ready() -> void:
 	_create_world()
-	_load_level(0)
+	if TutorialManagerScript.is_tutorial_complete():
+		_start_normal_run()
+	else:
+		_start_tutorial()
 
 
 func _process(delta: float) -> void:
@@ -235,24 +252,27 @@ func _create_world() -> void:
 	level_builder.hole_body_entered.connect(_on_hole_body_entered)
 	level_builder.sand_body_entered.connect(_on_sand_body_entered)
 	level_builder.sand_body_exited.connect(_on_sand_body_exited)
+	level_builder.rough_body_entered.connect(_on_rough_body_entered)
+	level_builder.rough_body_exited.connect(_on_rough_body_exited)
 	level_builder.water_body_entered.connect(_on_water_body_entered)
+	level_builder.out_body_entered.connect(_on_out_body_entered)
 	level_builder.direction_body_entered.connect(_on_direction_body_entered)
 	level_builder.direction_body_exited.connect(_on_direction_body_exited)
 	add_child(level_builder)
 
-	var canvas_layer := CanvasLayer.new()
-	add_child(canvas_layer)
+	hud_canvas_layer = CanvasLayer.new()
+	add_child(hud_canvas_layer)
 
 	score_label = Label.new()
 	score_label.position = Vector2(16, 16)
 	score_label.add_theme_font_size_override("font_size", 18)
-	canvas_layer.add_child(score_label)
+	hud_canvas_layer.add_child(score_label)
 
 	debug_hud = VBoxContainer.new()
 	debug_hud.position = Vector2(16, 46)
 	debug_hud.custom_minimum_size = Vector2(260, 0)
 	debug_hud.visible = debug_visible
-	canvas_layer.add_child(debug_hud)
+	hud_canvas_layer.add_child(debug_hud)
 
 	hole_label = _create_hud_label(debug_hud)
 	stroke_label = _create_hud_label(debug_hud)
@@ -270,13 +290,58 @@ func _create_world() -> void:
 	power_meter.offset_top = -186.0
 	power_meter.offset_right = 80.0
 	power_meter.offset_bottom = -16.0
-	canvas_layer.add_child(power_meter)
+	hud_canvas_layer.add_child(power_meter)
+
+	_create_main_menu_overlay()
 
 	shop_manager = ShopManagerScript.new()
 	shop_manager.card_bought.connect(_on_shop_card_bought)
 	add_child(shop_manager)
-	shop_manager.create_overlay(canvas_layer)
+	shop_manager.create_overlay(hud_canvas_layer)
+
+	tutorial_manager = TutorialManagerScript.new()
+	tutorial_manager.skip_requested.connect(_on_tutorial_skip_requested)
+	add_child(tutorial_manager)
+	tutorial_manager.setup(self, hud_canvas_layer)
+	tutorial_manager.set_visible_enabled(false)
 	_center_camera_on_ball()
+
+
+func _start_tutorial() -> void:
+	_hide_main_menu()
+	tutorial_mode = true
+	levels = tutorial_levels
+	_reset_run_state()
+	tutorial_manager.set_visible_enabled(true)
+	_load_level(0)
+
+
+func _start_normal_run() -> void:
+	_hide_main_menu()
+	tutorial_mode = false
+	levels = normal_levels
+	_reset_run_state()
+	if tutorial_manager:
+		tutorial_manager.set_visible_enabled(false)
+	_load_level(0)
+
+
+func _reset_run_state() -> void:
+	level_index = 0
+	strokes = 0
+	total_strokes = 0
+	tokens = STARTING_TOKENS
+	level_elapsed = 0.0
+	impulse_modifier = 1.0
+	drag_modifier = 1.0
+	trajectory_dot_bonus = 0
+	sand_damp_modifier = 1.0
+	direction_push_modifier = 1.0
+	reward_bonus = 0
+	owned_cards.clear()
+	run_stats.reset()
+	if ball:
+		ball.apply_card_modifiers(impulse_modifier, drag_modifier, trajectory_dot_bonus)
 
 
 func _load_level(next_index: int) -> void:
@@ -294,6 +359,10 @@ func _load_level(next_index: int) -> void:
 	level_root = level_builder.build_level(level, self)
 	var start_position: Vector2 = level_builder.level_point(level, "start", "start_cell")
 	ball.reset_to(start_position)
+	if level.has("forced_tokens"):
+		tokens = maxi(tokens, int(level.forced_tokens))
+	if tutorial_mode:
+		tutorial_manager.set_level(level, level_index, levels.size())
 	_update_status()
 
 
@@ -302,16 +371,29 @@ func _on_hole_body_entered(body: Node2D) -> void:
 		return
 
 	if body == ball:
+		if tutorial_mode and not tutorial_manager.can_complete_level():
+			tutorial_manager.show_blocker()
+			_reset_current_level()
+			return
+
 		loading_next_level = true
 		var level: Dictionary = levels[level_index]
 		ball.sink_to(level_builder.level_point(level, "hole", "hole_cell"))
 		tokens += _token_reward_for_score(strokes + 1, level.par)
 		await ball.sink_animation_finished
+		if tutorial_mode:
+			tutorial_manager.notify_event("hole_completed")
+			if level_index == levels.size() - 1:
+				TutorialManagerScript.mark_tutorial_complete()
+				_start_normal_run()
+				return
 		if level_index == levels.size() - 1:
 			run_stats.print_summary(_total_par())
 			return
 		_show_shop(level_index + 1)
 		await shop_manager.continued
+		if tutorial_mode:
+			tutorial_manager.notify_event("shop_continued")
 		_load_level(level_index + 1)
 
 
@@ -320,6 +402,8 @@ func _on_sand_body_entered(body: Node2D) -> void:
 		return
 
 	run_stats.record_hazard_entered("sand")
+	if tutorial_mode:
+		tutorial_manager.notify_event("entered_sand")
 	active_sand_tiles += 1
 	ball.linear_velocity *= SAND_ENTRY_SPEED_SCALE
 	ball.linear_damp = SAND_DAMP * sand_damp_modifier
@@ -334,17 +418,63 @@ func _on_sand_body_exited(body: Node2D) -> void:
 		ball.linear_damp = normal_ball_linear_damp
 
 
+func _on_rough_body_entered(body: Node2D) -> void:
+	if body != ball or hazard_resetting:
+		return
+
+	run_stats.record_hazard_entered("rough")
+	if tutorial_mode:
+		tutorial_manager.notify_event("entered_rough")
+	active_rough_tiles += 1
+	ball.linear_velocity *= ROUGH_ENTRY_SPEED_SCALE
+	ball.linear_damp = ROUGH_DAMP
+
+
+func _on_rough_body_exited(body: Node2D) -> void:
+	if body != ball:
+		return
+
+	active_rough_tiles = maxi(active_rough_tiles - 1, 0)
+	if active_rough_tiles == 0 and active_sand_tiles == 0:
+		ball.linear_damp = normal_ball_linear_damp
+
+
 func _on_water_body_entered(body: Node2D, water_position: Vector2) -> void:
 	if body != ball or hazard_resetting or loading_next_level:
 		return
 
 	run_stats.record_hazard_entered("water")
+	if tutorial_mode:
+		tutorial_manager.notify_event("entered_water")
 	run_stats.record_water_reset()
+	_add_penalty_stroke()
 	hazard_resetting = true
 	active_sand_tiles = 0
+	active_rough_tiles = 0
 	active_direction_pushes.clear()
 	ball.linear_damp = normal_ball_linear_damp
 	ball.sink_for_reset(water_position)
+	await ball.hazard_sink_finished
+	var level: Dictionary = levels[level_index]
+	ball.reset_to(level_builder.level_point(level, "start", "start_cell"))
+	hazard_resetting = false
+
+
+func _on_out_body_entered(body: Node2D, out_position: Vector2) -> void:
+	if body != ball or hazard_resetting or loading_next_level:
+		return
+
+	run_stats.record_hazard_entered("out")
+	if tutorial_mode:
+		tutorial_manager.notify_event("entered_out")
+	run_stats.record_water_reset()
+	_add_penalty_stroke()
+	hazard_resetting = true
+	active_sand_tiles = 0
+	active_rough_tiles = 0
+	active_direction_pushes.clear()
+	ball.linear_damp = normal_ball_linear_damp
+	ball.sink_for_reset(out_position)
 	await ball.hazard_sink_finished
 	var level: Dictionary = levels[level_index]
 	ball.reset_to(level_builder.level_point(level, "start", "start_cell"))
@@ -356,6 +486,8 @@ func _on_direction_body_entered(body: Node2D, area: Area2D) -> void:
 		return
 
 	run_stats.record_hazard_entered("direction")
+	if tutorial_mode:
+		tutorial_manager.notify_event("entered_direction")
 	active_direction_pushes.append(area.get_meta("direction"))
 
 
@@ -370,6 +502,8 @@ func _on_ball_shot_finished() -> void:
 	strokes += 1
 	total_strokes += 1
 	run_stats.record_stroke()
+	if tutorial_mode:
+		tutorial_manager.notify_event("shot_finished")
 	_update_status()
 
 
@@ -385,6 +519,7 @@ func _reset_current_level() -> void:
 
 func _clear_hazard_effects() -> void:
 	active_sand_tiles = 0
+	active_rough_tiles = 0
 	active_direction_pushes.clear()
 	hazard_resetting = false
 	if ball:
@@ -427,6 +562,79 @@ func _create_hud_label(parent: Control) -> Label:
 	return label
 
 
+func _create_main_menu_overlay() -> void:
+	menu_button = Button.new()
+	menu_button.text = "Menu"
+	menu_button.position = Vector2(1810.0, 76.0)
+	menu_button.custom_minimum_size = Vector2(80.0, 38.0)
+	menu_button.pressed.connect(_show_main_menu)
+	hud_canvas_layer.add_child(menu_button)
+
+	main_menu_overlay = PanelContainer.new()
+	main_menu_overlay.visible = false
+	main_menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	main_menu_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	hud_canvas_layer.add_child(main_menu_overlay)
+
+	var margin := MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 720)
+	margin.add_theme_constant_override("margin_top", 260)
+	margin.add_theme_constant_override("margin_right", 720)
+	margin.add_theme_constant_override("margin_bottom", 260)
+	main_menu_overlay.add_child(margin)
+
+	var layout := VBoxContainer.new()
+	layout.add_theme_constant_override("separation", 12)
+	margin.add_child(layout)
+
+	var title := Label.new()
+	title.text = "A Stroke Of Luck"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 34)
+	layout.add_child(title)
+
+	menu_resume_button = _create_menu_button(layout, "Resume", _hide_main_menu)
+	_create_menu_button(layout, "Play", _on_menu_play_pressed)
+	_create_menu_button(layout, "Restart Tutorial", _on_menu_restart_tutorial_pressed)
+	menu_skip_button = _create_menu_button(layout, "Skip Tutorial", _on_menu_skip_tutorial_pressed)
+
+
+func _create_menu_button(parent: Control, text: String, callback: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	button.custom_minimum_size = Vector2(260.0, 44.0)
+	button.pressed.connect(callback)
+	parent.add_child(button)
+	return button
+
+
+func _show_main_menu() -> void:
+	if not main_menu_overlay:
+		return
+	menu_resume_button.visible = level_root != null
+	menu_skip_button.visible = tutorial_mode or not TutorialManagerScript.is_tutorial_complete()
+	main_menu_overlay.visible = true
+
+
+func _hide_main_menu() -> void:
+	if main_menu_overlay:
+		main_menu_overlay.visible = false
+
+
+func _on_menu_play_pressed() -> void:
+	TutorialManagerScript.mark_tutorial_complete()
+	_start_normal_run()
+
+
+func _on_menu_restart_tutorial_pressed() -> void:
+	_start_tutorial()
+
+
+func _on_menu_skip_tutorial_pressed() -> void:
+	TutorialManagerScript.mark_tutorial_complete()
+	_start_normal_run()
+
+
 func _format_time(seconds: float) -> String:
 	var total_seconds := int(floor(seconds))
 	var minutes := total_seconds / 60
@@ -461,7 +669,13 @@ func _total_par() -> int:
 
 
 func _show_shop(next_level_index: int) -> void:
-	shop_manager.show_shop(next_level_index, tokens, levels.size())
+	var level: Dictionary = levels[level_index]
+	var forced_cards: Array[String] = []
+	for card_name in level.get("shop_cards", []):
+		forced_cards.append(String(card_name))
+	shop_manager.show_shop(next_level_index, tokens, levels.size(), forced_cards, bool(level.get("require_shop_purchase", false)))
+	if tutorial_mode:
+		tutorial_manager.notify_event("shop_opened")
 	_update_status()
 
 
@@ -482,6 +696,8 @@ func _apply_card(card: Dictionary) -> void:
 	owned_cards.append(card.name)
 	run_stats.record_card_bought(card.name)
 	ball.apply_card_modifiers(impulse_modifier, drag_modifier, trajectory_dot_bonus)
+	if tutorial_mode:
+		tutorial_manager.notify_event("card_bought")
 
 
 func _cards_summary() -> String:
@@ -495,3 +711,15 @@ func _cards_summary() -> String:
 func _center_camera_on_ball() -> void:
 	if camera and ball:
 		camera.global_position = ball.global_position
+
+
+func _add_penalty_stroke() -> void:
+	strokes += 1
+	total_strokes += 1
+	run_stats.record_stroke()
+	_update_status()
+
+
+func _on_tutorial_skip_requested() -> void:
+	TutorialManagerScript.mark_tutorial_complete()
+	_start_normal_run()
