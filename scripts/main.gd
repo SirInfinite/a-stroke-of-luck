@@ -10,11 +10,21 @@ const RunStatsScript := preload("res://scripts/run_stats.gd")
 const ShopManagerScript := preload("res://scripts/shop_manager.gd")
 
 const STARTING_TOKENS := 2
-const SAND_DAMP := 12.0
-const SAND_ENTRY_SPEED_SCALE := 0.35
-const ROUGH_DAMP := 5.5
-const ROUGH_ENTRY_SPEED_SCALE := 0.72
-const DIRECTION_PUSH_FORCE := 950.0
+
+@export_category("Shot Feel Tuning")
+@export_group("Sand")
+## Fraction of the ball's velocity retained when it enters sand.
+@export_range(0.0, 1.0, 0.01) var sand_entry_speed_scale: float = 0.35
+## Linear damping applied while the ball is in sand, before card modifiers.
+@export_range(0.0, 50.0, 0.1, "or_greater") var sand_linear_damp: float = 12.0
+@export_group("Rough")
+## Fraction of the ball's velocity retained when it enters rough.
+@export_range(0.0, 1.0, 0.01) var rough_entry_speed_scale: float = 0.72
+## Linear damping applied while the ball is in rough.
+@export_range(0.0, 50.0, 0.1, "or_greater") var rough_linear_damp: float = 5.5
+@export_group("Direction Pad")
+## Continuous force applied while the ball occupies a direction pad.
+@export_range(0.0, 5000.0, 10.0, "or_greater") var direction_push_force: float = 950.0
 
 class PowerMeter:
 	extends Control
@@ -226,7 +236,7 @@ func _physics_process(_delta: float) -> void:
 		return
 
 	for direction in active_direction_pushes:
-		ball.apply_central_force(direction * DIRECTION_PUSH_FORCE * direction_push_modifier)
+		ball.apply_central_force(direction * direction_push_force * direction_push_modifier)
 
 
 func _input(event: InputEvent) -> void:
@@ -405,8 +415,8 @@ func _on_sand_body_entered(body: Node2D) -> void:
 	if tutorial_mode:
 		tutorial_manager.notify_event("entered_sand")
 	active_sand_tiles += 1
-	ball.linear_velocity *= SAND_ENTRY_SPEED_SCALE
-	ball.linear_damp = SAND_DAMP * sand_damp_modifier
+	ball.linear_velocity *= sand_entry_speed_scale
+	ball.linear_damp = sand_linear_damp * sand_damp_modifier
 
 
 func _on_sand_body_exited(body: Node2D) -> void:
@@ -426,8 +436,8 @@ func _on_rough_body_entered(body: Node2D) -> void:
 	if tutorial_mode:
 		tutorial_manager.notify_event("entered_rough")
 	active_rough_tiles += 1
-	ball.linear_velocity *= ROUGH_ENTRY_SPEED_SCALE
-	ball.linear_damp = ROUGH_DAMP
+	ball.linear_velocity *= rough_entry_speed_scale
+	ball.linear_damp = rough_linear_damp
 
 
 func _on_rough_body_exited(body: Node2D) -> void:

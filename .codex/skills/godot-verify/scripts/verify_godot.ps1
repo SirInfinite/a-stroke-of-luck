@@ -6,9 +6,10 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$passes = [System.Collections.Generic.List[string]]::new()
-$failures = [System.Collections.Generic.List[string]]::new()
-$manual = [System.Collections.Generic.List[string]]::new()
+$automatedPasses = [System.Collections.Generic.List[string]]::new()
+$automatedFailures = [System.Collections.Generic.List[string]]::new()
+$diffReview = [System.Collections.Generic.List[string]]::new()
+$manualPlaytest = [System.Collections.Generic.List[string]]::new()
 $errorPattern = '(?im)(SCRIPT ERROR|PARSE ERROR|ERROR:|Failed to (load|open)|Can''t (load|open)|Resource[^\r\n]*(missing|not found)|Invalid UID)'
 
 function Resolve-GodotExecutable {
@@ -17,11 +18,12 @@ function Resolve-GodotExecutable {
 		if (Test-Path -LiteralPath $RequestedPath -PathType Leaf) { return (Resolve-Path -LiteralPath $RequestedPath).Path }
 		throw "Requested Godot executable does not exist: $RequestedPath"
 	}
-	$knownLauncher = 'C:\Users\Rony\bin\godot4.cmd'
-	if (Test-Path -LiteralPath $knownLauncher -PathType Leaf) { return $knownLauncher }
 	foreach ($name in @('godot4', 'godot')) {
-		$command = Get-Command $name -ErrorAction SilentlyContinue | Select-Object -First 1
+		$command = Get-Command $name -CommandType Application, ExternalScript -ErrorAction SilentlyContinue | Select-Object -First 1
 		if ($command) { return $command.Source }
+	}
+	foreach ($knownLauncher in @('C:\Users\Rony\bin\godot4.cmd')) {
+		if (Test-Path -LiteralPath $knownLauncher -PathType Leaf) { return $knownLauncher }
 	}
 	throw 'Godot was not found. Pass -GodotPath or install a godot4/godot command.'
 }
@@ -36,10 +38,66 @@ function Invoke-GodotCheck {
 	if ($code -ne 0 -or $text -match $errorPattern) {
 		$reason = "exit $code"
 		if ($text -match $errorPattern) { $reason += ', error signature detected' }
-		$failures.Add("${Label}: $reason")
+		$automatedFailures.Add("${Label}: $reason")
+		$succeeded = $false
 	} else {
-		$passes.Add("${Label}: exit 0 with no parser/runtime/resource error signature")
+		$automatedPasses.Add("${Label}: exit 0 with no parser/runtime/resource error signature")
+		$succeeded = $true
 	}
+	return [pscustomobject]@{
+		ExitCode = $code
+		Text = $text
+		Succeeded = $succeeded
+	}
+}
+
+function Find-FirstCount {
+	param([string]$Text, [string[]]$Patterns)
+	foreach ($pattern in $Patterns) {
+		$match = [regex]::Match($Text, $pattern)
+		if ($match.Success) { return [int]$match.Groups[1].Value }
+	}
+	return $null
+}
+
+function Add-GutResult {
+	param([pscustomobject]$Result)
+	if (-not $Result.Succeeded) { return }
+
+	$total = Find-FirstCount $Result.Text @(
+		'(?im)^\s*Tests\s*:?\s*(\d+)\s*$',
+		'(?im)^\s*Total Tests\s*:?\s*(\d+)\s*$'
+	)
+	$passing = Find-FirstCount $Result.Text @(
+		'(?im)^\s*Passing Tests\s*:?\s*(\d+)\s*$',
+		'(?im)^\s*Passing\s*:?\s*(\d+)\s*$'
+	)
+	$failing = Find-FirstCount $Result.Text @(
+		'(?im)^\s*Failing Tests\s*:?\s*(\d+)\s*$',
+		'(?im)^\s*Failing\s*:?\s*(\d+)\s*$'
+	)
+
+	if ($null -eq $total -and $null -ne $passing -and $null -ne $failing) { $total = $passing + $failing }
+	if ($null -eq $failing -and $null -ne $total -and $null -ne $passing) { $failing = $total - $passing }
+	if ($null -eq $passing -and $null -ne $total -and $null -ne $failing) { $passing = $total - $failing }
+	if ($null -eq $failing -and $null -ne $total) {
+		$failing = 0
+		$passing = $total
+	}
+	if ($null -eq $total -or $null -eq $passing -or $null -eq $failing) {
+		$automatedFailures.Add('GUT results: runner completed, but test totals could not be parsed from its output.')
+		return
+	}
+	if ($failing -gt 0) {
+		$automatedFailures.Add("GUT results: $total total, $passing passing, $failing failing.")
+	} else {
+		$automatedPasses.Add("GUT results: $total total, $passing passing, $failing failing.")
+	}
+}
+
+function Test-PlayerFacingPath {
+	param([string]$Path)
+	return $Path -match '^(assets|data|levels|scenes|scripts|ui)[\\/]' -or $Path -in @('project.godot', 'export_presets.cfg')
 }
 
 try {
@@ -49,24 +107,25 @@ try {
 	Write-Host "Project: $project"
 	Write-Host "Godot:  $godot"
 
-	Invoke-GodotCheck 'Godot version' $godot @('--version')
-	Invoke-GodotCheck 'Project import' $godot @('--headless', '--path', $project, '--import')
-	Invoke-GodotCheck 'Main-scene launch' $godot @('--headless', '--path', $project, '--quit-after', $LaunchIterations.ToString())
+	$null = Invoke-GodotCheck 'Godot version' $godot @('--version')
+	$null = Invoke-GodotCheck 'Project import' $godot @('--headless', '--path', $project, '--import')
+	$null = Invoke-GodotCheck 'Main-scene launch' $godot @('--headless', '--path', $project, '--quit-after', $LaunchIterations.ToString())
 
 	$gut = Join-Path $project 'addons\gut\gut_cmdln.gd'
 	$tests = Join-Path $project 'tests'
 	if ((Test-Path -LiteralPath $gut -PathType Leaf) -and (Test-Path -LiteralPath $tests -PathType Container)) {
-		Invoke-GodotCheck 'GUT tests' $godot @('--headless', '--path', $project, '--script', 'res://addons/gut/gut_cmdln.gd', '-gdir=res://tests', '-gexit')
+		$gutResult = Invoke-GodotCheck 'GUT tests' $godot @('--headless', '--path', $project, '--script', 'res://addons/gut/gut_cmdln.gd', '-gdir=res://tests', '-gexit')
+		Add-GutResult $gutResult
 	} elseif (Test-Path -LiteralPath $tests -PathType Container) {
-		$manual.Add('A tests directory exists without a supported GUT runner; determine and run its command manually.')
+		$automatedFailures.Add('Test discovery: a tests directory exists without the supported vendored GUT runner.')
 	} else {
-		$passes.Add('Test discovery: no automated tests directory or GUT run is available.')
+		$automatedPasses.Add('Test discovery: 0 tests run because no tests directory or vendored GUT runner is available.')
 	}
 
 	Push-Location $project
 	try {
 		if ((& git rev-parse --is-inside-work-tree 2>$null) -ne 'true') {
-			$failures.Add('Git review: project is not inside a Git working tree.')
+			$automatedFailures.Add('Git review preparation: project is not inside a Git working tree.')
 		} else {
 			foreach ($check in @(
 				@('Git diff check', 'diff', '--check'),
@@ -76,29 +135,46 @@ try {
 				$output = @(& git @($check[1..($check.Count - 1)]) 2>&1 | ForEach-Object { $_.ToString() })
 				$code = $LASTEXITCODE
 				if ($output) { Write-Host ($output -join [Environment]::NewLine) }
-				if ($code -eq 0) { $passes.Add("$($check[0]): no whitespace errors.") } else { $failures.Add("$($check[0]): exit $code") }
+				if ($code -eq 0) {
+					$automatedPasses.Add("$($check[0]): no whitespace errors.")
+				} else {
+					$automatedFailures.Add("$($check[0]): exit $code")
+				}
 			}
 			Write-Host "`n--- Git working tree ---"
 			$status = @(& git status --short 2>&1 | ForEach-Object { $_.ToString() })
 			$code = $LASTEXITCODE
 			if ($status) { Write-Host ($status -join [Environment]::NewLine) } else { Write-Host '(clean)' }
-			if ($code -eq 0) { $passes.Add('Git inventory: staged, unstaged, and untracked paths listed.') } else { $failures.Add("Git status: exit $code") }
+			if ($code -eq 0) {
+				$automatedPasses.Add('Git inventory: staged, unstaged, and untracked paths listed.')
+				$diffReview.Add('PENDING: inspect complete staged and unstaged diffs plus every relevant untracked file; inventory is printed above.')
+				$changedPaths = @($status | ForEach-Object {
+					$path = $_.Substring(3).Trim()
+					if ($path -match ' -> ') { $path = ($path -split ' -> ')[-1] }
+					$path
+				})
+				$playerFacingPaths = @($changedPaths | Where-Object { Test-PlayerFacingPath $_ })
+				if ($playerFacingPaths.Count -gt 0) {
+					$manualPlaytest.Add("Player-facing paths are present in the working tree: $($playerFacingPaths -join ', '). Run the relevant QUALITY_BAR and MVP_TEST_CHECKLIST scenarios.")
+				}
+			} else {
+				$automatedFailures.Add("Git status: exit $code")
+			}
 		}
 	} finally { Pop-Location }
-
-	$manual.Add('Review complete staged and unstaged diffs plus every relevant untracked file.')
-	$manual.Add('Run relevant QUALITY_BAR and MVP_TEST_CHECKLIST scenarios for player-facing changes.')
 } catch {
-	$failures.Add($_.Exception.Message)
+	$automatedFailures.Add($_.Exception.Message)
 }
 
-Write-Host "`n=== PASS ==="
-if ($passes.Count) { $passes | ForEach-Object { Write-Host "- $_" } } else { Write-Host 'None' }
-Write-Host "`n=== FAIL ==="
-if ($failures.Count) { $failures | ForEach-Object { Write-Host "- $_" } } else { Write-Host 'None' }
+Write-Host "`n=== AUTOMATED PASS ==="
+if ($automatedPasses.Count) { $automatedPasses | ForEach-Object { Write-Host "- $_" } } else { Write-Host 'None' }
+Write-Host "`n=== AUTOMATED FAIL ==="
+if ($automatedFailures.Count) { $automatedFailures | ForEach-Object { Write-Host "- $_" } } else { Write-Host 'None' }
+Write-Host "`n=== DIFF REVIEW ==="
+if ($diffReview.Count) { $diffReview | ForEach-Object { Write-Host "- $_" } } else { Write-Host 'None' }
 Write-Host "`n=== MANUAL PLAYTEST REQUIRED ==="
-if ($manual.Count) { $manual | ForEach-Object { Write-Host "- $_" } } else { Write-Host 'None' }
+if ($manualPlaytest.Count) { $manualPlaytest | ForEach-Object { Write-Host "- $_" } } else { Write-Host 'None' }
 
-if ($failures.Count) { Write-Host "`nOVERALL: FAIL"; exit 1 }
-Write-Host "`nOVERALL: PASS"
+if ($automatedFailures.Count) { Write-Host "`nAUTOMATED RESULT: FAIL"; exit 1 }
+Write-Host "`nAUTOMATED RESULT: PASS"
 exit 0

@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://1cvckvkl7ay2" path="res://scripts/golf_ball.gd" id="1_s1xsf"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_70p3a"]
-friction = 0.4
+friction = 377.55
 rough = true
 bounce = 0.35
 
@@ -20,9 +20,10 @@ gravity_scale = 0.0
 linear_damp = 1.2
 angular_damp = 2.0
 script = ExtResource("1_s1xsf")
-max_impulse = 1600.0
-trajectory_dot_count = 20
-trajectory_dot_spacing = 15.0
+shot_maximum_power = 1600.0
+collision_friction = 1000.0
+preview_dot_count = 20
+preview_dot_spacing = 15.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=303948608]
 shape = SubResource("CircleShape2D_h2yge")

@@ -19,13 +19,13 @@ From the repository root, run:
 powershell -NoProfile -ExecutionPolicy Bypass -File .codex/skills/godot-verify/scripts/verify_godot.ps1
 ```
 
-The runner resolves Godot, prints its version, imports the project, launches the main scene for three iterations, runs GUT tests when installed, checks Git whitespace, and inventories changes. Pass `-ProjectPath` or `-GodotPath` only for another checkout or executable.
+The runner resolves Godot in this order: explicit `-GodotPath`, `godot4` on `PATH`, `godot` on `PATH`, then a known machine-specific fallback. It prints the version, imports the project, launches the main scene for three iterations, runs vendored GUT tests when installed, checks Git whitespace, and inventories changes. Pass `-ProjectPath` for another checkout.
 
-Treat a nonzero exit as `FAIL`. Read the full output; do not rely on exit code alone.
+Treat a nonzero exit as `AUTOMATED FAIL`. Read the full output; do not rely on exit code alone. The runner reports automated checks, diff-review work, and manual playtesting separately.
 
 ## 3. Run Additional Available Tests
 
-Inspect `AGENTS.md`, addons, and test directories for test commands the runner does not recognize. Run documented tests applicable to the changed system. If test-like files exist without a runnable framework or documented command, report them as unconfigured rather than passed.
+Inspect `AGENTS.md`, addons, and test directories for test commands the runner does not recognize. Run documented tests applicable to the changed system. If test-like files exist without a runnable framework or documented command, report them as unconfigured rather than passed. When vendored GUT is available, report the total, passing, and failing test counts.
 
 Do not export or overwrite `A Stroke Of Luck.exe` unless explicitly requested.
 
@@ -42,25 +42,29 @@ git status --short
 
 Open every relevant untracked text file because ordinary `git diff` omits it. Review for unintended gameplay/data changes, parser/type/resource/path errors, stale scene/signal references, incorrect state lifetimes, documentation mismatches, missing verification, generated files, binaries, credentials, and unrelated changes.
 
-Diff review may fail verification even when Godot exits successfully.
+Report semantic inspection under `DIFF REVIEW`, never under manual playtesting. Diff review may fail verification even when Godot exits successfully.
 
 ## 5. Determine Manual Coverage
 
 Use `docs/QUALITY_BAR.md` and relevant `docs/MVP_TEST_CHECKLIST.md` sections. Require manual playtesting for physics feel, collisions, hazards, scoring, economy, card stacking, run progression, input, interruption timing, UI/visual presentation, tutorial comprehension, full-run behavior, and exported-platform behavior as applicable.
 
-State the exact scenario, expected result, input method, and display/build conditions needed.
+State the exact scenario, expected result, input method, and display/build conditions needed. Write `None` for documentation or tooling-only changes with no material interactive or visual effect.
 
 ## 6. Report the Verdict
 
 Always report:
 
-### PASS
+### AUTOMATED PASS
 
 List each successful automated command and supported conclusion.
 
-### FAIL
+### AUTOMATED FAIL
 
 List command failures, error signatures, failed tests, and blocking diff findings with evidence. Write `None` when empty.
+
+### DIFF REVIEW
+
+List files inspected and semantic findings. Write `PASS` when the complete relevant diff and untracked files were reviewed without a blocker, or `FAIL` with evidence for blocking findings. Do not classify diff review as manual playtesting.
 
 ### MANUAL PLAYTEST REQUIRED
 

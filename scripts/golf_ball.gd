@@ -4,19 +4,64 @@ signal shot_finished
 signal sink_animation_finished
 signal hazard_sink_finished
 
-@export var max_impulse := 900.0
-@export var max_drag_distance := 180.0
-@export var drag_pick_radius := 18.0
-@export var trajectory_dot_count := 12
-@export var trajectory_dot_spacing := 18.0
-@export var trajectory_dot_radius := 2.5
-@export var stopped_speed := 5.0
-@export var stopped_angular_speed := 0.1
-@export var stopped_frames_required := 8
-@export var keyboard_turn_speed := 3.5
-@export var keyboard_power_speed := 0.75
-@export_range(0.0, 1.0) var keyboard_starting_power := 0.35
-@export var sink_animation_duration := 0.35
+@export_category("Shot Controls")
+@export_group("Shot Strength", "shot_")
+## Maximum physics impulse applied at full power before card modifiers.
+@export_range(0.0, 5000.0, 10.0, "or_greater") var shot_maximum_power: float = 900.0
+
+@export_group("Aiming")
+@export_subgroup("Mouse", "mouse_")
+## Mouse pull distance, in pixels, required to reach full shot power.
+@export_range(1.0, 500.0, 1.0, "or_greater") var mouse_full_power_drag_distance: float = 180.0
+## Radius around the ball, in pixels, that accepts the initial mouse click.
+@export_range(1.0, 100.0, 1.0, "or_greater") var mouse_selection_radius: float = 18.0
+
+@export_subgroup("Keyboard", "keyboard_")
+## Keyboard aim rotation speed in radians per second.
+@export_range(0.0, 10.0, 0.1, "or_greater") var keyboard_turn_speed: float = 3.5
+## Rate per second at which keyboard input raises or lowers normalized power.
+@export_range(0.0, 2.0, 0.05, "or_greater") var keyboard_power_change_speed: float = 0.75
+## Normalized power selected when the ball first enters the scene.
+@export_range(0.0, 1.0, 0.05) var keyboard_starting_power: float = 0.35
+
+@export_category("Ball Motion")
+@export_group("Body", "body_")
+## Rigid-body mass. Higher values reduce the speed gained from the same shot impulse.
+@export_range(0.1, 10.0, 0.1, "or_greater") var body_mass: float = 1.0
+
+@export_group("Deceleration", "deceleration_")
+## Normal linear damping used on fairway and restored after leaving slowing terrain.
+@export_range(0.0, 50.0, 0.1, "or_greater") var deceleration_fairway_linear_damping: float = 1.2
+## Angular damping used to reduce ball rotation after impacts.
+@export_range(0.0, 50.0, 0.1, "or_greater") var deceleration_rotation_damping: float = 2.0
+
+@export_group("Collision Response", "collision_")
+## Friction used when the ball contacts walls or obstacles. Fairway slowdown uses linear damping instead.
+@export_range(0.0, 1.0, 0.01) var collision_friction: float = 0.39
+## Fraction of collision energy returned as bounce.
+@export_range(0.0, 1.0, 0.01) var collision_bounce: float = 0.35
+
+@export_group("Stop Detection", "stop_")
+## Linear speed at or below which a moving shot may be considered stopped.
+@export_range(0.0, 100.0, 0.5, "or_greater") var stop_speed_threshold: float = 5.0
+## Absolute angular speed at or below which a moving shot may be considered stopped.
+@export_range(0.0, 10.0, 0.05, "or_greater") var stop_rotation_speed_threshold: float = 0.1
+## Consecutive physics frames below both thresholds required before the shot finishes.
+@export_range(1, 60, 1, "or_greater") var stop_confirmation_frames: int = 8
+
+@export_category("Shot Preview")
+@export_group("Trajectory Dots", "preview_")
+## Base number of trajectory dots before card modifiers.
+@export_range(2, 64, 1, "or_greater") var preview_dot_count: int = 12
+## Distance, in pixels, between trajectory dots.
+@export_range(1.0, 100.0, 1.0, "or_greater") var preview_dot_spacing: float = 18.0
+## Radius of each trajectory dot in pixels.
+@export_range(0.5, 10.0, 0.5, "or_greater") var preview_dot_radius: float = 2.5
+
+@export_category("Transitions")
+@export_group("Sink Animation", "sink_")
+## Duration in seconds for cup and hazard sink animations.
+@export_range(0.0, 2.0, 0.05, "or_greater") var sink_duration: float = 0.35
 
 @onready var aim_line: Line2D = $AimLine
 @onready var trajectory_preview: Node2D = $TrajectoryPreview
@@ -45,6 +90,7 @@ var trajectory_dot_bonus := 0
 
 
 func _ready() -> void:
+	_apply_physics_tuning()
 	_create_ball_art()
 	keyboard_power = keyboard_starting_power
 	power_gradient = Gradient.new()
@@ -54,6 +100,15 @@ func _ready() -> void:
 	aim_line.set_as_top_level(true)
 	trajectory_preview.set_as_top_level(true)
 	_create_trajectory_preview()
+
+
+func _apply_physics_tuning() -> void:
+	mass = body_mass
+	linear_damp = deceleration_fairway_linear_damping
+	angular_damp = deceleration_rotation_damping
+	if physics_material_override:
+		physics_material_override.friction = collision_friction
+		physics_material_override.bounce = collision_bounce
 
 
 func _create_ball_art() -> void:
@@ -143,7 +198,7 @@ func _physics_process(_delta: float) -> void:
 	else:
 		stopped_frames = 0
 
-	if stopped_frames >= stopped_frames_required:
+	if stopped_frames >= stop_confirmation_frames:
 		_finish_shot()
 
 
@@ -160,7 +215,7 @@ func shoot(impulse: Vector2) -> void:
 func apply_card_modifiers(new_impulse_multiplier: float, new_drag_multiplier: float, new_trajectory_dot_bonus: int) -> void:
 	impulse_multiplier = maxf(new_impulse_multiplier, 0.2)
 	drag_multiplier = maxf(new_drag_multiplier, 0.35)
-	trajectory_dot_bonus = maxi(new_trajectory_dot_bonus, -trajectory_dot_count + 2)
+	trajectory_dot_bonus = maxi(new_trajectory_dot_bonus, -preview_dot_count + 2)
 	_create_trajectory_preview()
 
 
@@ -202,8 +257,8 @@ func _apply_sink_to(hole_position: Vector2) -> void:
 
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(self, "position", hole_position, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "scale", Vector2.ZERO, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(self, "position", hole_position, sink_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "scale", Vector2.ZERO, sink_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await tween.finished
 
 	visible = false
@@ -224,8 +279,8 @@ func _apply_hazard_sink(hazard_position: Vector2) -> void:
 
 	var tween := create_tween()
 	tween.set_parallel(true)
-	tween.tween_property(self, "position", hazard_position, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(self, "scale", Vector2.ZERO, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
+	tween.tween_property(self, "position", hazard_position, sink_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(self, "scale", Vector2.ZERO, sink_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await tween.finished
 
 	visible = false
@@ -276,7 +331,7 @@ func _drag_vector() -> Vector2:
 
 
 func _select_if_mouse_is_on_ball() -> void:
-	if can_shoot() and global_position.distance_to(get_global_mouse_position()) <= drag_pick_radius:
+	if can_shoot() and global_position.distance_to(get_global_mouse_position()) <= mouse_selection_radius:
 		selected = true
 		keyboard_active = false
 
@@ -293,7 +348,7 @@ func _handle_keyboard_aim(delta: float) -> void:
 		keyboard_active = true
 
 	if not is_zero_approx(power_input):
-		keyboard_power = clampf(keyboard_power + power_input * keyboard_power_speed * delta, 0.0, 1.0)
+		keyboard_power = clampf(keyboard_power + power_input * keyboard_power_change_speed * delta, 0.0, 1.0)
 		keyboard_active = true
 
 
@@ -326,7 +381,7 @@ func _create_trajectory_preview() -> void:
 	for i in range(_effective_trajectory_dot_count()):
 		var dot := Polygon2D.new()
 		dot.name = "Dot%d" % [i + 1]
-		dot.polygon = _circle_polygon(trajectory_dot_radius)
+		dot.polygon = _circle_polygon(preview_dot_radius)
 		dot.color = TRAJECTORY_COLOR
 		trajectory_preview.add_child(dot)
 
@@ -351,12 +406,12 @@ func _update_trajectory_preview(impulse: Vector2, power: float) -> void:
 	var dot_progress := lerpf(3.0, float(dot_count), power)
 	var visible_dots: int = clampi(floori(dot_progress), 2, dot_count)
 	var stretch_progress := dot_progress - float(visible_dots)
-	var stretched_spacing := trajectory_dot_spacing
+	var stretched_spacing := preview_dot_spacing
 	if power >= 0.995:
 		visible_dots = dot_count
 		stretch_progress = 0.0
 	elif visible_dots < dot_count:
-		stretched_spacing = lerpf(trajectory_dot_spacing, trajectory_dot_spacing * float(visible_dots + 1) / float(visible_dots), stretch_progress)
+		stretched_spacing = lerpf(preview_dot_spacing, preview_dot_spacing * float(visible_dots + 1) / float(visible_dots), stretch_progress)
 	trajectory_preview.global_position = Vector2.ZERO
 	trajectory_preview.visible = true
 
@@ -379,19 +434,19 @@ func _hide_previews() -> void:
 
 
 func _is_stopped() -> bool:
-	return linear_velocity.length() <= stopped_speed and absf(angular_velocity) <= stopped_angular_speed
+	return linear_velocity.length() <= stop_speed_threshold and absf(angular_velocity) <= stop_rotation_speed_threshold
 
 
 func _effective_max_impulse() -> float:
-	return max_impulse * impulse_multiplier
+	return shot_maximum_power * impulse_multiplier
 
 
 func _effective_max_drag_distance() -> float:
-	return max_drag_distance * drag_multiplier
+	return mouse_full_power_drag_distance * drag_multiplier
 
 
 func _effective_trajectory_dot_count() -> int:
-	return maxi(2, trajectory_dot_count + trajectory_dot_bonus)
+	return maxi(2, preview_dot_count + trajectory_dot_bonus)
 
 
 func _finish_shot() -> void:

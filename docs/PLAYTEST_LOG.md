@@ -31,3 +31,11 @@ Record observed playtests and verification here. Keep entries factual; do not co
 - The run timer appears to advance whenever a next-level load is not in progress, including UI phases; verify pause behavior.
 - The current five cards and their effects differ from the intended design pool.
 - Fixed-position UI has not been checked outside the 1920×1080 target.
+
+## 2026-08-16 — Shot Tunability Pass
+
+- Low power shots (0-20%) are easily predictable, and move smoothly. Trajectory preview for them appears longer than intended, gives illusion of more powerful shot.
+- Medium power shots (30-50%) go further than what they feel like, and have a long stopping time.
+- High power shots (60-100%), in comparision, are underwhelming and feel more abrupt near the end of their roll compared to medium power shots.
+- Changing friction value in inspector & in physics material seemed to have 0 effect on ball actual friction.
+- Stop threshold appears especially important to very short shots.
