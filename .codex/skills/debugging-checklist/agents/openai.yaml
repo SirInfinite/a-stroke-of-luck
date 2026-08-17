@@ -1,0 +1,4 @@
+interface:
+  display_name: "Debugging Checklist"
+  short_description: "Build a focused, systematic debugging checklist"
+  default_prompt: "Use $debugging-checklist to build a focused checklist for diagnosing this problem."

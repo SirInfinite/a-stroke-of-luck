@@ -1,0 +1,4 @@
+interface:
+  display_name: "Bug Reproduction Plan"
+  short_description: "Create a minimal, repeatable bug reproduction"
+  default_prompt: "Use $bug-repro-plan to create a minimal, evidence-focused reproduction plan for this bug."

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Feature Discovery"
+  short_description: "Explore gameplay ideas before implementation"
+  default_prompt: "Use $feature-discovery to explore this gameplay idea before implementation."
+
+policy:
+  allow_implicit_invocation: true

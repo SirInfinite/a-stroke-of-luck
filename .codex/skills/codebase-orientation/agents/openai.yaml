@@ -1,0 +1,4 @@
+interface:
+  display_name: "Codebase Orientation"
+  short_description: "Map a codebase and its local workflows"
+  default_prompt: "Use $codebase-orientation to map this repository, its entry points, and its local run workflow."

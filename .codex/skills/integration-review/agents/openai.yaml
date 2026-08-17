@@ -1,0 +1,4 @@
+interface:
+  display_name: "Integration Review"
+  short_description: "Review interactions across combined changes"
+  default_prompt: "Use $integration-review to review this integration branch for cross-feature failures before merging."

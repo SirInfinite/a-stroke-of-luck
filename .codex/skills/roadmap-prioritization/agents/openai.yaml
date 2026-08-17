@@ -1,0 +1,4 @@
+interface:
+  display_name: "Roadmap Prioritization"
+  short_description: "Prioritize initiatives with explicit tradeoffs"
+  default_prompt: "Use $roadmap-prioritization to rank these initiatives by impact, effort, dependencies, and risk."

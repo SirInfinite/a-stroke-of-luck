@@ -1,0 +1,4 @@
+interface:
+  display_name: "Architecture Review"
+  short_description: "Review architecture risks and tradeoffs"
+  default_prompt: "Use $architecture-review to review this system architecture and recommend practical improvements."

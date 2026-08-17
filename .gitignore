@@ -4,3 +4,11 @@
 .export/
 *.import
 /android/
+
+# Chainlink local runtime state
+.chainlink/issues.db
+.chainlink/issues.db-shm
+.chainlink/issues.db-wal
+.chainlink/agent.json
+.chainlink/.cache/
+.chainlink/.locks-cache/

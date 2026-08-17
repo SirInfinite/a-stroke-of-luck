@@ -1,0 +1,7 @@
+interface:
+  display_name: "Godot Verify"
+  short_description: "Verify Godot startup, tests, and repository changes"
+  default_prompt: "Use $godot-verify to verify this Godot repository and report automated and manual checks."
+
+policy:
+  allow_implicit_invocation: true

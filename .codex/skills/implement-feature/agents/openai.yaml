@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement Feature"
+  short_description: "Implement an approved change safely and completely"
+  default_prompt: "Use $implement-feature to implement this approved change and verify the completed result."

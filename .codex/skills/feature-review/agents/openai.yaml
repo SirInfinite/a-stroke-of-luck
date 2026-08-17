@@ -1,0 +1,4 @@
+interface:
+  display_name: "Feature Review"
+  short_description: "Independently review a completed feature"
+  default_prompt: "Use $feature-review to perform a read-only review of this completed feature before integration."

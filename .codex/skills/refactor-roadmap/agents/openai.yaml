@@ -1,0 +1,4 @@
+interface:
+  display_name: "Refactor Roadmap"
+  short_description: "Plan a safe, staged refactor"
+  default_prompt: "Use $refactor-roadmap to plan a safe, dependency-aware refactor for this module."

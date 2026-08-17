@@ -1,0 +1,4 @@
+interface:
+  display_name: "Integration Test Planner"
+  short_description: "Plan tests across connected systems"
+  default_prompt: "Use $integration-test-planner to plan focused tests across these connected systems."

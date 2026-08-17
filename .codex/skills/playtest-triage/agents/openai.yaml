@@ -1,0 +1,4 @@
+interface:
+  display_name: "Playtest Triage"
+  short_description: "Turn playtest evidence into a prioritized backlog"
+  default_prompt: "Use $playtest-triage to turn these playtest observations into a prioritized development backlog."
