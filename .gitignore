@@ -3,6 +3,8 @@
 .import/
 .export/
 *.import
+!addons/gut/**/*.import
+!addons/gut/*.import
 /android/
 
 # Chainlink local runtime state
