@@ -13,9 +13,9 @@ The style is clean, stylized top-down 2D: soft geometry, restrained outlines, mi
 3. **Calm play, controlled chaos.** Ordinary golf is pleasant and stable; purchases, curses, and stacked run effects add concentrated visual energy without obscuring play.
 4. **Benefit and penalty have equal clarity.** Never hide the downside through hierarchy, wording, or color. Never rely on color alone.
 
-## Meadow Biome
+## Biome Foundation
 
-The first and only production-priority biome is bright, inviting, lightly whimsical, and uncluttered.
+Meadow is the visual foundation and remains bright, inviting, lightly whimsical, and uncluttered. Release mode adds Desert, Autumn, Snow, Swamp, and Volcanic as reversible data profiles using the same primitive rendering and gameplay systems. Their immediate purpose is readable palette and hazard-weight variation, not bespoke art production.
 
 | Element | Treatment | Working color |
 |---|---|---|
@@ -29,6 +29,21 @@ The first and only production-priority biome is bright, inviting, lightly whimsi
 The existing alternating dark-green grid, brown collision walls, polygonal ball, cup, and striped flag are functional prototype language, not a mandate to preserve checkerboarding or rectangular terrain in final art. Preserve their clarity while moving toward softer course shapes.
 
 Out-of-bounds must not resemble harmless background grass. Use a consistent boundary/drop-off/warning treatment. Any object with collision should visually communicate approximately the same footprint.
+
+### Release Biome Kit
+
+All production biomes use the same procedural vector kit for the ball, tee marker, putting green, cup, flag, course boundary, hazards, aim preview, and decorations. `CourseVisualFactory` owns the reusable primitive silhouettes; biome profiles select colors and four decoration identifiers. `BiomeAmbience` adds deterministic, low-contrast motion outside the main route so it never changes collision or competes with the course.
+
+| Biome | Readable identity | Reused decoration set |
+|---|---|---|
+| Meadow | Clean greens, flowers, soft shrubs, drifting pollen | wildflowers, clover, shrubs, buttercups |
+| Desert | Warm sand and dry earth, stone shapes, sparse wind streaks | cactus, rocks, dry grass, sunstone |
+| Autumn | Amber fairways, orange/red foliage, drifting leaves | red maple, fallen leaves, acorns, amber shrub |
+| Snow | Pale snow/ice surfaces, cool shadows, restrained snowfall | pine, snowdrifts, ice crystals, frost stones |
+| Swamp | Dark wet greens, mud, reeds, faint ground wisps | reeds, mud pool, mushrooms, lily pads |
+| Volcanic | Dark basalt, hot orange/red accents, ember motion | basalt, embers, lava crack, smoke vent |
+
+Hazards retain shared silhouettes and add a non-color cue: sand uses grains and a ridge, rough uses grass tufts, water uses ripple lines, and out-of-bounds uses warning stripes. Direction pads keep their arrow. These marks remain consistent across every palette.
 
 ## Semantic Language
 
@@ -73,6 +88,10 @@ Use short, readable micro-animation:
 
 Effects communicate impact, speed, terrain, reward, punishment, selection, or completion. If removing an effect would not reduce understanding or feel, it is low priority.
 
+The release feedback kit is deliberately shared. Shot strike rings, camera offset, the sampled ball trail, rolling ticks, terrain bursts, cup rings, and transition flashes are palette-driven primitive effects from `FeedbackDirector`; biome variants come from profile colors rather than bespoke effect scenes. Shop feedback uses the same semantic colors: a small card scale response, gold coin pulse, and brief red curse warning. Durations and intensities are named exported values on the owning feedback nodes so a feel pass can tune them without touching gameplay rules.
+
+Audio follows the same restrained hierarchy. A synthesized low-volume ambience bed supports the course, the rolling loop scales with ball speed, and short pooled cues mark strike, terrain, water, cup, shop, biome transition, and final completion. Music and SFX use separate buses and must never mask shot readability.
+
 ## Asset Rules
 
 - Match top-down perspective, scale, outline weight, lighting direction, texture density, saturation, and contrast.
@@ -91,10 +110,10 @@ Effects communicate impact, speed, terrain, reward, punishment, selection, or co
 5. Stacked curse presentation.
 6. Environmental decoration.
 
-Finish the Meadow before exploring a second biome. Placeholders may support unfinished systems, but final player-facing features must meet `QUALITY_BAR.md`.
+Keep Meadow as the clarity baseline for every profile. Additional release biomes must reuse the shared renderer, keep the surround quieter and darker than the playable route, and remain primitive until the complete 18-hole run passes human playtesting. Placeholders may support unfinished systems, but final player-facing features must meet `QUALITY_BAR.md`.
 
 ## Avoid
 
 Photorealism, simulation-style presentation, noisy textures, ornate permanent HUD frames, excessive particles, tiny decorative detail, inconsistent asset styles, or copying the mechanics/visual identity of reference games.
 
-Final font, outline thickness, texture level, shadows, and future-biome identity remain open. Until tested, choose reversible treatments that preserve clarity and keep production scope small.
+Final font choice and more detailed biome identity remain open. The release treatment uses consistent moderate outlines, restrained shadows, quiet surface texture, and reversible data-driven palette variants until human playtesting validates the full run.

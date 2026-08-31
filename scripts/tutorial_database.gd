@@ -139,7 +139,6 @@ static func get_levels() -> Array[Dictionary]:
 			"obstacles": [],
 			"forced_tokens": 3,
 			"shop_cards": ["Overdrive Driver", "Rangefinder Lens", "Heavy Core"],
-			"require_shop_purchase": true,
 			"required_events": [],
 			"steps": [
 				{"event": "hole_completed", "text": "Finish holes to reach the shop.", "target": "hole"},

@@ -56,8 +56,8 @@ A player-facing feature is finished only when it is correct, understandable, sat
 | Hole/hazard | Validator pass, reachable cup, boundary containment, readable safe/risky route, and tested reset behavior. |
 | UI/screen | Mouse and keyboard usability, all button states, long text/value cases, transition in/out, and 1920×1080 capture. |
 | Tutorial | Fresh save, completed save, skip/restart, required event, blocker, and return to normal run. |
-| Run progression | Full five-hole run, shops/results timing, timer pause, final state, and clean new-run reset. |
+| Run progression | Full 18-hole/six-biome run, correct local and overall indices, five biome shops, results timing, timer pause, ending, and clean new-run reset. |
 
 ## Release Gate
 
-A build is demo-ready only when the intended five-hole run is completable without developer intervention; all required screens and at least eight tradeoff items work; no critical/high findings remain; scoring and economy reconcile at run end; mouse and keyboard controls are usable; and a clean-machine Windows build completes a smoke playtest. Mac remains a target only after an exported build is tested on macOS.
+A build is demo-ready only when the intended 18-hole run is completable without developer intervention; all required screens and at least eight tradeoff items work; no critical/high findings remain; scoring and economy reconcile at run end; mouse and keyboard controls are usable; and a clean-machine Windows build completes a smoke playtest. Mac remains a target only after an exported build is tested on macOS.

@@ -1,6 +1,7 @@
 extends RigidBody2D
 
 signal shot_finished
+signal shot_started(position: Vector2, direction: Vector2, power: float)
 signal sink_animation_finished
 signal hazard_sink_finished
 
@@ -23,9 +24,10 @@ signal hazard_sink_finished
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var ball_art: Node2D = $BallArt
 
-const POWER_LOW_COLOR := Color(1.0, 0.94, 0.18, 0.9)
-const POWER_HIGH_COLOR := Color(1.0, 0.12, 0.05, 0.95)
-const TRAJECTORY_COLOR := Color(1.0, 1.0, 1.0, 0.72)
+const POWER_LOW_COLOR := Color("f4f0e6", 0.94)
+const POWER_HIGH_COLOR := Color("f06b4f", 0.98)
+const TRAJECTORY_COLOR := Color("f4f0e6", 0.82)
+const BALL_OUTLINE_COLOR := Color("252a2c")
 const BALL_VISUAL_RADIUS := 12.4
 const BALL_OUTLINE_RADIUS := 13.5
 const DIMPLE_RADIUS := 0.9
@@ -42,9 +44,15 @@ var keyboard_power := 0.35
 var impulse_multiplier := 1.0
 var drag_multiplier := 1.0
 var trajectory_dot_bonus := 0
+var roll_damping_multiplier := 1.0
+var base_linear_damp := -1.0
+var base_keyboard_power_speed := -1.0
+var input_enabled := true
 
 
 func _ready() -> void:
+	base_linear_damp = linear_damp
+	base_keyboard_power_speed = keyboard_power_speed
 	_create_ball_art()
 	keyboard_power = keyboard_starting_power
 	power_gradient = Gradient.new()
@@ -60,11 +68,12 @@ func _create_ball_art() -> void:
 	for child in ball_art.get_children():
 		child.free()
 
-	_add_ball_circle(BALL_OUTLINE_RADIUS, Color(0.48, 0.5, 0.53, 1.0))
-	_add_ball_circle(BALL_VISUAL_RADIUS, Color(0.91, 0.93, 0.95, 1.0))
-	_add_ball_circle(11.2, Color(0.78, 0.8, 0.84, 0.16), Vector2(1.8, 2.1))
-	_add_ball_circle(8.8, Color(1.0, 1.0, 1.0, 0.17), Vector2(-2.6, -2.8))
-	_add_ball_circle(5.3, Color(1.0, 1.0, 1.0, 0.1), Vector2(-4.2, -4.0))
+	_add_ball_circle(BALL_OUTLINE_RADIUS + 1.4, Color(0.02, 0.025, 0.03, 0.36), Vector2(3.0, 4.0))
+	_add_ball_circle(BALL_OUTLINE_RADIUS, BALL_OUTLINE_COLOR)
+	_add_ball_circle(BALL_VISUAL_RADIUS, Color("eef1f2"))
+	_add_ball_circle(11.2, Color(0.52, 0.58, 0.62, 0.16), Vector2(1.8, 2.1))
+	_add_ball_circle(8.8, Color(1.0, 1.0, 1.0, 0.28), Vector2(-2.6, -2.8))
+	_add_ball_circle(4.6, Color(1.0, 1.0, 1.0, 0.25), Vector2(-4.5, -4.2))
 	_add_honeycomb_dimples()
 
 
@@ -99,7 +108,7 @@ func _add_dimple(dimple_position: Vector2) -> void:
 	var dimple := Polygon2D.new()
 	dimple.position = dimple_position
 	dimple.polygon = _rounded_hex_polygon(DIMPLE_RADIUS)
-	dimple.color = Color(0.5, 0.54, 0.59, 0.92)
+	dimple.color = Color(0.48, 0.53, 0.57, 0.72)
 	ball_art.add_child(dimple)
 
 
@@ -154,14 +163,39 @@ func shoot(impulse: Vector2) -> void:
 	shot_in_progress = true
 	stopped_frames = 0
 	sleeping = false
+	shot_started.emit(
+		global_position,
+		impulse.normalized(),
+		clampf(impulse.length() / maxf(_effective_max_impulse(), 1.0), 0.0, 1.0)
+	)
 	apply_central_impulse(impulse)
 
 
-func apply_card_modifiers(new_impulse_multiplier: float, new_drag_multiplier: float, new_trajectory_dot_bonus: int) -> void:
+func apply_card_modifiers(
+	new_impulse_multiplier: float,
+	new_drag_multiplier: float,
+	new_trajectory_dot_bonus: int,
+	new_roll_damping_multiplier := 1.0
+) -> void:
 	impulse_multiplier = maxf(new_impulse_multiplier, 0.2)
 	drag_multiplier = maxf(new_drag_multiplier, 0.35)
 	trajectory_dot_bonus = maxi(new_trajectory_dot_bonus, -trajectory_dot_count + 2)
+	roll_damping_multiplier = maxf(new_roll_damping_multiplier, 0.35)
+	linear_damp = get_normal_linear_damp()
 	_create_trajectory_preview()
+
+
+func get_normal_linear_damp() -> float:
+	var normal_damp := linear_damp if base_linear_damp < 0.0 else base_linear_damp
+	return normal_damp * roll_damping_multiplier
+
+
+func set_input_enabled(enabled: bool) -> void:
+	input_enabled = enabled
+	if not input_enabled:
+		selected = false
+		keyboard_active = false
+		_hide_previews()
 
 
 func reset_to(new_position: Vector2) -> void:
@@ -233,7 +267,7 @@ func _apply_hazard_sink(hazard_position: Vector2) -> void:
 
 
 func can_shoot() -> bool:
-	return not sunk and not shot_in_progress and _is_stopped()
+	return input_enabled and not sunk and not shot_in_progress and _is_stopped()
 
 
 func get_aim_power() -> float:
@@ -293,7 +327,8 @@ func _handle_keyboard_aim(delta: float) -> void:
 		keyboard_active = true
 
 	if not is_zero_approx(power_input):
-		keyboard_power = clampf(keyboard_power + power_input * keyboard_power_speed * delta, 0.0, 1.0)
+		var power_speed := keyboard_power_speed if base_keyboard_power_speed < 0.0 else base_keyboard_power_speed
+		keyboard_power = clampf(keyboard_power + power_input * power_speed / drag_multiplier * delta, 0.0, 1.0)
 		keyboard_active = true
 
 
@@ -330,6 +365,18 @@ func _create_trajectory_preview() -> void:
 		dot.color = TRAJECTORY_COLOR
 		trajectory_preview.add_child(dot)
 
+	var origin_halo := Polygon2D.new()
+	origin_halo.name = "AimOriginHalo"
+	origin_halo.polygon = _circle_polygon(BALL_OUTLINE_RADIUS + 7.0, 32)
+	origin_halo.color = Color(TRAJECTORY_COLOR, 0.18)
+	trajectory_preview.add_child(origin_halo)
+
+	var target_halo := Polygon2D.new()
+	target_halo.name = "AimTargetHalo"
+	target_halo.polygon = _circle_polygon(8.0, 24)
+	target_halo.color = Color(TRAJECTORY_COLOR, 0.2)
+	trajectory_preview.add_child(target_halo)
+
 	var arrow_head := Polygon2D.new()
 	arrow_head.name = "ArrowHead"
 	arrow_head.polygon = PackedVector2Array([
@@ -364,13 +411,22 @@ func _update_trajectory_preview(impulse: Vector2, power: float) -> void:
 		var dot := trajectory_preview.get_node("Dot%d" % [i + 1]) as Polygon2D
 		dot.visible = i < visible_dots
 		dot.position = global_position + direction * stretched_spacing * float(i + 1)
-		dot.scale = Vector2.ONE
+		var fade := 1.0 - float(i) / float(maxi(visible_dots, 1)) * 0.58
+		dot.color = Color(TRAJECTORY_COLOR, TRAJECTORY_COLOR.a * fade)
+		dot.scale = Vector2.ONE * lerpf(1.12, 0.72, float(i) / float(maxi(dot_count - 1, 1)))
+
+	var origin_halo := trajectory_preview.get_node("AimOriginHalo") as Polygon2D
+	origin_halo.position = global_position
+	origin_halo.visible = true
 
 	var arrow_head := trajectory_preview.get_node("ArrowHead") as Polygon2D
 	arrow_head.visible = true
 	arrow_head.position = global_position + direction * stretched_spacing * float(visible_dots + 1)
 	arrow_head.rotation = direction.angle()
 	arrow_head.scale = Vector2.ONE * lerp(0.8, 1.15, power)
+	var target_halo := trajectory_preview.get_node("AimTargetHalo") as Polygon2D
+	target_halo.position = arrow_head.position
+	target_halo.visible = true
 
 
 func _hide_previews() -> void:

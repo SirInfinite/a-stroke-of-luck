@@ -4,9 +4,11 @@ This document is the authority for intended gameplay. The current prototype does
 
 ## Run Structure
 
-- A demo run contains 5–7 holes in the Meadow biome; five is the minimum.
-- Each hole proceeds through play, hole results, an optional shop, then the next hole.
-- Shops appear after odd-numbered holes (1, 3, 5). If no later hole remains, proceed to run results instead.
+- A production run contains 18 holes: three holes in each of six biomes, in order: Meadow, Desert, Autumn, Snow, Swamp, and Volcanic.
+- Each biome uses the same generator and gameplay systems. Its profile supplies palettes, decoration identifiers, hazard weights, generator difficulty values, and ambience.
+- Within each biome, Hole 1 is introductory, Hole 2 is normal, and Hole 3 is that biome's hardest layout.
+- Each hole proceeds through play and hole results, then the next hole. A shop appears after Hole 3 of biomes 1–5; no shop appears after the Volcanic finale.
+- The production lifecycle is `MAIN_MENU -> RUN_START -> BIOME_INTRO -> HOLE_PLAY -> HOLE_RESULTS`, with `SHOP` between biomes 1–5 and `RUN_RESULTS -> ENDING` after Hole 18.
 - At run end, show total strokes, score relative to total par, total adjusted time, purchases, obstacles encountered, and a letter grade. The player can start a new run.
 - Currency, upgrades, and penalties reset between runs.
 
@@ -47,30 +49,41 @@ Entering the cup completes the hole. Hazard effects must end on exit, reset, or 
 
 - Start each run with 2 coins.
 - Award coins after a hole: birdie or better 3; par 2; bogey 1; double bogey or worse 0.
-- A shop offers 3–4 randomized items. The player may buy 0–2, then continue. Offers do not carry forward.
+- A shop offers exactly 4 seeded-randomized items. The player may buy 0–2, then skip/continue. Offers do not carry forward.
 - Each card shows name, cost, benefit, and penalty before purchase. Unaffordable offers remain readable but disabled.
-- Purchased bonuses persist unless their text says otherwise. Penalties apply for the duration stated by the item; one-hole penalties expire after that hole.
+- Release bonuses persist for the run. Every release curse applies to the next biome's three holes, then expires; completing, forcing, or resetting a hole never consumes more than that hole's one duration step.
 - Stacked effects must be deterministic, visible, and bounded so a run remains completable.
 
 ## Upgrade Pool
 
-The intended 15-item demo pool is defined in `DESIGN_DOCS.md`, Section 3.3. Preserve those item names, costs, paired effects, and duration wording until an explicit balance revision. A complete demo implements at least eight distinct items; the full prototype target is all fifteen.
+The original 15-item pool remains in `DESIGN_DOCS.md`, Section 3.3. Release mode uses the smallest eight-card functional pool supported by the central effect resolver; expansion to the full original pool is deferred.
+
+| Card | Cost | Persistent run bonus | Next-biome curse (3 holes) |
+|---|---:|---|---|
+| Overdrive Driver | 3 | +25% shot power | Power control is 15% less precise |
+| Rangefinder Lens | 2 | +4 trajectory dots | -10% shot power |
+| Sand Cleats | 2 | Sand and rough slow 35% less | Direction zones push 25% harder |
+| Heavy Core | 2 | -20% normal roll damping | Sand and rough slow 15% more |
+| Lucky Putter | 3 | Birdie or better earns +2 coins | Cup is 25% smaller |
+| Power Club | 2 | +20% shot power | One extra direction zone per hole |
+| Coin Magnet | 1 | +1 coin after every hole | -2 trajectory dots |
+| Gust Guard | 2 | Direction-zone push reduced by 50% | One extra direction zone per hole |
+
+Copies stack additively. Central safety bounds keep shot/control/roll multipliers, trajectory dots, terrain and direction mitigation, rewards, cup scale, and curse-added hazard count within completable limits. Shop text must disclose the implemented bonus, curse, duration, and stacking behavior exactly.
 
 Double Down must duplicate both sides of one selected item. Curse Breaker removes one active obstacle but skips the shop after the next hole. Effects that alter future layout or shops must be resolved before the affected hole/shop is built.
 
 ## Level Structure and Difficulty
 
 - A hole has one start, one reachable cup, authored par, playable terrain, boundaries, and zero or more hazards/obstacles.
-- The Meadow run begins wide and forgiving, then introduces bends, route choices, water, sand, wind, and narrower fairways.
-- Hole 1 teaches shooting; Hole 2 teaches approach angle; Hole 3 presents a water lay-up/risk choice; Hole 4 emphasizes sand routing; Hole 5 combines narrow routing with wind and out-of-bounds pressure.
+- All six biomes share one deterministic route generator. Difficulty increases within each biome through narrower routes, more hazards, and smaller cups, without hidden physics changes.
+- Biome profiles weight rough, sand, water, direction, and out-of-bounds hazards differently while retaining the same hazard behaviors.
 - Difficulty should come from readable geometry, accumulated tradeoffs, and route decisions—not hidden physics changes.
 - One optional shortcut per suitable hole is encouraged when both safe and risky routes read clearly.
 
 ## Procedural Generation
 
-Procedural generation is a stretch goal, not a demo requirement. Authored holes are canonical until generation is proven.
-
-If added, generation must:
+Procedural generation is the production course source. A run records one seed and deterministically produces all 18 holes through the shared generator. Generation must:
 
 - produce a connected playable route from start to cup;
 - keep start, cup, and hazards on valid terrain;
@@ -80,6 +93,8 @@ If added, generation must:
 - validate every result and fall back to an authored hole on failure;
 - use a recordable seed for reproduction and playtesting.
 
-## Unresolved Tuning
+Generation attempts are bounded. An invalid candidate is never sent to `LevelBuilder`; after the retry budget is exhausted, a validated authored fallback receives the active biome's presentation data.
 
-Stroke-to-time penalty, grade thresholds, exact putting success behavior, final item durations where the source wording is ambiguous, and whether a manual reset carries a penalty require playtesting decisions. Record resolutions here before treating related features as finished.
+## Results Tuning
+
+The release placeholder grade uses total score relative to the 18-hole par: A at -6 or better, B from -5 through even, C from +1 through +8, D from +9 through +16, and F at +17 or worse. Stroke-to-time penalty, exact putting success behavior, final item durations where source wording is ambiguous, and whether a manual reset carries a penalty still require playtesting decisions.

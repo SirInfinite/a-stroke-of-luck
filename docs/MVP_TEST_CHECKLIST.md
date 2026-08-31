@@ -4,9 +4,10 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 
 ## Startup
 
-- [ ] Game launches into Hole 1 without errors.
+- [ ] Game launches into the main menu without errors.
+- [ ] Play opens Run Intro (`RUN_START`), then the Meadow biome intro, then Hole 1.
 - [ ] Ball, hole, flag, course bounds, HUD, and power meter are visible.
-- [ ] HUD shows hole count, strokes, total strokes, par, timer, tokens, obstacles, cards, power, and aim.
+- [ ] HUD shows biome/local/overall hole indices, seed, strokes, total strokes, par, timer, coins, obstacles, cards, power, and aim.
 - [ ] Timer counts up while playing a hole.
 
 ## Mouse Aim And Shot
@@ -35,33 +36,40 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Ball sinks when it enters the hole.
 - [ ] Ball visually moves into the hole and scales down.
 - [ ] Ball collision/input stops during the sink animation.
-- [ ] Shop opens after the sink animation finishes.
-- [ ] Continuing from the shop loads the next hole.
+- [ ] Hole Results opens after the sink animation finishes.
+- [ ] Continuing loads the next hole after local holes 1–2.
+- [ ] Continuing opens the shop after local Hole 3 in biomes 1–5.
+- [ ] Continuing from a biome shop opens the next biome intro, then its first hole.
 - [ ] Strokes reset to 0 on the next hole.
 - [ ] Total strokes carry forward across holes.
 - [ ] Timer resets on the next hole.
-- [ ] After Hole 5, continuing loads Hole 1 again without crashing.
+- [ ] After Volcanic Hole 3 / overall Hole 18, continuing reaches Run Results, then Ending.
+- [ ] New Run clears run state and returns to Run Start with a fresh seed.
 
-## Token Rewards
+## Coin Rewards
 
-- [ ] Starting tokens are 2.
-- [ ] Finishing under par awards 3 tokens plus any reward bonus.
-- [ ] Finishing at par awards 2 tokens plus any reward bonus.
-- [ ] Finishing one over par awards 1 token plus any reward bonus.
-- [ ] Finishing two or more over par awards 0 tokens plus any reward bonus.
-- [ ] Token total updates before or when the shop appears.
-- [ ] Token total persists across holes.
+- [ ] Starting coins are 2.
+- [ ] Finishing under par awards 3 coins plus any reward bonus.
+- [ ] Finishing at par awards 2 coins plus any reward bonus.
+- [ ] Finishing one over par awards 1 coin plus any reward bonus.
+- [ ] Finishing two or more over par awards 0 coins plus any reward bonus.
+- [ ] Coin total updates before or when the shop appears.
+- [ ] Coin total persists across holes.
 
-## Shop Cards
+## Shop Cards And Economy
 
-- [ ] Shop shows 3 card buttons and a continue button.
-- [ ] Each card shows name, cost, upside, and downside.
-- [ ] Cards that cost more than current tokens are disabled.
-- [ ] Buying an affordable card subtracts the correct token cost.
+- [ ] Shops appear after biomes 1–5 and never after Volcanic / biome 6.
+- [ ] Shop shows 4 unique seeded-random card buttons and a Skip / Continue button.
+- [ ] Each card shows name, cost, persistent bonus, three-hole curse, and stacking behavior.
+- [ ] Cards that cost more than current coins are disabled.
+- [ ] Buying an affordable card subtracts the correct coin cost.
 - [ ] Bought card appears in the HUD card summary.
-- [ ] Card effects apply immediately to future shots or hazards.
-- [ ] Multiple affordable cards can be bought before continuing.
-- [ ] Continue button closes the shop and advances to the next hole.
+- [ ] Card bonus effects apply to subsequent shots, terrain, rewards, or hazards as disclosed.
+- [ ] Card curses apply to the next biome's 3 holes, display remaining duration, and expire after Hole 3 without removing the bonus.
+- [ ] Duplicate cards stack deterministically and stay inside the documented safety bounds.
+- [ ] Zero, one, or two affordable cards can be bought; a third purchase is blocked.
+- [ ] Skip / Continue works with no purchase and advances to the next biome intro.
+- [ ] Starting coins, score rewards, purchases, and final coins reconcile.
 - [ ] Shop animation finishes in a usable position.
 
 ## Sand
@@ -97,7 +105,7 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Pressing `R` resets current-hole strokes to 0.
 - [ ] Pressing `R` resets the current-hole timer.
 - [ ] Pressing `R` does not reset total strokes.
-- [ ] Pressing `R` does not reset tokens or owned cards.
+- [ ] Pressing `R` does not reset coins or owned cards.
 - [ ] Pressing `R` clears sand and direction-pad effects.
 - [ ] Pressing `R` while the ball is moving leaves the game in a playable state.
 - [ ] Pressing `R` during sink, water reset, or shop does not corrupt progression.
@@ -110,15 +118,29 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Power meter remains usable when the debug HUD is hidden.
 - [ ] HUD values update correctly after shots, resets, card purchases, and level changes.
 
-## Five-Hole Course Loop
+## Eighteen-Hole Generated Course Loop
 
-- [ ] Hole 1: basic course can be completed.
-- [ ] Hole 2: sand and wall obstacle appear and work.
-- [ ] Hole 3: water and two wall obstacles appear and work.
-- [ ] Hole 4: direction pad, sand, and wall obstacles appear and work.
-- [ ] Hole 5: water, direction pads, and wall obstacles appear and work.
-- [ ] Start and hole positions are playable on every hole.
+- [ ] Meadow holes 1–3 use the Meadow presentation and rise from introductory to hardest.
+- [ ] Desert holes 4–6 use the Desert presentation and rise from introductory to hardest.
+- [ ] Autumn holes 7–9 use the Autumn presentation and rise from introductory to hardest.
+- [ ] Snow holes 10–12 use the Snow presentation and rise from introductory to hardest.
+- [ ] Swamp holes 13–15 use the Swamp presentation and rise from introductory to hardest.
+- [ ] Volcanic holes 16–18 use the Volcanic presentation and rise from introductory to hardest.
+- [ ] All holes use the shared generator and show the recorded run seed.
+- [ ] Start and cup positions are playable and reachable on every generated hole.
+- [ ] Generated hazards remain contained and a failed generation uses a playable authored fallback.
 - [ ] Ball cannot escape playable course bounds during normal play.
+
+## Game Feel And Audio
+
+- [ ] Low-, medium-, and high-power shots show a readable strike pop and restrained camera impulse without moving the true ball position.
+- [ ] A moving ball leaves a short bounded trail, gives subtle rolling feedback, and clearly settles when stopped.
+- [ ] Sand, rough, water, out-of-bounds, and direction zones trigger distinct readable reactions; Snow, Swamp, and Volcanic palettes remain recognizable through the shared effects.
+- [ ] Strike, rolling, terrain, water, cup, UI, purchase, biome, and final-completion audio are audible, balanced, and routed without clipping.
+- [ ] Cup entry plays a sink cue, brief camera emphasis, readable completion effect, and short pause before Hole Results.
+- [ ] Shop cards respond on hover; purchase pulses the card and coins and briefly warns that a curse was accepted.
+- [ ] Each biome intro has a restrained palette-colored transition; Hole 18, Run Results, and Ending have distinct final feedback without obscuring text.
+- [ ] Repeated shots, rapid resets, skipped shops, and new runs leave no stuck trail, camera offset, audio loop, flash, or scaled UI control.
 
 ## Regression Notes
 
@@ -128,3 +150,5 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] No hazard effect persists into a later hole.
 - [ ] No shop interaction leaves buttons disabled incorrectly.
 - [ ] No level transition happens twice from one hole sink.
+- [ ] Par + 4 opens Hole Results and cannot softlock the run.
+- [ ] Restarting during sink, hazard reset, results, shop, or ending does not leak stale state into the new run.
