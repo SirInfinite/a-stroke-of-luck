@@ -51,6 +51,7 @@ var level_count := 0
 var completed_events := {}
 var current_step_index := 0
 var last_aim_active := false
+var last_aim_power := 0.0
 var last_shot_active := false
 var blocker_text := ""
 var blocker_timer := 0.0
@@ -82,15 +83,17 @@ func set_level(level: Dictionary, index: int, count: int) -> void:
 	completed_events.clear()
 	current_step_index = 0
 	last_aim_active = false
+	last_aim_power = 0.0
 	last_shot_active = false
 	blocker_text = ""
 	blocker_timer = 0.0
+	_mark_active_card_lessons()
 	_update_hint()
 
 
-func notify_event(event_name: String) -> void:
+func notify_event(event_name: StringName) -> void:
 	completed_events[event_name] = true
-	if event_name == "hole_completed":
+	if event_name == &"hole_completed":
 		_update_hint()
 		return
 	_advance_completed_steps()
@@ -132,12 +135,17 @@ func _process(delta: float) -> void:
 
 	var aim_active: bool = main.ball.has_active_aim()
 	if aim_active and not last_aim_active:
-		notify_event("aim_started")
+		notify_event(&"aim_started")
+		notify_event(&"trajectory_previewed")
+	var aim_power: float = main.ball.get_aim_power()
+	if aim_active and last_aim_active and absf(aim_power - last_aim_power) >= 0.04:
+		notify_event(&"power_adjusted")
+	last_aim_power = aim_power
 	last_aim_active = aim_active
 
 	var shot_active: bool = main.ball.shot_in_progress
 	if shot_active and not last_shot_active:
-		notify_event("shot_taken")
+		notify_event(&"shot_taken")
 	last_shot_active = shot_active
 
 	_update_highlight_position()
@@ -256,20 +264,31 @@ func _first_missing_required_event() -> String:
 	return ""
 
 
+func _mark_active_card_lessons() -> void:
+	if not main:
+		return
+	var owned_cards = main.get("owned_card_definitions")
+	if owned_cards is Array and not owned_cards.is_empty():
+		completed_events[&"card_benefit_active"] = true
+	var active_curses = main.get("active_card_curses")
+	if active_curses is Array and not active_curses.is_empty():
+		completed_events[&"card_curse_active"] = true
+
+
 func _blocker_text_for_event(event_name: String) -> String:
 	match event_name:
 		"aim_started":
 			return "Aim from the ball before finishing."
 		"shot_taken":
 			return "Take a shot before finishing."
-		"entered_rough":
-			return "Touch the rough first."
 		"entered_sand":
 			return "Touch the sand first."
 		"entered_water":
 			return "Hit the water once to see the penalty."
-		"entered_out":
-			return "Enter the red out-of-bounds zone once."
 		"entered_direction":
 			return "Cross the wind pad first."
+		"card_benefit_active":
+			return "Buy one tutorial card before continuing."
+		"card_curse_active":
+			return "Accept the tutorial card's disclosed curse before continuing."
 	return "Complete the highlighted lesson first."

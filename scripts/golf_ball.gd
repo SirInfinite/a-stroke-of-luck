@@ -1,7 +1,16 @@
 extends RigidBody2D
 
+const TrajectoryPredictorScript := preload("res://scripts/trajectory_predictor.gd")
+const CourseVisualFactory := preload("res://scripts/course_visual_factory.gd")
+const TrajectoryRendererScript := preload("res://scripts/trajectory_renderer.gd")
+
 signal shot_finished
 signal shot_started(position: Vector2, direction: Vector2, power: float)
+signal ball_stopped(position: Vector2)
+signal wall_impact(strength: float, position: Vector2)
+signal trajectory_prediction_changed(prediction: Dictionary)
+signal tee_left(position: Vector2, elevation: int)
+signal elevation_changed(previous_elevation: int, elevation: int, position: Vector2)
 signal sink_animation_finished
 signal hazard_sink_finished
 
@@ -10,7 +19,8 @@ signal hazard_sink_finished
 @export var drag_pick_radius := 18.0
 @export var trajectory_dot_count := 12
 @export var trajectory_dot_spacing := 18.0
-@export var trajectory_dot_radius := 2.5
+@export var trajectory_min_dot_count := 2
+@export var trajectory_max_prediction_time := 8.0
 @export var stopped_speed := 5.0
 @export var stopped_angular_speed := 0.1
 @export var stopped_frames_required := 8
@@ -18,20 +28,27 @@ signal hazard_sink_finished
 @export var keyboard_power_speed := 0.75
 @export_range(0.0, 1.0) var keyboard_starting_power := 0.35
 @export var sink_animation_duration := 0.35
+@export_range(0.01, 1.0, 0.01) var ice_damping_scale := 0.22
+@export var wall_impact_min_speed := 90.0
+@export var wall_impact_full_speed := 900.0
+@export var wall_impact_cooldown := 0.12
 
 @onready var aim_line: Line2D = $AimLine
-@onready var trajectory_preview: Node2D = $TrajectoryPreview
+@onready var aim_line_backing: Line2D = $AimLineBacking
+@onready var trajectory_renderer: Node2D = $TrajectoryRenderer
 @onready var collision_shape: CollisionShape2D = $CollisionShape2D
 @onready var ball_art: Node2D = $BallArt
 
 const POWER_LOW_COLOR := Color("f4f0e6", 0.94)
 const POWER_HIGH_COLOR := Color("f06b4f", 0.98)
-const TRAJECTORY_COLOR := Color("f4f0e6", 0.82)
 const BALL_OUTLINE_COLOR := Color("252a2c")
 const BALL_VISUAL_RADIUS := 12.4
 const BALL_OUTLINE_RADIUS := 13.5
 const DIMPLE_RADIUS := 0.9
 const DIMPLE_GRID_SPACING := 3.05
+const ELEVATION_Z_STRIDE := 8
+const ELEVATION_Z_OFFSET := 1
+const BALL_Z_OFFSET := 3
 
 var selected := false
 var sunk := false
@@ -48,11 +65,27 @@ var roll_damping_multiplier := 1.0
 var base_linear_damp := -1.0
 var base_keyboard_power_speed := -1.0
 var input_enabled := true
+var simulation_paused := false
+var current_elevation := 0
+var on_tee := true
+var _paused_linear_velocity := Vector2.ZERO
+var _paused_angular_velocity := 0.0
+var _paused_sleeping := false
+var _paused_was_frozen := false
+var _paused_process_mode := Node.PROCESS_MODE_INHERIT
+var _active_transition_tween: Tween
+var _active_ice_sources: Dictionary = {}
+var _last_wall_impact_time_msec := -1000000
+var _trajectory_primary_color := POWER_LOW_COLOR
+var _trajectory_backing_color := Color(0.145, 0.165, 0.173, 0.58)
 
 
 func _ready() -> void:
 	base_linear_damp = linear_damp
 	base_keyboard_power_speed = keyboard_power_speed
+	contact_monitor = true
+	max_contacts_reported = 8
+	_update_elevation_collision_mask()
 	_create_ball_art()
 	keyboard_power = keyboard_starting_power
 	power_gradient = Gradient.new()
@@ -60,8 +93,8 @@ func _ready() -> void:
 	power_gradient.set_color(1, POWER_LOW_COLOR)
 	aim_line.gradient = power_gradient
 	aim_line.set_as_top_level(true)
-	trajectory_preview.set_as_top_level(true)
-	_create_trajectory_preview()
+	aim_line_backing.set_as_top_level(true)
+	trajectory_prediction_changed.connect(trajectory_renderer.set_prediction_data)
 
 
 func _create_ball_art() -> void:
@@ -118,7 +151,7 @@ func _on_input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) ->
 
 
 func _input(event: InputEvent) -> void:
-	if sunk:
+	if sunk or simulation_paused:
 		return
 
 	if event is InputEventKey and event.pressed and not event.echo:
@@ -139,12 +172,15 @@ func _input(event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
+	if simulation_paused:
+		_hide_previews()
+		return
 	_handle_keyboard_aim(delta)
 	_update_previews()
 
 
 func _physics_process(_delta: float) -> void:
-	if not shot_in_progress:
+	if simulation_paused or not shot_in_progress:
 		return
 
 	if _is_stopped():
@@ -163,6 +199,9 @@ func shoot(impulse: Vector2) -> void:
 	shot_in_progress = true
 	stopped_frames = 0
 	sleeping = false
+	if on_tee:
+		on_tee = false
+		tee_left.emit(global_position, current_elevation)
 	shot_started.emit(
 		global_position,
 		impulse.normalized(),
@@ -181,8 +220,7 @@ func apply_card_modifiers(
 	drag_multiplier = maxf(new_drag_multiplier, 0.35)
 	trajectory_dot_bonus = maxi(new_trajectory_dot_bonus, -trajectory_dot_count + 2)
 	roll_damping_multiplier = maxf(new_roll_damping_multiplier, 0.35)
-	linear_damp = get_normal_linear_damp()
-	_create_trajectory_preview()
+	_refresh_surface_damping()
 
 
 func get_normal_linear_damp() -> float:
@@ -198,20 +236,104 @@ func set_input_enabled(enabled: bool) -> void:
 		_hide_previews()
 
 
-func reset_to(new_position: Vector2) -> void:
+func set_gameplay_simulation_paused(paused: bool) -> void:
+	if simulation_paused == paused:
+		return
+
+	if paused:
+		_paused_linear_velocity = linear_velocity
+		_paused_angular_velocity = angular_velocity
+		_paused_sleeping = sleeping
+		_paused_was_frozen = freeze
+		_paused_process_mode = process_mode
+		simulation_paused = true
+		if _active_transition_tween and _active_transition_tween.is_valid():
+			_active_transition_tween.pause()
+		selected = false
+		keyboard_active = false
+		freeze = true
+		process_mode = Node.PROCESS_MODE_DISABLED
+		_hide_previews()
+		return
+
+	simulation_paused = false
+	process_mode = _paused_process_mode
+	if _active_transition_tween and _active_transition_tween.is_valid():
+		_active_transition_tween.play()
+	if sunk:
+		return
+	freeze = _paused_was_frozen
+	if not freeze:
+		linear_velocity = _paused_linear_velocity
+		angular_velocity = _paused_angular_velocity
+		sleeping = _paused_sleeping
+
+
+func reset_to(new_position: Vector2, new_elevation := 0, place_on_tee := true) -> void:
 	selected = false
 	sunk = false
 	shot_in_progress = false
 	stopped_frames = 0
 	keyboard_active = false
-	freeze = false
+	freeze = simulation_paused
 	visible = true
 	scale = Vector2.ONE
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	position = new_position
+	on_tee = place_on_tee
+	set_current_elevation(new_elevation)
+	_active_ice_sources.clear()
+	_refresh_surface_damping()
 	collision_shape.set_deferred("disabled", false)
 	_hide_previews()
+	_paused_linear_velocity = Vector2.ZERO
+	_paused_angular_velocity = 0.0
+	_paused_sleeping = true
+	_paused_was_frozen = false
+
+
+func set_current_elevation(new_elevation: int) -> void:
+	var bounded_elevation := clampi(new_elevation, -1, 1)
+	if current_elevation == bounded_elevation:
+		_update_elevation_collision_mask()
+		return
+	var previous_elevation := current_elevation
+	current_elevation = bounded_elevation
+	_update_elevation_collision_mask()
+	elevation_changed.emit(previous_elevation, current_elevation, global_position)
+
+
+func enter_ice_surface(source_id: int, damping_scale := 0.22) -> void:
+	_active_ice_sources[source_id] = clampf(damping_scale, 0.01, 1.0)
+	_refresh_surface_damping()
+
+
+func exit_ice_surface(source_id: int) -> void:
+	_active_ice_sources.erase(source_id)
+	_refresh_surface_damping()
+
+
+func is_on_ice() -> bool:
+	return not _active_ice_sources.is_empty()
+
+
+func redirect_from_bounce_pad(outgoing_velocity: Vector2) -> bool:
+	if simulation_paused or sunk or not shot_in_progress or outgoing_velocity.is_zero_approx():
+		return false
+	linear_velocity = outgoing_velocity
+	angular_velocity = 0.0
+	sleeping = false
+	stopped_frames = 0
+	return true
+
+
+func get_motion_speed() -> float:
+	return linear_velocity.length()
+
+
+func is_motion_active() -> bool:
+	return shot_in_progress and not sunk and not simulation_paused
 
 
 func sink_to(hole_position: Vector2) -> void:
@@ -222,23 +344,33 @@ func sink_for_reset(hazard_position: Vector2) -> void:
 	call_deferred("_apply_hazard_sink", hazard_position)
 
 
+func _create_gameplay_transition_tween() -> Tween:
+	_active_transition_tween = create_tween()
+	if simulation_paused:
+		_active_transition_tween.pause()
+	return _active_transition_tween
+
+
 func _apply_sink_to(hole_position: Vector2) -> void:
 	if shot_in_progress:
-		_finish_shot()
+		_finish_shot(false)
 
 	selected = false
 	sunk = true
+	on_tee = false
 	freeze = true
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	collision_shape.set_deferred("disabled", true)
 	_hide_previews()
 
-	var tween := create_tween()
+	var tween := _create_gameplay_transition_tween()
 	tween.set_parallel(true)
 	tween.tween_property(self, "position", hole_position, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "scale", Vector2.ZERO, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await tween.finished
+	if _active_transition_tween == tween:
+		_active_transition_tween = null
 
 	visible = false
 	sink_animation_finished.emit()
@@ -246,28 +378,31 @@ func _apply_sink_to(hole_position: Vector2) -> void:
 
 func _apply_hazard_sink(hazard_position: Vector2) -> void:
 	if shot_in_progress:
-		_finish_shot()
+		_finish_shot(false)
 
 	selected = false
 	sunk = true
+	on_tee = false
 	freeze = true
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	collision_shape.set_deferred("disabled", true)
 	_hide_previews()
 
-	var tween := create_tween()
+	var tween := _create_gameplay_transition_tween()
 	tween.set_parallel(true)
 	tween.tween_property(self, "position", hazard_position, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "scale", Vector2.ZERO, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 	await tween.finished
+	if _active_transition_tween == tween:
+		_active_transition_tween = null
 
 	visible = false
 	hazard_sink_finished.emit()
 
 
 func can_shoot() -> bool:
-	return input_enabled and not sunk and not shot_in_progress and _is_stopped()
+	return input_enabled and not simulation_paused and not sunk and not shot_in_progress and _is_stopped()
 
 
 func get_aim_power() -> float:
@@ -343,95 +478,83 @@ func _update_previews() -> void:
 
 func _update_shot_previews(power_line: Vector2, impulse: Vector2) -> void:
 	var power: float = clampf(impulse.length() / _effective_max_impulse(), 0.0, 1.0)
-	var power_color := POWER_LOW_COLOR.lerp(POWER_HIGH_COLOR, power)
+	var power_color := _trajectory_primary_color.lerp(POWER_HIGH_COLOR, power)
 
 	aim_line.global_position = Vector2.ZERO
 	aim_line.points = PackedVector2Array([global_position, global_position + power_line])
-	power_gradient.set_color(0, POWER_LOW_COLOR)
+	aim_line_backing.global_position = Vector2.ZERO
+	aim_line_backing.points = aim_line.points
+	power_gradient.set_color(0, _trajectory_primary_color)
 	power_gradient.set_color(1, power_color)
 	aim_line.visible = not power_line.is_zero_approx()
+	aim_line_backing.visible = aim_line.visible
 
-	_update_trajectory_preview(impulse, power)
-
-
-func _create_trajectory_preview() -> void:
-	for child in trajectory_preview.get_children():
-		child.free()
-
-	for i in range(_effective_trajectory_dot_count()):
-		var dot := Polygon2D.new()
-		dot.name = "Dot%d" % [i + 1]
-		dot.polygon = _circle_polygon(trajectory_dot_radius)
-		dot.color = TRAJECTORY_COLOR
-		trajectory_preview.add_child(dot)
-
-	var origin_halo := Polygon2D.new()
-	origin_halo.name = "AimOriginHalo"
-	origin_halo.polygon = _circle_polygon(BALL_OUTLINE_RADIUS + 7.0, 32)
-	origin_halo.color = Color(TRAJECTORY_COLOR, 0.18)
-	trajectory_preview.add_child(origin_halo)
-
-	var target_halo := Polygon2D.new()
-	target_halo.name = "AimTargetHalo"
-	target_halo.polygon = _circle_polygon(8.0, 24)
-	target_halo.color = Color(TRAJECTORY_COLOR, 0.2)
-	trajectory_preview.add_child(target_halo)
-
-	var arrow_head := Polygon2D.new()
-	arrow_head.name = "ArrowHead"
-	arrow_head.polygon = PackedVector2Array([
-		Vector2(10.0, 0.0),
-		Vector2(-6.0, -5.0),
-		Vector2(-6.0, 5.0)
-	])
-	arrow_head.color = TRAJECTORY_COLOR
-	trajectory_preview.add_child(arrow_head)
+	_emit_trajectory_prediction(impulse, power)
 
 
-func _update_trajectory_preview(impulse: Vector2, power: float) -> void:
+func _emit_trajectory_prediction(impulse: Vector2, power: float) -> void:
 	if impulse.is_zero_approx():
-		trajectory_preview.visible = false
+		trajectory_prediction_changed.emit({})
 		return
 
-	var direction := impulse.normalized()
-	var dot_count := _effective_trajectory_dot_count()
-	var dot_progress := lerpf(3.0, float(dot_count), power)
-	var visible_dots: int = clampi(floori(dot_progress), 2, dot_count)
-	var stretch_progress := dot_progress - float(visible_dots)
-	var stretched_spacing := trajectory_dot_spacing
-	if power >= 0.995:
-		visible_dots = dot_count
-		stretch_progress = 0.0
-	elif visible_dots < dot_count:
-		stretched_spacing = lerpf(trajectory_dot_spacing, trajectory_dot_spacing * float(visible_dots + 1) / float(visible_dots), stretch_progress)
-	trajectory_preview.global_position = Vector2.ZERO
-	trajectory_preview.visible = true
-
-	for i in range(dot_count):
-		var dot := trajectory_preview.get_node("Dot%d" % [i + 1]) as Polygon2D
-		dot.visible = i < visible_dots
-		dot.position = global_position + direction * stretched_spacing * float(i + 1)
-		var fade := 1.0 - float(i) / float(maxi(visible_dots, 1)) * 0.58
-		dot.color = Color(TRAJECTORY_COLOR, TRAJECTORY_COLOR.a * fade)
-		dot.scale = Vector2.ONE * lerpf(1.12, 0.72, float(i) / float(maxi(dot_count - 1, 1)))
-
-	var origin_halo := trajectory_preview.get_node("AimOriginHalo") as Polygon2D
-	origin_halo.position = global_position
-	origin_halo.visible = true
-
-	var arrow_head := trajectory_preview.get_node("ArrowHead") as Polygon2D
-	arrow_head.visible = true
-	arrow_head.position = global_position + direction * stretched_spacing * float(visible_dots + 1)
-	arrow_head.rotation = direction.angle()
-	arrow_head.scale = Vector2.ONE * lerp(0.8, 1.15, power)
-	var target_halo := trajectory_preview.get_node("AimTargetHalo") as Polygon2D
-	target_halo.position = arrow_head.position
-	target_halo.visible = true
+	var prediction := get_trajectory_prediction(impulse)
+	var prediction_points: PackedVector2Array = prediction.points
+	prediction["power"] = power
+	if prediction_points.is_empty():
+		trajectory_prediction_changed.emit(prediction)
+		return
+	trajectory_prediction_changed.emit(prediction)
 
 
 func _hide_previews() -> void:
 	aim_line.visible = false
-	trajectory_preview.visible = false
+	aim_line_backing.visible = false
+	trajectory_prediction_changed.emit({})
+
+
+func configure_level(level: Dictionary) -> void:
+	var trajectory_style := CourseVisualFactory.trajectory_style(
+		level.get("terrain_palette", {}),
+		level.get("background_palette", {})
+	)
+	var primary: Color = trajectory_style.primary
+	var backing: Color = trajectory_style.backing
+	_trajectory_primary_color = primary
+	_trajectory_backing_color = backing
+	power_gradient.set_color(0, primary)
+	power_gradient.set_color(1, primary)
+	aim_line.default_color = primary
+	aim_line_backing.default_color = _trajectory_backing_color
+	trajectory_renderer.configure_level(level)
+
+
+func get_trajectory_prediction(impulse: Vector2) -> Dictionary:
+	return TrajectoryPredictorScript.predict(
+		global_position,
+		impulse,
+		mass,
+		linear_damp,
+		stopped_speed,
+		trajectory_dot_spacing,
+		trajectory_min_dot_count,
+		_effective_trajectory_dot_count(),
+		1.0 / float(Engine.physics_ticks_per_second),
+		trajectory_max_prediction_time
+	)
+
+
+func get_trajectory_prediction_for_power(direction: Vector2, power: float) -> Dictionary:
+	if direction.is_zero_approx():
+		return TrajectoryPredictorScript.predict(
+			global_position,
+			Vector2.ZERO,
+			mass,
+			linear_damp,
+			stopped_speed
+		)
+	return get_trajectory_prediction(
+		direction.normalized() * clampf(power, 0.0, 1.0) * _effective_max_impulse()
+	)
 
 
 func _is_stopped() -> bool:
@@ -450,13 +573,69 @@ func _effective_trajectory_dot_count() -> int:
 	return maxi(2, trajectory_dot_count + trajectory_dot_bonus)
 
 
-func _finish_shot() -> void:
+func _finish_shot(emit_stopped_event := true) -> void:
 	shot_in_progress = false
 	stopped_frames = 0
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	sleeping = true
 	shot_finished.emit()
+	if emit_stopped_event:
+		ball_stopped.emit(global_position)
+
+
+func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
+	if simulation_paused or not shot_in_progress:
+		return
+	var now_msec := Time.get_ticks_msec()
+	if now_msec - _last_wall_impact_time_msec < roundi(wall_impact_cooldown * 1000.0):
+		return
+
+	for contact_index in range(state.get_contact_count()):
+		var collider = state.get_contact_collider_object(contact_index)
+		if collider == null or not collider.has_meta(&"collision_kind"):
+			continue
+		var collision_kind := StringName(collider.get_meta(&"collision_kind"))
+		if collision_kind not in [&"boundary", &"blocker"]:
+			continue
+
+		var local_normal := state.get_contact_local_normal(contact_index)
+		var collider_velocity := state.get_contact_collider_velocity_at_position(contact_index)
+		var relative_velocity := state.linear_velocity - collider_velocity
+		var impact_speed := absf(relative_velocity.dot(local_normal))
+		if impact_speed < wall_impact_min_speed:
+			continue
+
+		var strength := clampf(
+			inverse_lerp(wall_impact_min_speed, maxf(wall_impact_full_speed, wall_impact_min_speed + 1.0), impact_speed),
+			0.0,
+			1.0
+		)
+		var impact_position := to_global(state.get_contact_local_position(contact_index))
+		_last_wall_impact_time_msec = now_msec
+		wall_impact.emit(strength, impact_position)
+		break
+
+
+func _refresh_surface_damping() -> void:
+	var damping := get_normal_linear_damp()
+	if not _active_ice_sources.is_empty():
+		var active_scale := 1.0
+		for source_scale in _active_ice_sources.values():
+			active_scale = minf(active_scale, float(source_scale))
+		damping *= active_scale
+	linear_damp = maxf(damping, 0.01)
+
+
+func _update_elevation_collision_mask() -> void:
+	z_index = (current_elevation + ELEVATION_Z_OFFSET) * ELEVATION_Z_STRIDE + BALL_Z_OFFSET
+	match current_elevation:
+		-1:
+			collision_mask = 1 << 4
+		0:
+			collision_mask = 1 << 5
+		_:
+			collision_mask = 1 << 6
 
 
 func _circle_polygon(radius: float, segments := 12) -> PackedVector2Array:

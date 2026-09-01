@@ -1,6 +1,7 @@
-[gd_scene format=3 uid="uid://cd5fyco2x88lx"]
+[gd_scene load_steps=6 format=3 uid="uid://cd5fyco2x88lx"]
 
 [ext_resource type="Script" uid="uid://1cvckvkl7ay2" path="res://scripts/golf_ball.gd" id="1_s1xsf"]
+[ext_resource type="Script" path="res://scripts/trajectory_renderer.gd" id="2_trajectory"]
 
 [sub_resource type="PhysicsMaterial" id="PhysicsMaterial_70p3a"]
 friction = 0.4
@@ -22,7 +23,7 @@ angular_damp = 2.0
 script = ExtResource("1_s1xsf")
 max_impulse = 1600.0
 trajectory_dot_count = 20
-trajectory_dot_spacing = 15.0
+trajectory_dot_spacing = 56.0
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="." unique_id=303948608]
 shape = SubResource("CircleShape2D_h2yge")
@@ -37,7 +38,16 @@ default_color = Color(0.956863, 0.941176, 0.901961, 0.94)
 begin_cap_mode = 2
 end_cap_mode = 2
 
-[node name="TrajectoryPreview" type="Node2D" parent="." unique_id=270359343]
+[node name="AimLineBacking" type="Line2D" parent="."]
 visible = false
+z_index = -1
+width = 11.0
+default_color = Color(0.145098, 0.164706, 0.172549, 0.58)
+begin_cap_mode = 2
+end_cap_mode = 2
+
+[node name="TrajectoryRenderer" type="Node2D" parent="."]
+visible = false
+script = ExtResource("2_trajectory")
 
 [connection signal="input_event" from="." to="." method="_on_input_event"]
