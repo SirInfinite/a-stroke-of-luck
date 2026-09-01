@@ -7,7 +7,7 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Game launches into the main menu without errors.
 - [ ] Play opens Run Intro (`RUN_START`), then the Meadow biome intro, then Hole 1.
 - [ ] Ball, hole, flag, course bounds, HUD, and power meter are visible.
-- [ ] HUD shows biome/local/overall hole indices, seed, strokes, total strokes, par, timer, coins, obstacles, cards, power, and aim.
+- [ ] Player HUD clearly prioritizes biome, overall hole, strokes/par, timer, coins, active bonuses, and a distinct `ACTIVE CURSES / PENALTIES` band; debug-only values remain hidden until toggled.
 - [ ] Timer counts up while playing a hole.
 
 ## Mouse Aim And Shot
@@ -15,10 +15,11 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Clicking directly on or near the ball selects it only when stopped.
 - [ ] Dragging away from the ball shows the aim line, trajectory dots, aim angle, and power meter.
 - [ ] Longer drags increase power up to the cap.
+- [ ] Very low power produces a genuinely short preview; medium and high power increase predicted distance proportionally with readable adaptive dot spacing.
 - [ ] Releasing the left mouse button shoots the ball in the expected direction.
 - [ ] Aim line and trajectory preview disappear after release.
-- [ ] Stroke count increases by 1 only after the ball stops.
-- [ ] Total stroke count increases with each completed shot.
+- [ ] Stroke count increases by 1 exactly when the shot is accepted, never again when it stops.
+- [ ] Total stroke count increases with each accepted shot.
 - [ ] Ball cannot be shot again while moving.
 
 ## Keyboard Aim
@@ -86,7 +87,7 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Entering water starts the hazard sink animation.
 - [ ] Ball cannot be controlled during the water sink animation.
 - [ ] Ball resets to the current hole start after water sink finishes.
-- [ ] Stroke count does not reset after water unless the reset key is pressed.
+- [ ] Accepted strokes remain recorded after water; the water penalty adds exactly one additional stroke.
 - [ ] Direction-pad and sand effects are cleared after water reset.
 - [ ] Re-entering water repeatedly does not duplicate reset behavior or crash.
 
@@ -102,19 +103,25 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 ## Reset Key
 
 - [ ] Pressing `R` resets the ball to the current hole start.
-- [ ] Pressing `R` resets current-hole strokes to 0.
-- [ ] Pressing `R` resets the current-hole timer.
-- [ ] Pressing `R` does not reset total strokes.
+- [ ] Pressing `R` preserves current-hole strokes and elapsed hole time.
+- [ ] Pressing `R` preserves total strokes, reward accounting, and cumulative run statistics.
 - [ ] Pressing `R` does not reset coins or owned cards.
-- [ ] Pressing `R` clears sand and direction-pad effects.
+- [ ] Pressing `R` clears sand/direction effects, resets moving hazards, and returns without placing the ball back on the tee.
 - [ ] Pressing `R` while the ball is moving leaves the game in a playable state.
 - [ ] Pressing `R` during sink, water reset, or shop does not corrupt progression.
+- [ ] Pressing `R` at par + 4 resolves the forced failure result and cannot refund the final accepted shot.
+
+## Menu Pause
+
+- [ ] Opening Menu during a moving shot freezes ball velocity, collision, hazard timers, hole time, and gameplay state behind the overlay.
+- [ ] Pause overlay leaves the active biome music in place and stops any invalid high-speed swoosh.
+- [ ] Resume restores the same in-progress shot and moving-hazard cycle coherently without a duplicate stroke or stuck camera/audio state.
 
 ## Debug HUD
 
-- [ ] Debug HUD is visible by default.
-- [ ] Pressing the configured debug toggle key hides the HUD.
-- [ ] Pressing the debug toggle key again shows the HUD.
+- [ ] Debug HUD is hidden by default.
+- [ ] Pressing the configured debug toggle key shows the debug HUD without duplicating the player HUD.
+- [ ] Pressing the debug toggle key again hides it.
 - [ ] Power meter remains usable when the debug HUD is hidden.
 - [ ] HUD values update correctly after shots, resets, card purchases, and level changes.
 
@@ -129,14 +136,22 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] All holes use the shared generator and show the recorded run seed.
 - [ ] Start and cup positions are playable and reachable on every generated hole.
 - [ ] Generated hazards remain contained and a failed generation uses a playable authored fallback.
+- [ ] Secondary branches/shortcuts/dead ends occur routinely while the validated main route remains reachable and ordinary dead ends remain escapable.
+- [ ] Later holes include readable ramps, pits, bridges, and overpass crossings; objects on different elevations do not collide.
+- [ ] Meadow uses water/basic blockers/pendulum hazards; Snow demonstrates ice/falling ice; Volcanic demonstrates lava/rotating fire rods; later biomes increase hazard variety without impossible geometry.
+- [ ] Circular bounce pads redirect deterministically for the recorded seed, retain bounded speed, and do not immediately retrigger.
+- [ ] Ball begins visibly on a tee and cleanly leaves it after the first accepted shot.
 - [ ] Ball cannot escape playable course bounds during normal play.
 
 ## Game Feel And Audio
 
 - [ ] Low-, medium-, and high-power shots show a readable strike pop and restrained camera impulse without moving the true ball position.
-- [ ] A moving ball leaves a short bounded trail, gives subtle rolling feedback, and clearly settles when stopped.
-- [ ] Sand, rough, water, out-of-bounds, and direction zones trigger distinct readable reactions; Snow, Swamp, and Volcanic palettes remain recognizable through the shared effects.
-- [ ] Strike, rolling, terrain, water, cup, UI, purchase, biome, and final-completion audio are audible, balanced, and routed without clipping.
+- [ ] A moving ball leaves a short bounded trail and emits one restrained yellow confetti burst when it becomes fully still.
+- [ ] Sand, water/lava, ice, direction zones, bounce pads, blockers, and moving hazards trigger distinct readable reactions; visual rough never changes physics.
+- [ ] Meaningful wall impacts produce clamped camera shake and physical wall audio; gentle scrapes produce tiny or no response.
+- [ ] Menu plus all six biome themes are recognizable, crossfade cleanly, and never stack; biome ambience remains secondary.
+- [ ] Strike, high-speed-only swoosh, sand, water, lava, ice, wall, cup, UI, purchase, boost, failure, biome, and final-completion cues are audible, balanced, and routed without clipping.
+- [ ] Normal/slow ball movement has no continuous rolling sound; all three supplied boost sounds map to strength; both supplied failure sounds play together at par + 4 without the positive completion cue.
 - [ ] Cup entry plays a sink cue, brief camera emphasis, readable completion effect, and short pause before Hole Results.
 - [ ] Shop cards respond on hover; purchase pulses the card and coins and briefly warns that a curse was accepted.
 - [ ] Each biome intro has a restrained palette-colored transition; Hole 18, Run Results, and Ending have distinct final feedback without obscuring text.
@@ -152,3 +167,11 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] No level transition happens twice from one hole sink.
 - [ ] Par + 4 opens Hole Results and cannot softlock the run.
 - [ ] Restarting during sink, hazard reset, results, shop, or ending does not leak stale state into the new run.
+
+## Tutorial
+
+- [ ] Fresh tutorial teaches aim, power, standard trajectory, normal grass/green, sand, water reset, blocker/moving hazard, shop, card benefit, active curse, and continuation in that order.
+- [ ] Only the shop lesson opens the tutorial shop; it offers the same deterministic four simple cards and blocks Continue until one affordable card is purchased.
+- [ ] The final lesson demonstrates both the purchased benefit and disclosed curse without normal-run RNG.
+- [ ] Tutorial contains no mechanical rough, red/out penalty, or trajectory-gating card reference.
+- [ ] Skip/restart and completed-save paths still enter a clean normal six-biome run.

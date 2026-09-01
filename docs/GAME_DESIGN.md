@@ -14,30 +14,32 @@ This document is the authority for intended gameplay. The current prototype does
 
 ## Shot and Player Abilities
 
-- The ball moves on a flat 2D plane with no spin or elevation and decelerates predictably.
+- The ball uses flat 2D physics with no spin or vertical ballistics. A small discrete elevation state (`-1`, `0`, `1`) separates pits, ground routes, and raised routes; explicit ramps transition between levels.
 - Mouse: click/drag from the stopped ball to set direction and power; release to shoot.
 - Keyboard: left/right adjust direction, up/down adjust power, and Space or Enter shoots.
-- An aim indicator and power display communicate the planned shot. A trajectory preview may be granted, removed, or modified by effects.
+- An aim indicator, power display, and proportional trajectory preview are standard for every player. Low-, medium-, and high-power previews use the same relevant launch and friction assumptions as the shot; effects do not enable or disable the preview.
 - The player may shoot only while the ball is stopped and not sinking/resetting.
-- `R` resets the current hole to its starting state. This is a prototype recovery control, not a score-optimization mechanic; production behavior must prevent it from erasing legitimate run cost.
+- `R` returns the ball to the start without erasing accepted strokes, elapsed hole time, rewards, or cumulative run statistics. At par + 4 it resolves the forced hole outcome instead of resetting play.
 
 ## Terrain and Hazards
 
 | Type | Rule |
 |---|---|
-| Fairway | Normal movement. |
-| Rough | Slows roll relative to fairway. |
+| Fairway / normal grass | Normal movement. Grass farther from the cup may look rougher but has identical physics. |
 | Sand | Strongly slows/stops the ball and makes escape costly. |
 | Water | Resets the ball to the hole start and adds one penalty stroke. |
 | Green | Clear destination surface around the cup. |
-| Out of bounds | Resets the ball and adds one penalty stroke. |
+| Ice | Reduces bounded roll friction while occupied. |
+| Lava | Uses water-equivalent reset and penalty semantics with Volcanic presentation. |
 | Wind/direction zone | Pushes the moving ball in a visible direction while occupied. |
+| Bounce pad | Redirects the ball in a seeded random outgoing direction while retaining a bounded fraction of speed. |
+| Blocker / moving hazard | Collides predictably at its occupied elevation and never permanently blocks the validated main route. |
 
 Entering the cup completes the hole. Hazard effects must end on exit, reset, or level transition.
 
 ## Scoring, Time, and Loss
 
-- Every completed shot counts as one stroke. Hazard penalties add strokes.
+- Every accepted shot counts immediately as one stroke, exactly once. Hazard penalties add strokes.
 - Par is authored per hole. Demo holes should normally be par 3 or 4.
 - Relative score is strokes minus par: birdie or better is under par, par is even, bogey is +1, and double bogey is +2.
 - A hole ends automatically at par + 4 strokes and advances with that recorded score.
@@ -61,25 +63,25 @@ The original 15-item pool remains in `DESIGN_DOCS.md`, Section 3.3. Release mode
 | Card | Cost | Persistent run bonus | Next-biome curse (3 holes) |
 |---|---:|---|---|
 | Overdrive Driver | 3 | +25% shot power | Power control is 15% less precise |
-| Rangefinder Lens | 2 | +4 trajectory dots | -10% shot power |
-| Sand Cleats | 2 | Sand and rough slow 35% less | Direction zones push 25% harder |
-| Heavy Core | 2 | -20% normal roll damping | Sand and rough slow 15% more |
+| Rangefinder Lens | 2 | Power control is 12% more precise | -10% shot power |
+| Sand Cleats | 2 | Sand slows 35% less | Direction zones push 25% harder |
+| Heavy Core | 2 | -20% normal roll damping | Sand slows 15% more |
 | Lucky Putter | 3 | Birdie or better earns +2 coins | Cup is 25% smaller |
 | Power Club | 2 | +20% shot power | One extra direction zone per hole |
-| Coin Magnet | 1 | +1 coin after every hole | -2 trajectory dots |
+| Coin Magnet | 1 | +1 coin after every hole | Cup is 12% smaller |
 | Gust Guard | 2 | Direction-zone push reduced by 50% | One extra direction zone per hole |
 
-Copies stack additively. Central safety bounds keep shot/control/roll multipliers, trajectory dots, terrain and direction mitigation, rewards, cup scale, and curse-added hazard count within completable limits. Shop text must disclose the implemented bonus, curse, duration, and stacking behavior exactly.
+Copies stack additively. Central safety bounds keep shot/control/roll multipliers, terrain and direction mitigation, rewards, cup scale, and curse-added hazard count within completable limits. Shop text must disclose the implemented bonus, curse, duration, and stacking behavior exactly.
 
 Double Down must duplicate both sides of one selected item. Curse Breaker removes one active obstacle but skips the shop after the next hole. Effects that alter future layout or shops must be resolved before the affected hole/shop is built.
 
 ## Level Structure and Difficulty
 
-- A hole has one start, one reachable cup, authored par, playable terrain, boundaries, and zero or more hazards/obstacles.
-- All six biomes share one deterministic route generator. Difficulty increases within each biome through narrower routes, more hazards, and smaller cups, without hidden physics changes.
-- Biome profiles weight rough, sand, water, direction, and out-of-bounds hazards differently while retaining the same hazard behaviors.
+- A hole has one tee, one reachable cup, authored par, a validated main route, playable terrain, boundaries, and zero or more hazards/obstacles.
+- All six biomes share one deterministic route generator. Difficulty grows through route complexity, routine secondary branches/dead ends, blockers, moving hazards, elevation, and biome hazards—not extreme corridor narrowing or unpredictable shot physics.
+- Water/lava resets, sand, ice, direction zones, blockers, bounce pads, pendulums, falling ice, and rotating fire rods use shared contracts with biome-weighted profiles.
 - Difficulty should come from readable geometry, accumulated tradeoffs, and route decisions—not hidden physics changes.
-- One optional shortcut per suitable hole is encouraged when both safe and risky routes read clearly.
+- Suitable holes routinely include compact alternate branches, tempting shortcuts, different shot angles, or ordinary dead ends with a playable escape; the main route always remains valid.
 
 ## Procedural Generation
 
@@ -89,6 +91,8 @@ Procedural generation is the production course source. A run records one seed an
 - keep start, cup, and hazards on valid terrain;
 - assign reachable par based on tested routes, not distance alone;
 - preserve enough clear landing space for the ball and cup;
+- validate discrete surfaces, ramps, bridges, pits, overpasses, and cross-elevation collision occupancy;
+- preserve a connected main route while allowing bounded branches and dead ends;
 - introduce hazards according to the run’s difficulty and active penalties;
 - validate every result and fall back to an authored hole on failure;
 - use a recordable seed for reproduction and playtesting.
@@ -97,4 +101,4 @@ Generation attempts are bounded. An invalid candidate is never sent to `LevelBui
 
 ## Results Tuning
 
-The release placeholder grade uses total score relative to the 18-hole par: A at -6 or better, B from -5 through even, C from +1 through +8, D from +9 through +16, and F at +17 or worse. Stroke-to-time penalty, exact putting success behavior, final item durations where source wording is ambiguous, and whether a manual reset carries a penalty still require playtesting decisions.
+The release placeholder grade uses total score relative to the 18-hole par: A at -6 or better, B from -5 through even, C from +1 through +8, D from +9 through +16, and F at +17 or worse. Stroke-to-time penalty, exact putting success behavior, and final item durations where source wording is ambiguous remain tuning decisions. Manual reset is explicitly behavior-preserving: it adds no separate penalty, but it never refunds an accepted shot or elapsed time.

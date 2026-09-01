@@ -51,7 +51,7 @@ These are references for principles. New features must fit **A Stroke of Luck** 
 
 ## Boundaries
 
-The game should not become a realistic golf simulator, a precision physics sandbox, a sprawling content roguelite, or a spectacle that hides course information. It does not need elevation, spin, detailed club simulation, or metaprogression. The six release biomes are data variations over one shared deterministic generator and gameplay foundation; they must not become six bespoke implementations. Randomness should vary decisions, not make outcomes feel arbitrary. More items are not valuable unless their benefit-and-penalty pair creates a legible choice.
+The game should not become a realistic golf simulator, a precision physics sandbox, a sprawling content roguelite, or a spectacle that hides course information. It uses only lightweight discrete 2.5D route depth—not freeform vertical ballistics—and does not need spin, detailed club simulation, or metaprogression. The six release biomes are data variations over one shared deterministic generator and gameplay foundation; they must not become six bespoke implementations. Randomness should vary decisions, not make outcomes feel arbitrary. More items are not valuable unless their benefit-and-penalty pair creates a legible choice.
 
 The immediate audience is players who enjoy casual sports games and light roguelike strategy, including people who can learn and finish a demo in one sitting. Controls and terminology should remain welcoming to non-golfers.
 

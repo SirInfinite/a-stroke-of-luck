@@ -1,6 +1,7 @@
 extends GutTest
 
 const ShopManagerScript := preload("res://scripts/shop_manager.gd")
+const TutorialDatabaseScript := preload("res://scripts/tutorial_database.gd")
 
 
 func test_shop_has_four_unique_seeded_offers() -> void:
@@ -70,11 +71,18 @@ func test_purchase_plays_card_coin_and_curse_feedback() -> void:
 func test_affordable_card_hover_scales_and_resets() -> void:
 	var shop = _spawn_shop()
 	shop.show_shop(3, 99, 18, 999)
-	var button: Button = shop.shop_card_buttons[0]
+	var button: Button = null
+	for candidate in shop.shop_card_buttons:
+		if not candidate.disabled:
+			button = candidate
+			break
+	assert_not_null(button, "The seeded shop must contain an affordable card for the hover test.")
+	if button == null:
+		return
 
 	shop._on_card_hovered(button)
-	await wait_process_frames(2)
-	assert_gt(button.scale.x, 1.0)
+	await wait_seconds(shop.hover_duration + 0.03)
+	assert_almost_eq(button.scale.x, shop.hover_scale, 0.005)
 	shop._on_card_unhovered(button)
 	await wait_seconds(shop.hover_duration + 0.03)
 	assert_almost_eq(button.scale.x, 1.0, 0.01)
@@ -90,6 +98,26 @@ func test_forced_tutorial_cards_fill_to_four_without_blocking_continue() -> void
 	assert_eq(shop.current_shop_cards[1].name, forced[1])
 	assert_eq(shop.current_shop_cards[2].name, forced[2])
 	assert_false(shop.continue_button.disabled)
+
+
+func test_explicit_tutorial_pool_requires_one_purchase_before_continue() -> void:
+	var shop = _spawn_shop()
+	watch_signals(shop)
+	var tutorial_cards: Array[CardDefinition] = TutorialDatabaseScript.get_tutorial_cards()
+	var forced_names: Array[String] = TutorialDatabaseScript.tutorial_card_names()
+	shop.show_shop(5, 4, 6, 77, forced_names, "Tutorial Hole 6/6", tutorial_cards, 1)
+
+	assert_eq(_offer_ids(shop), _card_ids(tutorial_cards))
+	assert_true(shop.continue_button.disabled)
+	shop._on_shop_continue_pressed()
+	assert_signal_not_emitted(shop, "continued")
+	assert_signal_emitted_with_parameters(shop, "feedback_requested", [&"error"])
+
+	shop._on_shop_card_pressed(0)
+	assert_eq(shop.purchases_this_visit, 1)
+	assert_false(shop.continue_button.disabled)
+	shop._on_shop_continue_pressed()
+	assert_signal_emitted(shop, "continued")
 
 
 func _spawn_shop():
@@ -115,3 +143,10 @@ func _unique_count(values: Array[StringName]) -> int:
 	for value in values:
 		unique[value] = true
 	return unique.size()
+
+
+func _card_ids(cards: Array[CardDefinition]) -> Array[StringName]:
+	var ids: Array[StringName] = []
+	for card in cards:
+		ids.append(card.id)
+	return ids

@@ -43,9 +43,10 @@ func test_starting_normal_run_builds_clean_eighteen_hole_contract() -> void:
 	assert_eq(main.run_stats.total_run_time, 0.0)
 
 
-func test_finished_shot_increments_current_stroke_totals_once() -> void:
+func test_accepted_shot_increments_current_stroke_totals_once() -> void:
 	var main = _spawn_playing_main()
 
+	main.ball.shot_started.emit(Vector2.ZERO, Vector2.RIGHT, 0.5)
 	main.ball.shot_finished.emit()
 
 	assert_eq(main.strokes, 1)
@@ -86,13 +87,13 @@ func test_manual_current_hole_reset_preserves_cumulative_run_state() -> void:
 	var main = _spawn_playing_main()
 	main._load_level(2)
 	main.tokens = 7
-	main.ball.shot_finished.emit()
+	main.ball.shot_started.emit(Vector2.ZERO, Vector2.RIGHT, 0.5)
 	main.level_elapsed = 8.5
 
 	main._reset_current_level()
 
-	assert_eq(main.strokes, 0)
-	assert_eq(main.level_elapsed, 0.0)
+	assert_eq(main.strokes, 1)
+	assert_eq(main.level_elapsed, 8.5)
 	assert_eq(main.total_strokes, 1)
 	assert_eq(main.run_stats.total_strokes, 1)
 	assert_eq(main.run_stats.manual_resets, 1)
@@ -133,6 +134,7 @@ func test_stroke_ceiling_forces_results_instead_of_softlocking() -> void:
 	main.total_strokes = main.strokes
 	main.run_stats.total_strokes = main.strokes
 
+	main.ball.shot_started.emit(Vector2.ZERO, Vector2.RIGHT, 0.5)
 	main.ball.shot_finished.emit()
 
 	assert_eq(main.strokes, par + 4)
@@ -168,7 +170,8 @@ func test_card_bonus_persists_after_its_curse_expires_in_three_holes() -> void:
 	main._apply_card(_card_by_name("Coin Magnet"))
 
 	assert_eq(main.reward_bonus, 1)
-	assert_eq(main.trajectory_dot_bonus, -2)
+	assert_almost_eq(main.cup_radius_scale, 0.88, 0.001)
+	assert_eq(main.trajectory_dot_bonus, 0)
 	assert_eq(main.active_card_curses[0].remaining_holes, 3)
 	main._update_status()
 	assert_true(main.effects_status_label.text.contains("Coin Magnet (3 holes)"))
@@ -184,6 +187,7 @@ func test_card_bonus_persists_after_its_curse_expires_in_three_holes() -> void:
 
 	assert_eq(main.reward_bonus, 1)
 	assert_eq(main.trajectory_dot_bonus, 0)
+	assert_almost_eq(main.cup_radius_scale, 1.0, 0.001)
 	assert_eq(main.owned_cards, ["Coin Magnet"])
 	main._update_status()
 	assert_true(main.effects_status_label.text.contains("Active curses: None"))
@@ -215,15 +219,14 @@ func test_lucky_putter_uses_birdie_risk_reward_and_temporary_small_cup() -> void
 	assert_eq(main._token_reward_for_score(3, 3), 2)
 
 
-func test_rangefinder_changes_preview_and_temporary_shot_power() -> void:
+func test_rangefinder_improves_control_with_temporary_shot_power_curse() -> void:
 	var main = _spawn_playing_main()
 	main._apply_card(_card_by_name("Rangefinder Lens"))
 
-	assert_eq(main.trajectory_dot_bonus, 4)
+	assert_eq(main.trajectory_dot_bonus, 0)
+	assert_almost_eq(main.drag_modifier, 1.12, 0.001)
 	assert_almost_eq(main.impulse_modifier, 0.9, 0.001)
-	assert_eq(main.ball.trajectory_preview.get_child_count(), main.ball.trajectory_dot_count + 7)
-	assert_not_null(main.ball.trajectory_preview.get_node_or_null("AimOriginHalo"))
-	assert_not_null(main.ball.trajectory_preview.get_node_or_null("AimTargetHalo"))
+	assert_null(main.ball.get_node_or_null("TrajectoryPreview"))
 
 
 func test_roll_control_terrain_and_direction_effects_reach_gameplay_values() -> void:
@@ -327,13 +330,13 @@ func test_full_eighteen_hole_smoke_visits_every_runtime_state_and_resets() -> vo
 		assert_eq(int(main.levels[main.level_index].overall_hole_number), expected_hole)
 		assert_eq(int(main.levels[main.level_index].biome_index), main.biome_index)
 		assert_eq(int(main.levels[main.level_index].hole_index), main.hole_index)
-		assert_true(main.score_label.visible)
+		assert_false(main.score_label.visible)
+		assert_true(main.release_hud.visible)
 		assert_true(main.power_meter.visible)
 		assert_false(main.interstitial_overlay.visible)
-		assert_true(main.score_label.text.contains("Biome: %d/6" % (main.biome_index + 1)))
-		assert_true(main.score_label.text.contains("Hole: %d/3" % (main.hole_index + 1)))
-		assert_true(main.score_label.text.contains("Overall: %d/18" % expected_hole))
-		assert_true(main.score_label.text.contains("Time: 00:00"))
+		assert_true(main.release_hud.biome_label.text.contains("BIOME %d/6" % (main.biome_index + 1)))
+		assert_eq(main.release_hud.hole_label.text, "HOLE %d / 18" % expected_hole)
+		assert_eq(main.release_hud.timer_label.text, "TIME  00:00")
 
 		main._complete_current_hole(false, false)
 		seen_states[main.get_run_phase_name()] = true
@@ -348,7 +351,7 @@ func test_full_eighteen_hole_smoke_visits_every_runtime_state_and_resets() -> vo
 			assert_eq(main.get_run_phase_name(), "SHOP")
 			shop_visits += 1
 			assert_true(main.shop_manager.shop_overlay.visible)
-			assert_eq(main.shop_manager.shop_title_label.text, "Shop")
+			assert_eq(main.shop_manager.shop_title_label.text, "THE CLUBHOUSE SHOP")
 			assert_true(main.shop_manager.shop_destination_label.text.contains("Biome %d/6" % (shop_visits + 1)))
 			assert_true(main.shop_manager.shop_destination_label.text.contains("overall %d/18" % (expected_hole + 1)))
 			assert_false(main.shop_manager.continue_button.disabled)
@@ -398,22 +401,69 @@ func test_hud_menu_resume_and_tutorial_buttons_are_navigable() -> void:
 	main.menu_tutorial_button.pressed.emit()
 	assert_true(main.tutorial_mode)
 	assert_eq(main.get_run_phase_name(), "HOLE_PLAY")
-	assert_true(main.score_label.visible)
-	assert_true(main.score_label.text.contains("Tutorial"))
+	assert_false(main.score_label.visible)
+	assert_true(main.release_hud.visible)
+	assert_eq(main.release_hud.biome_label.text, "TUTORIAL")
+	assert_eq(main.release_hud.hole_label.text, "HOLE 1 / 6")
 
 	main.menu_button.pressed.emit()
 	assert_true(main.main_menu_overlay.visible)
 	assert_true(main.menu_resume_button.visible)
 	assert_true(main.menu_skip_button.visible)
+	assert_true(main.ball.simulation_paused)
+	assert_eq(main.level_builder.level_root.process_mode, Node.PROCESS_MODE_DISABLED)
 	main.menu_resume_button.pressed.emit()
 	assert_false(main.main_menu_overlay.visible)
 	assert_eq(main.get_run_phase_name(), "HOLE_PLAY")
+	assert_false(main.ball.simulation_paused)
+	assert_eq(main.level_builder.level_root.process_mode, Node.PROCESS_MODE_INHERIT)
 
 	main.menu_button.pressed.emit()
 	main.menu_skip_button.pressed.emit()
 	assert_false(main.tutorial_mode)
 	assert_eq(main.get_run_phase_name(), "RUN_START")
 	assert_eq(main.interstitial_title_label.text, "Run Intro")
+
+
+func test_menu_during_moving_ball_preserves_shot_and_blocks_background_progress() -> void:
+	var main = _spawn_playing_main()
+	main.ball.shot_in_progress = true
+	main.ball.linear_velocity = Vector2(480.0, 60.0)
+	main.ball.angular_velocity = 1.4
+	var expected_velocity: Vector2 = main.ball.linear_velocity
+	var expected_strokes: int = main.strokes
+	var expected_phase: String = main.get_run_phase_name()
+
+	main.menu_button.pressed.emit()
+	assert_true(main.main_menu_overlay.visible)
+	assert_true(main.ball.simulation_paused)
+	assert_true(main.ball.freeze)
+	main.ball._physics_process(1.0)
+	assert_eq(main.strokes, expected_strokes)
+	assert_eq(main.get_run_phase_name(), expected_phase)
+
+	main.menu_resume_button.pressed.emit()
+	assert_false(main.ball.simulation_paused)
+	assert_true(main.ball.shot_in_progress)
+	assert_eq(main.ball.linear_velocity, expected_velocity)
+
+
+func test_manual_reset_at_par_plus_four_forces_result_without_erasing_cost() -> void:
+	var main = _spawn_playing_main()
+	var par: int = main.levels[main.level_index].par
+	main.strokes = par + 3
+	main.total_strokes = main.strokes
+	main.run_stats.total_strokes = main.strokes
+	main.ball.shot_in_progress = true
+	main.ball.shot_started.emit(Vector2.ZERO, Vector2.RIGHT, 0.5)
+
+	main._reset_current_level()
+
+	assert_eq(main.strokes, par + 4)
+	assert_eq(main.total_strokes, par + 4)
+	assert_eq(main.run_stats.total_strokes, par + 4)
+	assert_eq(main.get_run_phase_name(), "HOLE_RESULTS")
+	assert_true(main.last_hole_forced)
 
 
 func _spawn_main_menu() -> Variant:

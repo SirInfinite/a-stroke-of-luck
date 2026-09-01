@@ -51,10 +51,11 @@ A player-facing feature is finished only when it is correct, understandable, sat
 
 | Feature | Required evidence |
 |---|---|
-| Shot/physics | Tested at low, medium, and high power; terrain entry/exit; reset while moving; no duplicate stroke. |
+| Shot/physics | Tested at low, medium, and high power and preview distance; terrain entry/exit; menu pause/resume while moving; reset while moving; no duplicate or refunded stroke. |
 | Card/economy | Affordability, deduction, disclosed effects, stacking, duration/expiry, and HUD/results reporting. |
-| Hole/hazard | Validator pass, reachable cup, boundary containment, readable safe/risky route, and tested reset behavior. |
+| Hole/hazard | Validator-builder contract pass, reachable main route, escapable branches/dead ends, boundary containment, elevation transitions/crossings, readable static/moving telegraphs, and tested reset behavior. |
 | UI/screen | Mouse and keyboard usability, all button states, long text/value cases, transition in/out, and 1920×1080 capture. |
+| Audio/music | All streams load, one exclusive music/ambience state, physical semantic cues, failure/success separation, no duplicate/stuck voices, provenance, and full-run listening on speakers/headphones. |
 | Tutorial | Fresh save, completed save, skip/restart, required event, blocker, and return to normal run. |
 | Run progression | Full 18-hole/six-biome run, correct local and overall indices, five biome shops, results timing, timer pause, ending, and clean new-run reset. |
 

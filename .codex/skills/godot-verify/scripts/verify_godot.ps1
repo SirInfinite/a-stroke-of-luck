@@ -33,8 +33,16 @@ function Resolve-GodotExecutable {
 function Invoke-GodotCheck {
 	param([string]$Label, [string]$Executable, [string[]]$Arguments)
 	Write-Host "`n--- $Label ---"
-	$lines = @(& $Executable @Arguments 2>&1 | ForEach-Object { $_.ToString() })
-	$code = $LASTEXITCODE
+	$previousErrorActionPreference = $ErrorActionPreference
+	try {
+		# Godot writes expected warnings to stderr. Capture the complete native
+		# output so the exit code and GUT summary parser remain authoritative.
+		$ErrorActionPreference = "Continue"
+		$lines = @(& $Executable @Arguments 2>&1 | ForEach-Object { $_.ToString() })
+		$code = $LASTEXITCODE
+	} finally {
+		$ErrorActionPreference = $previousErrorActionPreference
+	}
 	$text = $lines -join [Environment]::NewLine
 	if ($text) { Write-Host $text }
 	if ($code -ne 0 -or $text -match $errorPattern) {

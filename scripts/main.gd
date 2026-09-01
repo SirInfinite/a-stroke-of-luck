@@ -12,6 +12,9 @@ const BiomeDatabase := preload("res://scripts/biome_database.gd")
 const HoleGenerator := preload("res://scripts/hole_generator.gd")
 const CardEffectResolverScript := preload("res://scripts/card_effect_resolver.gd")
 const ActiveCardCurseScript := preload("res://scripts/active_card_curse.gd")
+const ReleaseHUDScript := preload("res://scripts/release_hud.gd")
+const ShopPresentationScript := preload("res://scripts/shop_presentation.gd")
+const TransitionPresentationScript := preload("res://scripts/transition_presentation.gd")
 const RELEASE_THEME := preload("res://assets/release_theme.tres")
 
 const STARTING_TOKENS := 2
@@ -21,8 +24,6 @@ const TOTAL_HOLES := BIOME_COUNT * HOLES_PER_BIOME
 const MAX_STROKES_OVER_PAR := 4
 const SAND_DAMP := 12.0
 const SAND_ENTRY_SPEED_SCALE := 0.35
-const ROUGH_DAMP := 5.5
-const ROUGH_ENTRY_SPEED_SCALE := 0.72
 const DIRECTION_PUSH_FORCE := 950.0
 
 enum RunPhase {
@@ -209,7 +210,6 @@ var level_builder
 var level_root: Node2D
 var normal_ball_linear_damp := 0.0
 var active_sand_tiles := 0
-var active_rough_tiles := 0
 var active_direction_pushes: Array[Vector2] = []
 var hazard_resetting := false
 var score_label: Label
@@ -241,7 +241,10 @@ var interstitial_body_label: Label
 var interstitial_continue_button: Button
 var loading_next_level := false
 var shop_manager
+var shop_presentation
 var tutorial_manager
+var release_hud
+var transition_presentation
 var tutorial_mode := false
 var impulse_modifier := 1.0
 var drag_modifier := 1.0
@@ -308,8 +311,11 @@ func _create_world() -> void:
 
 	ball = BALL_SCENE.instantiate()
 	ball.shot_started.connect(feedback_director.play_shot_feedback)
-	ball.shot_finished.connect(feedback_director.play_stop_feedback)
+	ball.shot_started.connect(_on_ball_shot_started)
 	ball.shot_finished.connect(_on_ball_shot_finished)
+	ball.ball_stopped.connect(feedback_director.play_stop_feedback)
+	ball.wall_impact.connect(_on_ball_wall_impact)
+	ball.tee_left.connect(_on_ball_left_tee)
 	add_child(ball)
 	normal_ball_linear_damp = ball.linear_damp
 
@@ -317,18 +323,19 @@ func _create_world() -> void:
 	level_builder.hole_body_entered.connect(_on_hole_body_entered)
 	level_builder.sand_body_entered.connect(_on_sand_body_entered)
 	level_builder.sand_body_exited.connect(_on_sand_body_exited)
-	level_builder.rough_body_entered.connect(_on_rough_body_entered)
-	level_builder.rough_body_exited.connect(_on_rough_body_exited)
-	level_builder.water_body_entered.connect(_on_water_body_entered)
-	level_builder.out_body_entered.connect(_on_out_body_entered)
+	level_builder.reset_hazard_body_entered.connect(_on_reset_hazard_body_entered)
 	level_builder.direction_body_entered.connect(_on_direction_body_entered)
 	level_builder.direction_body_exited.connect(_on_direction_body_exited)
+	level_builder.bounce_pad_triggered.connect(_on_bounce_pad_triggered)
+	level_builder.hazard_triggered.connect(_on_hazard_triggered)
 	add_child(level_builder)
 
 	hud_canvas_layer = CanvasLayer.new()
 	add_child(hud_canvas_layer)
 	feedback_director.setup(ball, camera, hud_canvas_layer)
 	feedback_director.sound_requested.connect(audio_controller.play_feedback)
+	release_hud = ReleaseHUDScript.new()
+	release_hud.setup(hud_canvas_layer)
 
 	score_label = Label.new()
 	score_label.name = "HUDStatus"
@@ -374,6 +381,8 @@ func _create_world() -> void:
 
 	_create_main_menu_overlay()
 	_create_interstitial_overlay()
+	transition_presentation = TransitionPresentationScript.new()
+	transition_presentation.setup(interstitial_overlay, interstitial_title_label, interstitial_body_label)
 
 	shop_manager = ShopManagerScript.new()
 	shop_manager.card_bought.connect(_on_shop_card_bought)
@@ -381,11 +390,15 @@ func _create_world() -> void:
 	shop_manager.feedback_requested.connect(_on_shop_feedback_requested)
 	add_child(shop_manager)
 	shop_manager.create_overlay(hud_canvas_layer)
+	shop_presentation = ShopPresentationScript.new()
+	shop_presentation.setup(shop_manager)
 
 	tutorial_manager = TutorialManagerScript.new()
 	tutorial_manager.skip_requested.connect(_on_tutorial_skip_requested)
 	add_child(tutorial_manager)
 	tutorial_manager.setup(self, hud_canvas_layer)
+	tutorial_manager.hint_panel.position = Vector2(650.0, 118.0)
+	tutorial_manager.skip_button.position = Vector2(1640.0, 166.0)
 	tutorial_manager.set_visible_enabled(false)
 	_apply_release_theme()
 	ball.set_input_enabled(false)
@@ -439,7 +452,7 @@ func _reset_run_state(seed_override := 0) -> void:
 	if feedback_director:
 		feedback_director.reset_feedback()
 	if audio_controller:
-		audio_controller.update_ball_roll(0.0, false)
+		audio_controller.stop_transient_audio()
 	if level_root:
 		level_root.queue_free()
 		level_root = null
@@ -531,8 +544,9 @@ func _load_level(next_index: int) -> void:
 		generation_fallback_count += 1
 	level_root = level_builder.build_level(level, self)
 	feedback_director.configure_level(level)
+	ball.configure_level(level)
 	var start_position: Vector2 = level_builder.level_point(level, "start", "start_cell")
-	ball.reset_to(start_position)
+	ball.reset_to(start_position, level_builder.get_start_elevation(level), true)
 	if level.has("forced_tokens"):
 		tokens = maxi(tokens, int(level.forced_tokens))
 	if tutorial_mode:
@@ -571,7 +585,7 @@ func _complete_tutorial_hole() -> void:
 		await get_tree().create_timer(feedback_director.completion_pause_duration).timeout
 		if captured_transition != transition_generation or not tutorial_mode:
 			return
-	audio_controller.play_hole_completion()
+	audio_controller.play_hole_outcome(true, &"tutorial_cup")
 
 	tokens += _token_reward_for_score(strokes, level.par)
 	_advance_active_curses()
@@ -581,11 +595,12 @@ func _complete_tutorial_hole() -> void:
 		_start_normal_run()
 		return
 
-	_show_shop(level_index + 1)
-	await shop_manager.continued
-	if captured_transition != transition_generation or not tutorial_mode:
-		return
-	tutorial_manager.notify_event("shop_continued")
+	if bool(level.get("open_shop", false)):
+		_show_shop(level_index + 1)
+		await shop_manager.continued
+		if captured_transition != transition_generation or not tutorial_mode:
+			return
+		tutorial_manager.notify_event("shop_continued")
 	_load_level(level_index + 1)
 
 
@@ -643,45 +658,26 @@ func _on_sand_body_exited(body: Node2D) -> void:
 		ball.linear_damp = normal_ball_linear_damp
 
 
-func _on_rough_body_entered(body: Node2D) -> void:
-	if body != ball or hazard_resetting or run_phase != RunPhase.HOLE_PLAY:
-		return
-
-	run_stats.record_hazard_entered("rough")
-	if tutorial_mode:
-		tutorial_manager.notify_event("entered_rough")
-	feedback_director.play_terrain_feedback(&"rough", ball.global_position)
-	active_rough_tiles += 1
-	ball.linear_velocity *= _terrain_entry_speed_scale(ROUGH_ENTRY_SPEED_SCALE)
-	ball.linear_damp = _terrain_damp(ROUGH_DAMP)
-
-
-func _on_rough_body_exited(body: Node2D) -> void:
-	if body != ball:
-		return
-
-	active_rough_tiles = maxi(active_rough_tiles - 1, 0)
-	if active_rough_tiles == 0 and active_sand_tiles == 0:
-		ball.linear_damp = normal_ball_linear_damp
-
-
-func _on_water_body_entered(body: Node2D, water_position: Vector2) -> void:
+func _on_reset_hazard_body_entered(body: Node2D, hazard_position: Vector2, hazard_type: StringName) -> void:
 	if body != ball or hazard_resetting or loading_next_level or run_phase != RunPhase.HOLE_PLAY:
 		return
 
-	run_stats.record_hazard_entered("water")
-	if tutorial_mode:
+	run_stats.record_hazard_entered(String(hazard_type))
+	if tutorial_mode and hazard_type == &"water":
 		tutorial_manager.notify_event("entered_water")
-	feedback_director.play_terrain_feedback(&"water", ball.global_position)
+	if hazard_type == &"water":
+		feedback_director.play_terrain_feedback(&"water", ball.global_position)
+	else:
+		feedback_director.play_hazard_feedback(hazard_type, 1.0, ball.global_position)
+		audio_controller.play_hazard_triggered(hazard_type, 1.0)
 	run_stats.record_water_reset()
 	_add_penalty_stroke()
 	hazard_resetting = true
 	var captured_transition := transition_generation
 	active_sand_tiles = 0
-	active_rough_tiles = 0
 	active_direction_pushes.clear()
 	ball.linear_damp = normal_ball_linear_damp
-	ball.sink_for_reset(water_position)
+	ball.sink_for_reset(hazard_position)
 	await ball.hazard_sink_finished
 	if captured_transition != transition_generation or run_phase != RunPhase.HOLE_PLAY:
 		return
@@ -690,36 +686,11 @@ func _on_water_body_entered(body: Node2D, water_position: Vector2) -> void:
 		hazard_resetting = false
 		_complete_current_hole(false, true)
 		return
-	ball.reset_to(level_builder.level_point(level, "start", "start_cell"))
-	hazard_resetting = false
-
-
-func _on_out_body_entered(body: Node2D, out_position: Vector2) -> void:
-	if body != ball or hazard_resetting or loading_next_level or run_phase != RunPhase.HOLE_PLAY:
-		return
-
-	run_stats.record_hazard_entered("out")
-	if tutorial_mode:
-		tutorial_manager.notify_event("entered_out")
-	feedback_director.play_terrain_feedback(&"out", ball.global_position)
-	run_stats.record_water_reset()
-	_add_penalty_stroke()
-	hazard_resetting = true
-	var captured_transition := transition_generation
-	active_sand_tiles = 0
-	active_rough_tiles = 0
-	active_direction_pushes.clear()
-	ball.linear_damp = normal_ball_linear_damp
-	ball.sink_for_reset(out_position)
-	await ball.hazard_sink_finished
-	if captured_transition != transition_generation or run_phase != RunPhase.HOLE_PLAY:
-		return
-	var level: Dictionary = levels[level_index]
-	if not tutorial_mode and strokes >= int(level.par) + MAX_STROKES_OVER_PAR:
-		hazard_resetting = false
-		_complete_current_hole(false, true)
-		return
-	ball.reset_to(level_builder.level_point(level, "start", "start_cell"))
+	ball.reset_to(
+		level_builder.level_point(level, "start", "start_cell"),
+		level_builder.get_start_elevation(level),
+		false
+	)
 	hazard_resetting = false
 
 
@@ -741,15 +712,41 @@ func _on_direction_body_exited(body: Node2D, area: Area2D) -> void:
 	active_direction_pushes.erase(area.get_meta("direction"))
 
 
-func _on_ball_shot_finished() -> void:
+func _on_ball_left_tee(position: Vector2, elevation: int) -> void:
+	level_builder.on_ball_left_tee(position, elevation)
+
+
+func _on_ball_wall_impact(strength: float, position: Vector2) -> void:
+	feedback_director.play_wall_impact(strength, position)
+	audio_controller.play_hazard_triggered(&"wall", clampf(strength, 0.0, 1.0))
+
+
+func _on_bounce_pad_triggered(strength: float, _pad_type: StringName, position: Vector2) -> void:
+	feedback_director.play_hazard_feedback(&"bounce_pad", strength, position)
+	audio_controller.play_boost_pad(strength)
+
+
+func _on_hazard_triggered(hazard_type: StringName, intensity: float, position: Vector2) -> void:
+	if hazard_type in [&"sand", &"direction", &"water", &"lava", &"bounce_pad"]:
+		return
+	feedback_director.play_hazard_feedback(hazard_type, intensity, position)
+	audio_controller.play_hazard_triggered(hazard_type, intensity)
+
+
+func _on_ball_shot_started(_position: Vector2, _direction: Vector2, _power: float) -> void:
 	if run_phase != RunPhase.HOLE_PLAY:
 		return
 	strokes += 1
 	total_strokes += 1
 	run_stats.record_stroke()
 	if tutorial_mode:
-		tutorial_manager.notify_event("shot_finished")
+		tutorial_manager.notify_event("shot_taken")
 	_update_status()
+
+
+func _on_ball_shot_finished() -> void:
+	if run_phase != RunPhase.HOLE_PLAY:
+		return
 	if not tutorial_mode and not loading_next_level:
 		var level: Dictionary = levels[level_index]
 		if strokes >= int(level.par) + MAX_STROKES_OVER_PAR:
@@ -761,17 +758,23 @@ func _reset_current_level() -> void:
 		return
 	var level: Dictionary = levels[level_index]
 	run_stats.record_manual_reset()
+	if not tutorial_mode and strokes >= int(level.par) + MAX_STROKES_OVER_PAR:
+		_complete_current_hole(false, true)
+		return
 	feedback_director.reset_feedback()
+	audio_controller.stop_transient_audio()
 	_clear_hazard_effects()
-	ball.reset_to(level_builder.level_point(level, "start", "start_cell"))
-	strokes = 0
-	level_elapsed = 0.0
+	level_builder.reset_dynamic_hazards()
+	ball.reset_to(
+		level_builder.level_point(level, "start", "start_cell"),
+		level_builder.get_start_elevation(level),
+		false
+	)
 	_update_status()
 
 
 func _clear_hazard_effects() -> void:
 	active_sand_tiles = 0
-	active_rough_tiles = 0
 	active_direction_pushes.clear()
 	hazard_resetting = false
 	if ball:
@@ -827,9 +830,25 @@ func _update_status() -> void:
 		_active_curses_summary()
 	]
 	var aim_power: float = ball.get_aim_power() if ball else 0.0
+	var aim_text := "%.0f deg" % ball.get_aim_direction_degrees() if ball and ball.has_active_aim() else "none"
 	power_meter.set_power(aim_power)
 	power_debug_label.text = "Power: %d%%" % roundi(aim_power * 100.0)
-	aim_label.text = "Aim: %.0f deg" % ball.get_aim_direction_degrees() if ball and ball.has_active_aim() else "Aim: none"
+	aim_label.text = "Aim: %s" % aim_text
+	if release_hud:
+		release_hud.update_display({
+			"biome_name": biome_name,
+			"biome_number": 0 if tutorial_mode else biome_index + 1,
+			"biome_total": BIOME_COUNT,
+			"hole_number": displayed_hole,
+			"hole_total": displayed_total,
+			"strokes": strokes,
+			"par": int(level.par),
+			"time": _format_time(level_elapsed),
+			"coins": tokens,
+			"bonuses": owned_cards,
+			"curses": _active_curse_display_items(),
+		})
+		release_hud.update_shot(aim_power, aim_text)
 
 
 func _toggle_debug_hud() -> void:
@@ -848,7 +867,7 @@ func _create_hud_label(parent: Control) -> Label:
 func _create_main_menu_overlay() -> void:
 	menu_button = Button.new()
 	menu_button.text = "Menu"
-	menu_button.position = Vector2(1810.0, 104.0)
+	menu_button.position = Vector2(1810.0, 166.0)
 	menu_button.custom_minimum_size = Vector2(80.0, 38.0)
 	menu_button.pressed.connect(_show_main_menu)
 	hud_canvas_layer.add_child(menu_button)
@@ -943,6 +962,9 @@ func _show_main_menu() -> void:
 	menu_skip_button.visible = tutorial_mode or not TutorialManagerScript.is_tutorial_complete()
 	main_menu_overlay.visible = true
 	menu_button.visible = false
+	if run_phase == RunPhase.MAIN_MENU:
+		audio_controller.play_menu_music()
+	_update_gameplay_simulation_pause()
 	_refresh_ball_input()
 	if menu_resume_button.visible:
 		menu_resume_button.grab_focus()
@@ -954,6 +976,7 @@ func _hide_main_menu() -> void:
 	if main_menu_overlay:
 		main_menu_overlay.visible = false
 	menu_button.visible = run_phase == RunPhase.HOLE_PLAY
+	_update_gameplay_simulation_pause()
 	_refresh_ball_input()
 
 
@@ -1003,6 +1026,7 @@ func _show_biome_intro() -> void:
 		],
 		"Play Hole %d" % overall_hole_number
 	)
+	transition_presentation.show_biome(profile, biome_index + 1, BIOME_COUNT)
 	feedback_director.play_progression_feedback(
 		&"biome_transition",
 		profile.background_palette.get("accent", Color("e2b84b"))
@@ -1016,7 +1040,7 @@ func _show_hole_results() -> void:
 	ball.visible = false
 	_clear_hazard_effects()
 	_set_run_phase(RunPhase.HOLE_RESULTS)
-	audio_controller.play_hole_completion()
+	audio_controller.play_hole_outcome(not last_hole_forced, &"par_plus_four" if last_hole_forced else &"cup")
 	_show_interstitial(
 		"Hole %d Results" % overall_hole_number,
 		"%s — %s hole %d/%d\n%s\n\nStrokes: %d   Par: %d   Score: %s\nHole time: %s   Coins earned: %d   Coins held: %d\nActive curses: %s%s" % [
@@ -1059,6 +1083,7 @@ func _show_run_results() -> void:
 	ball.visible = false
 	run_stats.print_summary(total_par)
 	_set_run_phase(RunPhase.RUN_RESULTS)
+	audio_controller.play_results_music()
 	_show_interstitial(
 		"Run Results",
 		"All %d holes complete.\n\nTotal strokes: %d   Total par: %d   Score: %s\nPlay time: %s   Grade: %s\nCoins remaining: %d   Cards: %s\nSeed: %d   Generator fallbacks: %d" % [
@@ -1075,6 +1100,7 @@ func _show_run_results() -> void:
 		],
 		"See Ending"
 	)
+	transition_presentation.show_final()
 	feedback_director.play_progression_feedback(&"final_completion", Color("e2b84b"))
 
 
@@ -1085,6 +1111,7 @@ func _show_ending() -> void:
 		"You crossed Meadow, Desert, Autumn, Snow, Swamp, and Volcanic terrain and finished all eighteen holes.\n\nThe course is complete — but a new seed is ready whenever you are.",
 		"New Run"
 	)
+	transition_presentation.show_final()
 	feedback_director.play_progression_feedback(&"ending_transition", Color("17221f"))
 
 
@@ -1103,6 +1130,8 @@ func _on_interstitial_continue_pressed() -> void:
 
 
 func _show_interstitial(title: String, body: String, button_text: String) -> void:
+	if transition_presentation:
+		transition_presentation.show_generic()
 	interstitial_title_label.text = title
 	interstitial_body_label.text = body
 	interstitial_continue_button.text = button_text
@@ -1118,12 +1147,24 @@ func _hide_interstitial() -> void:
 func _set_run_phase(next_phase: RunPhase) -> void:
 	run_phase = next_phase
 	var gameplay_hud_visible := run_phase == RunPhase.HOLE_PLAY
-	score_label.visible = gameplay_hud_visible
-	effects_status_label.visible = gameplay_hud_visible
+	score_label.visible = false
+	effects_status_label.visible = false
+	if release_hud:
+		release_hud.set_hud_visible(gameplay_hud_visible)
 	debug_hud.visible = gameplay_hud_visible and debug_visible
 	power_meter.visible = gameplay_hud_visible
 	menu_button.visible = gameplay_hud_visible and not main_menu_overlay.visible
+	_update_gameplay_simulation_pause()
 	_refresh_ball_input()
+
+
+func _update_gameplay_simulation_pause() -> void:
+	var menu_open := main_menu_overlay != null and main_menu_overlay.visible
+	var should_pause := run_phase != RunPhase.HOLE_PLAY or menu_open
+	if ball:
+		ball.set_gameplay_simulation_paused(should_pause)
+	if level_builder:
+		level_builder.set_gameplay_simulation_paused(should_pause)
 
 
 func _refresh_ball_input() -> void:
@@ -1215,13 +1256,18 @@ func _show_shop(next_level_index: int) -> void:
 	var forced_cards: Array[String] = []
 	for card_name in level.get("shop_cards", []):
 		forced_cards.append(String(card_name))
+	var explicit_cards: Array[CardDefinition] = []
+	if tutorial_mode:
+		explicit_cards.assign(TutorialDatabase.get_tutorial_cards())
 	shop_manager.show_shop(
 		next_level_index,
 		tokens,
 		levels.size(),
 		run_seed,
 		forced_cards,
-		_shop_destination(next_level_index)
+		_shop_destination(next_level_index),
+		explicit_cards,
+		int(level.get("minimum_shop_purchases", 0))
 	)
 	if tutorial_mode:
 		tutorial_manager.notify_event("shop_opened")
@@ -1338,6 +1384,18 @@ func _active_curses_summary() -> String:
 	for active_curse in active_card_curses:
 		summaries.append(active_curse.summary())
 	return ", ".join(summaries)
+
+
+func _active_curse_display_items() -> Array[String]:
+	var items: Array[String] = []
+	for active_curse in active_card_curses:
+		items.append("%s — %s · %d hole%s" % [
+			active_curse.card.name,
+			active_curse.card.curse_description,
+			active_curse.remaining_holes,
+			"" if active_curse.remaining_holes == 1 else "s",
+		])
+	return items
 
 
 func _cards_summary() -> String:

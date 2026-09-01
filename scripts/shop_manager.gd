@@ -37,6 +37,7 @@ var shop_visits := 0
 var shop_intro_tween: Tween
 var tokens := 0
 var purchases_this_visit := 0
+var minimum_purchases_this_visit := 0
 var purchased_card_indices: Array[int] = []
 var _card_feedback_tweens: Dictionary = {}
 var _coin_feedback_tween: Tween
@@ -84,8 +85,16 @@ func create_overlay(parent: CanvasLayer) -> void:
 	layout.add_child(cards_row)
 
 	for i in range(SHOP_CARD_COUNT):
+		var card_slot := Control.new()
+		card_slot.name = "CardSlot%d" % (i + 1)
+		card_slot.custom_minimum_size = Vector2(220, 390)
+		cards_row.add_child(card_slot)
+
 		var button := Button.new()
+		button.name = "CardButton%d" % (i + 1)
 		button.custom_minimum_size = Vector2(220, 390)
+		card_slot.add_child(button)
+		button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		button.add_theme_font_size_override("font_size", 16)
 		button.text_overrun_behavior = TextServer.OVERRUN_TRIM_WORD_ELLIPSIS
 		button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -93,7 +102,6 @@ func create_overlay(parent: CanvasLayer) -> void:
 		button.pressed.connect(_on_shop_card_pressed.bind(i))
 		button.mouse_entered.connect(_on_card_hovered.bind(button))
 		button.mouse_exited.connect(_on_card_unhovered.bind(button))
-		cards_row.add_child(button)
 		shop_card_buttons.append(button)
 
 	shop_status_label = Label.new()
@@ -122,13 +130,16 @@ func show_shop(
 	level_count: int,
 	offer_seed: int,
 	forced_card_names: Array[String] = [],
-	next_destination: String = ""
+	next_destination: String = "",
+	explicit_card_pool: Array[CardDefinition] = [],
+	minimum_purchases: int = 0
 ) -> void:
 	tokens = token_count
 	purchases_this_visit = 0
+	minimum_purchases_this_visit = clampi(minimum_purchases, 0, MAX_PURCHASES_PER_VISIT)
 	purchased_card_indices.clear()
 	current_shop_cards.clear()
-	var shop_cards: Array[CardDefinition] = CardDatabase.get_cards()
+	var shop_cards: Array[CardDefinition] = explicit_card_pool.duplicate() if not explicit_card_pool.is_empty() else CardDatabase.get_cards()
 	var available_cards: Array[CardDefinition] = shop_cards.duplicate()
 	for card_name in forced_card_names:
 		var forced_card := _card_by_name(card_name, available_cards)
@@ -145,7 +156,11 @@ func show_shop(
 	shop_visits += 1
 	var fallback_destination := "Hole %d/%d" % [next_level_index % level_count + 1, level_count]
 	shop_destination_label.text = "Next: %s" % [next_destination if next_destination != "" else fallback_destination]
-	shop_status_label.text = "Choose up to two cards, or use Skip / Continue."
+	shop_status_label.text = (
+		"Choose at least %d card%s to continue." % [minimum_purchases_this_visit, "" if minimum_purchases_this_visit == 1 else "s"]
+		if minimum_purchases_this_visit > 0
+		else "Choose up to two cards, or use Skip / Continue."
+	)
 	shop_overlay.visible = true
 	_play_shop_intro_animation()
 	_refresh_shop()
@@ -157,6 +172,7 @@ func reset_for_new_run() -> void:
 	shop_visits = 0
 	tokens = 0
 	purchases_this_visit = 0
+	minimum_purchases_this_visit = 0
 	purchased_card_indices.clear()
 	current_shop_cards.clear()
 	if shop_overlay:
@@ -181,7 +197,8 @@ func _play_shop_intro_animation() -> void:
 func _refresh_shop() -> void:
 	shop_tokens_label.text = "Coins: %d   Purchases: %d/%d" % [tokens, purchases_this_visit, MAX_PURCHASES_PER_VISIT]
 	if continue_button:
-		continue_button.disabled = false
+		continue_button.disabled = purchases_this_visit < minimum_purchases_this_visit
+		continue_button.text = "Buy %d More to Continue" % (minimum_purchases_this_visit - purchases_this_visit) if continue_button.disabled else "Skip / Continue"
 
 	for i in range(shop_card_buttons.size()):
 		var button := shop_card_buttons[i]
@@ -234,6 +251,13 @@ func _on_shop_card_pressed(card_index: int) -> void:
 
 
 func _on_shop_continue_pressed() -> void:
+	if purchases_this_visit < minimum_purchases_this_visit:
+		shop_status_label.text = "Purchase at least %d card%s before continuing." % [
+			minimum_purchases_this_visit,
+			"" if minimum_purchases_this_visit == 1 else "s",
+		]
+		feedback_requested.emit(&"error")
+		return
 	_reset_feedback_state()
 	shop_overlay.position = Vector2.ZERO
 	shop_overlay.modulate = Color.WHITE

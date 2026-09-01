@@ -21,14 +21,14 @@ Meadow is the visual foundation and remains bright, inviting, lightly whimsical,
 |---|---|---|
 | Fairway | Smooth, quiet primary route | `#63B75D` |
 | Green | Cleaner and brighter destination surface | `#8DCF63` |
-| Rough | Darker/denser; boundary obvious before shooting | `#3F7D44` |
+| Visual rough | Darker/denser grass variation away from the cup; no mechanical boundary | `#3F7D44` |
 | Sand | Warm, strong silhouette; sparse texture | `#D9BC78` |
 | Water | Cool separation; subtle ripple/highlight motion | `#4FA6D8` |
 | Course surround | Darker and less prominent than play space | `#245C3A` |
 
 The existing alternating dark-green grid, brown collision walls, polygonal ball, cup, and striped flag are functional prototype language, not a mandate to preserve checkerboarding or rectangular terrain in final art. Preserve their clarity while moving toward softer course shapes.
 
-Out-of-bounds must not resemble harmless background grass. Use a consistent boundary/drop-off/warning treatment. Any object with collision should visually communicate approximately the same footprint.
+Water or its biome equivalent is the primary environmental reset hazard. Course boundary walls must read as one continuous connected structure, with square connected sides and bevel/rounding only on exposed corners. Any object with collision should visually communicate approximately the same footprint and occupied elevation.
 
 ### Release Biome Kit
 
@@ -43,7 +43,7 @@ All production biomes use the same procedural vector kit for the ball, tee marke
 | Swamp | Dark wet greens, mud, reeds, faint ground wisps | reeds, mud pool, mushrooms, lily pads |
 | Volcanic | Dark basalt, hot orange/red accents, ember motion | basalt, embers, lava crack, smoke vent |
 
-Hazards retain shared silhouettes and add a non-color cue: sand uses grains and a ridge, rough uses grass tufts, water uses ripple lines, and out-of-bounds uses warning stripes. Direction pads keep their arrow. These marks remain consistent across every palette.
+Hazards embed into their environment instead of sitting in board-like outlined cards: sand uses grains/ridges, water uses ripples, ice uses facets/highlights, lava uses glowing cracks, and direction pads keep their arrow. Bounce pads, blockers, pendulums, falling ice, and rotating fire rods retain shared collision silhouettes and non-color cues. Moving hazards show path, timing, and dangerous region without obscuring the route.
 
 ## Semantic Language
 
@@ -59,14 +59,15 @@ Strong colors communicate meaning. Do not introduce a new saturated color casual
 ## Focal Gameplay Elements
 
 - **Ball:** light, dimensional enough to separate from terrain, restrained dark outline, visible everywhere. Effects never obscure its true position.
-- **Cup:** dark opening plus flag/pin and green-area contrast. Important, but not collectible-like.
+- **Cup:** dark opening plus flag pole/flag and local green contrast. Do not draw a target ring around it.
 - **Aim:** originates at the ball and contrasts across every surface. Power and direction must be more legible than decoration.
-- **Trajectory preview:** translucent and segmented/fading so it reads as prediction, not the physical path.
+- **Trajectory preview:** translucent, segmented/fading, adaptively spaced, and palette-aware. It remains subordinate but must retain foreground/backing contrast on Snow and every other biome; a low-power shot must look genuinely short.
 - **Hazards:** distinguishable by silhouette, value, and motion before the player reads a label.
+- **Elevation:** raised/depressed routes, ramps, bridges, pits, and overpasses use 2D shadow, offset, edge light, occlusion, and layer order so depth reads without 3D rendering.
 
 ## UI and Shop
 
-Keep the course dominant. Intended HUD hierarchy: strokes and run timer top-left; currency and compact active-penalty icons top-right; shot information bottom-center. Use clear type hierarchy, generous spacing, moderate rounding, restrained borders, and consistent interaction states.
+Keep the course dominant. Intended HUD hierarchy prioritizes biome and hole identity, strokes/par, timer, coins, active bonuses, and an immediately distinct `ACTIVE CURSES / PENALTIES` group; shot information remains bottom-center. Use clear type hierarchy, moderate spacing/rounding, restrained borders, and consistent interaction states.
 
 The shop is visually more energetic than hole play. Every card gives equivalent weight to:
 
@@ -82,15 +83,17 @@ Purchase feedback should connect currency loss, acquired benefit, and accepted c
 Use short, readable micro-animation:
 
 - shot: impact flash/particles, restrained squash or camera response, speed trail only when useful;
-- rough/sand/water: distinct grass disturbance, puff, or splash/ripple;
+- sand/water/ice/lava: distinct puff, splash/ripple, shard, or heat response;
+- fully stopped ball: one restrained yellow confetti burst from ball center;
+- meaningful wall impact: aggressively clamped camera shake, with tiny or no response for scraping;
 - cup: brief drop, flag response, score cue, then prompt transition;
 - purchase: coin change, card confirmation, and paired bonus/curse acknowledgement.
 
 Effects communicate impact, speed, terrain, reward, punishment, selection, or completion. If removing an effect would not reduce understanding or feel, it is low priority.
 
-The release feedback kit is deliberately shared. Shot strike rings, camera offset, the sampled ball trail, rolling ticks, terrain bursts, cup rings, and transition flashes are palette-driven primitive effects from `FeedbackDirector`; biome variants come from profile colors rather than bespoke effect scenes. Shop feedback uses the same semantic colors: a small card scale response, gold coin pulse, and brief red curse warning. Durations and intensities are named exported values on the owning feedback nodes so a feel pass can tune them without touching gameplay rules.
+The release feedback kit is deliberately shared. Shot strike rings, sampled trail, stopped confetti, terrain/hazard bursts, bounded wall shake, cup feedback, and transition flashes are palette-driven primitive effects from `FeedbackDirector`; biome variants come from profile colors rather than bespoke effect scenes. Shop feedback uses the same semantic colors: a small card scale response, gold coin pulse, and brief red curse warning. Durations and intensities are named exported values on owning feedback nodes so a feel pass can tune them without touching gameplay rules.
 
-Audio follows the same restrained hierarchy. A synthesized low-volume ambience bed supports the course, the rolling loop scales with ball speed, and short pooled cues mark strike, terrain, water, cup, shop, biome transition, and final completion. Music and SFX use separate buses and must never mask shot readability.
+Audio follows the same restrained hierarchy. One menu theme and six biome-specific musical loops share a cohesive identity and crossfade without stacking; subtle biome ambience remains secondary. Ordinary golf uses physical strike/cup/water/sand/purchase cues and no normal-speed rolling loop; only sufficiently fast movement receives a bounded swoosh. Synth character is reserved for anomalous effects such as the bounce pad. Music and SFX use separate buses and must never mask shot readability.
 
 ## Asset Rules
 
