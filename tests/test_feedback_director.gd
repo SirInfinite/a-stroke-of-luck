@@ -59,6 +59,48 @@ func test_cup_and_progression_feedback_cover_final_completion() -> void:
 	assert_eq(director.last_feedback_kind, &"ending_transition")
 
 
+func test_stopped_feedback_uses_yellow_confetti_without_old_landing_ring() -> void:
+	var setup := _spawn_feedback()
+	var director = setup.director
+	director.play_stop_feedback()
+
+	assert_eq(director.last_feedback_kind, &"stop")
+	assert_eq(director.transient_root.get_child_count(), director.stopping_confetti_count)
+	for child in director.transient_root.get_children():
+		assert_eq(child.get_meta(&"feedback_kind", &""), &"stop_confetti")
+		var color := (child as Polygon2D).color
+		assert_gt(color.r, 0.8)
+		assert_gt(color.g, 0.55)
+	var count_before_hidden_trigger: int = director.transient_root.get_child_count()
+	setup.ball.visible = false
+	director.play_stop_feedback(Vector2(40.0, 40.0))
+	assert_eq(director.transient_root.get_child_count(), count_before_hidden_trigger, "Hidden/resetting ball must not emit stop confetti.")
+
+
+func test_wall_impact_shake_is_thresholded_and_clamped() -> void:
+	var setup := _spawn_feedback()
+	var director = setup.director
+	director.play_wall_impact(director.wall_impact_reference_speed * 0.05, Vector2.ZERO)
+	assert_eq(setup.camera.offset, Vector2.ZERO)
+	assert_eq(director.last_feedback_kind, &"")
+
+	director.play_wall_impact(director.wall_impact_reference_speed * 10.0, Vector2.ZERO)
+	assert_eq(director.last_feedback_kind, &"wall_impact")
+	assert_lte(setup.camera.offset.length(), director.wall_shake_max_strength * 1.2)
+	assert_gt(director.transient_root.get_child_count(), 0)
+	await wait_seconds(director.wall_shake_duration + 0.04)
+	assert_eq(setup.camera.offset, Vector2.ZERO, "Camera offset must never remain stuck after impact feedback.")
+
+
+func test_hazard_feedback_has_specialized_bounce_ice_and_lava_hooks() -> void:
+	var setup := _spawn_feedback()
+	var director = setup.director
+	for hazard_type in [&"bounce_pad", &"falling_ice", &"rotating_fire_rod"]:
+		director.play_hazard_feedback(hazard_type, 0.8, Vector2.ZERO)
+		assert_eq(director.last_feedback_kind, hazard_type)
+	assert_gt(director.transient_root.get_child_count(), 0)
+
+
 func _spawn_feedback() -> Dictionary:
 	var root := Node2D.new()
 	add_child_autofree(root)

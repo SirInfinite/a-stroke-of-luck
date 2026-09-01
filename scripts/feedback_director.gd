@@ -17,6 +17,13 @@ signal feedback_played(kind: StringName)
 @export_range(10.0, 300.0, 5.0) var rolling_feedback_interval := 70.0
 @export_range(0.05, 0.6, 0.01) var rolling_feedback_duration := 0.22
 @export_range(0.05, 0.6, 0.01) var stopping_feedback_duration := 0.2
+@export_range(4, 24, 1) var stopping_confetti_count := 12
+
+@export_category("Impact Feedback")
+@export_range(0.0, 1.0, 0.01) var wall_shake_threshold := 0.16
+@export_range(1.0, 1800.0, 10.0) var wall_impact_reference_speed := 700.0
+@export_range(0.0, 12.0, 0.25) var wall_shake_max_strength := 6.0
+@export_range(0.05, 0.5, 0.01) var wall_shake_duration := 0.18
 
 @export_category("Terrain Feedback")
 @export_range(0.05, 1.0, 0.01) var terrain_burst_duration := 0.34
@@ -36,7 +43,6 @@ signal feedback_played(kind: StringName)
 const OFF_WHITE := Color("f4f0e6")
 const GOLD := Color("e2b84b")
 const DANGER := Color("d9534f")
-const STOP_COLOR := Color("8fd6a4")
 
 var ball: RigidBody2D
 var camera: Camera2D
@@ -119,13 +125,43 @@ func play_shot_feedback(position: Vector2, direction: Vector2, power: float) -> 
 	feedback_played.emit(last_feedback_kind)
 
 
-func play_stop_feedback() -> void:
-	if not ball:
+func play_stop_feedback(position: Vector2 = Vector2.ZERO) -> void:
+	if not ball or not ball.visible:
 		return
+	var feedback_position := ball.global_position if position == Vector2.ZERO else position
 	last_feedback_kind = &"stop"
-	_spawn_ring(ball.global_position, STOP_COLOR, 13.0, 20.0, stopping_feedback_duration, 2.5)
-	_play_ball_punch(0.94, stopping_feedback_duration)
+	_spawn_confetti(feedback_position, GOLD, stopping_confetti_count, stopping_feedback_duration * 1.8)
 	_fade_trail()
+	feedback_played.emit(last_feedback_kind)
+
+
+func play_wall_impact(strength: float, position: Vector2) -> void:
+	var normalized_strength := clampf(
+		strength if strength <= 1.0 else strength / wall_impact_reference_speed,
+		0.0,
+		1.0
+	)
+	if normalized_strength < wall_shake_threshold:
+		return
+	last_feedback_kind = &"wall_impact"
+	_spawn_radial_burst(position, OFF_WHITE, 5, 20.0 + normalized_strength * 18.0, wall_shake_duration)
+	_play_camera_shake(normalized_strength)
+	feedback_played.emit(last_feedback_kind)
+
+
+func play_hazard_feedback(hazard_type: StringName, intensity: float, position: Vector2) -> void:
+	var bounded_intensity := clampf(intensity, 0.15, 1.0)
+	last_feedback_kind = hazard_type
+	match hazard_type:
+		&"bounce_pad":
+			_spawn_ring(position, active_background_palette.get("accent", GOLD), 10.0, 34.0 + bounded_intensity * 18.0, terrain_burst_duration, 4.0)
+			_spawn_radial_burst(position, OFF_WHITE, 8, 24.0 + bounded_intensity * 20.0, terrain_burst_duration)
+		&"falling_ice":
+			_spawn_ice_shards(position, _terrain_feedback_color(&"ice"), 7, terrain_burst_duration)
+		&"rotating_lava_rod", &"rotating_fire_rod", &"fireball", &"lava":
+			_spawn_radial_burst(position, _terrain_feedback_detail_color(&"lava", DANGER), 10, 32.0 + bounded_intensity * 20.0, terrain_burst_duration)
+		_:
+			_spawn_puffs(position, DANGER, 6, terrain_burst_duration)
 	feedback_played.emit(last_feedback_kind)
 
 
@@ -142,8 +178,6 @@ func play_terrain_feedback(terrain_kind: StringName, position: Vector2) -> void:
 			_spawn_tufts(position, detail_color, 6, terrain_burst_duration)
 		&"sand":
 			_spawn_puffs(position, detail_color, 7, terrain_burst_duration)
-		&"out":
-			_spawn_radial_burst(position, DANGER, 8, 34.0 * terrain_burst_intensity, terrain_burst_duration)
 		&"direction":
 			_spawn_wind_lines(position, detail_color, terrain_burst_duration)
 		_:
@@ -312,6 +346,46 @@ func _spawn_droplets(position: Vector2, color: Color, drop_count: int, duration:
 		tween.chain().tween_callback(drop.queue_free)
 
 
+func _spawn_confetti(position: Vector2, color: Color, piece_count: int, duration: float) -> void:
+	for i in range(piece_count):
+		var angle := TAU * float(i) / float(piece_count) + float(i % 3) * 0.11
+		var direction := Vector2(cos(angle), sin(angle))
+		var piece := Polygon2D.new()
+		piece.name = "StopConfetti"
+		piece.set_meta(&"feedback_kind", &"stop_confetti")
+		piece.position = position
+		piece.rotation = angle
+		piece.polygon = PackedVector2Array([
+			Vector2(-2.5, -4.5), Vector2(2.5, -4.5),
+			Vector2(2.5, 4.5), Vector2(-2.5, 4.5),
+		])
+		piece.color = color.lightened(0.12 * float(i % 3))
+		transient_root.add_child(piece)
+		var travel := 25.0 + float(i % 4) * 6.0
+		var tween := create_tween().set_parallel(true)
+		tween.tween_property(piece, "position", position + direction * travel, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(piece, "rotation", piece.rotation + PI * (0.8 + float(i % 2) * 0.45), duration)
+		tween.tween_property(piece, "modulate:a", 0.0, duration).set_delay(duration * 0.28)
+		tween.chain().tween_callback(piece.queue_free)
+
+
+func _spawn_ice_shards(position: Vector2, color: Color, shard_count: int, duration: float) -> void:
+	for i in range(shard_count):
+		var angle := TAU * float(i) / float(shard_count)
+		var direction := Vector2(cos(angle), sin(angle))
+		var shard := Polygon2D.new()
+		shard.name = "IceShard"
+		shard.position = position
+		shard.rotation = angle
+		shard.polygon = PackedVector2Array([Vector2(-3.0, 4.0), Vector2.ZERO, Vector2(3.0, 4.0), Vector2(0.0, -7.0)])
+		shard.color = Color(color, 0.74)
+		transient_root.add_child(shard)
+		var tween := create_tween().set_parallel(true)
+		tween.tween_property(shard, "position", position + direction * (22.0 + float(i % 3) * 7.0), duration)
+		tween.tween_property(shard, "modulate:a", 0.0, duration)
+		tween.chain().tween_callback(shard.queue_free)
+
+
 func _spawn_tufts(position: Vector2, color: Color, tuft_count: int, duration: float) -> void:
 	var tufts := Node2D.new()
 	tufts.name = "RoughTufts"
@@ -374,6 +448,21 @@ func _play_camera_impulse(direction: Vector2, strength: float, duration: float) 
 	_camera_tween.tween_property(camera, "offset", Vector2.ZERO, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
+func _play_camera_shake(normalized_strength: float) -> void:
+	if not camera:
+		return
+	if _camera_tween:
+		_camera_tween.kill()
+	camera.offset = Vector2.ZERO
+	var amplitude := clampf(normalized_strength * wall_shake_max_strength, 0.0, wall_shake_max_strength)
+	var segment_duration := wall_shake_duration / 4.0
+	_camera_tween = create_tween()
+	_camera_tween.tween_property(camera, "offset", Vector2(amplitude, -amplitude * 0.45), segment_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	_camera_tween.tween_property(camera, "offset", Vector2(-amplitude * 0.65, amplitude * 0.32), segment_duration)
+	_camera_tween.tween_property(camera, "offset", Vector2(amplitude * 0.28, -amplitude * 0.18), segment_duration)
+	_camera_tween.tween_property(camera, "offset", Vector2.ZERO, segment_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
 func _play_cup_camera_emphasis(is_final_hole: bool) -> void:
 	if not camera:
 		return
@@ -405,7 +494,8 @@ func _terrain_feedback_color(terrain_kind: StringName) -> Color:
 		"sand": Color("d9bc78"),
 		"rough": Color("3f7d44"),
 		"water": Color("4fa6d8"),
-		"out": DANGER,
+		"ice": Color("9ed5e4"),
+		"lava": Color("d9522f"),
 		"direction": Color("79b88b"),
 	}.get(String(terrain_kind), OFF_WHITE))
 
