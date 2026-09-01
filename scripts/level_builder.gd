@@ -3,19 +3,26 @@ extends Node
 
 const CourseVisualFactory := preload("res://scripts/course_visual_factory.gd")
 const BiomeAmbienceScript := preload("res://scripts/biome_ambience.gd")
+const LevelValidatorScript := preload("res://scripts/level_validator.gd")
+const GameplayHazardScript := preload("res://scripts/gameplay_hazard.gd")
+const MovingHazardScript := preload("res://scripts/moving_hazard.gd")
+const ElevationRampScript := preload("res://scripts/elevation_ramp.gd")
+const HazardTelegraphScript := preload("res://scripts/hazard_telegraph.gd")
 
 signal hole_body_entered(body: Node2D)
 signal sand_body_entered(body: Node2D)
 signal sand_body_exited(body: Node2D)
-signal rough_body_entered(body: Node2D)
-signal rough_body_exited(body: Node2D)
-signal water_body_entered(body: Node2D, water_position: Vector2)
-signal out_body_entered(body: Node2D, out_position: Vector2)
 signal direction_body_entered(body: Node2D, area: Area2D)
 signal direction_body_exited(body: Node2D, area: Area2D)
+signal reset_hazard_body_entered(body: Node2D, hazard_position: Vector2, hazard_type: StringName)
+signal bounce_pad_triggered(strength: float, pad_type: StringName, position: Vector2)
+signal hazard_triggered(hazard_type: StringName, intensity: float, position: Vector2)
+signal elevation_transitioned(body: Node2D, from_elevation: int, to_elevation: int)
 
 const GRID_CELL_SIZE := 100.0
 const WALL_THICKNESS := 30.0
+const ELEVATION_Z_STRIDE := 8
+const ELEVATION_Z_OFFSET := 1
 const GREEN_DARK := Color(0.232, 0.554, 0.248, 1.0)
 const GREEN_DARKER := Color(0.161, 0.447, 0.201, 1.0)
 const BORDER_BROWN := Color(0.34, 0.19, 0.09)
@@ -23,9 +30,17 @@ const BORDER_BROWN := Color(0.34, 0.19, 0.09)
 var level_root: Node2D
 var active_terrain_palette: Dictionary = {}
 var active_background_palette: Dictionary = {}
+var active_level: Dictionary = {}
+var elevation_lookup: Dictionary = {}
+var tee_marker: Node2D
 
 
 func build_level(level: Dictionary, parent: Node) -> Node2D:
+	if not LevelValidatorScript.validate_level(level, int(level.get("overall_hole_number", 1)) - 1):
+		push_error("LevelBuilder refused an invalid level definition.")
+		return null
+	active_level = level
+	_rebuild_elevation_lookup(level)
 	active_terrain_palette = level.get("terrain_palette", {}).duplicate(true)
 	active_background_palette = level.get("background_palette", {}).duplicate(true)
 	level_root = Node2D.new()
@@ -35,15 +50,63 @@ func build_level(level: Dictionary, parent: Node) -> Node2D:
 
 	_create_background(level)
 	_create_course(level)
-	_create_start_marker(level_point(level, "start", "start_cell"))
-	_create_hole(level_point(level, "hole", "hole_cell"), float(level.get("cup_radius", 28.0)))
+	_create_elevation_presentation(level)
+	_create_start_marker(
+		level_point(level, "start", "start_cell"),
+		int(level.get("start_elevation", 0))
+	)
+	_create_hole(
+		level_point(level, "hole", "hole_cell"),
+		float(level.get("cup_radius", 28.0)),
+		int(level.get("hole_elevation", 0))
+	)
 	_create_hazards(level)
+	_create_moving_hazards(level)
+	_create_elevation_ramps(level)
 
 	for obstacle in level.obstacles:
-		_create_box(obstacle.pos, obstacle.size, _terrain_color("border", BORDER_BROWN))
+		_create_box(
+			obstacle.pos,
+			obstacle.size,
+			_terrain_color("border", BORDER_BROWN),
+			&"blocker",
+			int(obstacle.get("elevation", 0))
+		)
 	_create_decorations(level)
 
 	return level_root
+
+
+func set_gameplay_simulation_paused(paused: bool) -> void:
+	if not level_root:
+		return
+	level_root.process_mode = Node.PROCESS_MODE_DISABLED if paused else Node.PROCESS_MODE_INHERIT
+
+
+func reset_dynamic_hazards() -> void:
+	if not level_root:
+		return
+	for child in level_root.get_children():
+		if child.has_method("reset_state"):
+			child.reset_state()
+
+
+func get_elevation_presentation_data() -> Dictionary:
+	return {
+		"cells": active_level.get("elevation_cells", []),
+		"transitions": active_level.get("elevation_transitions", []),
+		"structures": active_level.get("elevation_structures", []),
+		"tee": active_level.get("tee", {}),
+	}
+
+
+func get_start_elevation(level: Dictionary) -> int:
+	return int(level.get("start_elevation", 0))
+
+
+func on_ball_left_tee(_position: Vector2, _elevation: int) -> void:
+	if tee_marker:
+		tee_marker.visible = false
 
 
 func level_point(level: Dictionary, world_key: String, cell_key: String) -> Vector2:
@@ -136,60 +199,56 @@ func _create_bounds(level: Dictionary) -> void:
 		{"cell": Vector2i(0, -1), "offset": Vector2(0.0, -GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0), "size": Vector2(GRID_CELL_SIZE, WALL_THICKNESS)},
 		{"cell": Vector2i(1, 0), "offset": Vector2(GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0, 0.0), "size": Vector2(WALL_THICKNESS, GRID_CELL_SIZE)},
 		{"cell": Vector2i(0, 1), "offset": Vector2(0.0, GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0), "size": Vector2(GRID_CELL_SIZE, WALL_THICKNESS)},
-		{"cell": Vector2i(-1, 0), "offset": Vector2(-GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0, 0.0), "size": Vector2(WALL_THICKNESS, GRID_CELL_SIZE)}
+		{"cell": Vector2i(-1, 0), "offset": Vector2(-GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0, 0.0), "size": Vector2(WALL_THICKNESS, GRID_CELL_SIZE)},
 	]
-	var corners := [
-		{"side_a": Vector2i(0, -1), "side_b": Vector2i(-1, 0), "offset": Vector2(-GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0, -GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0)},
-		{"side_a": Vector2i(0, -1), "side_b": Vector2i(1, 0), "offset": Vector2(GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0, -GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0)},
-		{"side_a": Vector2i(0, 1), "side_b": Vector2i(1, 0), "offset": Vector2(GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0, GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0)},
-		{"side_a": Vector2i(0, 1), "side_b": Vector2i(-1, 0), "offset": Vector2(-GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0, GRID_CELL_SIZE / 2.0 + WALL_THICKNESS / 2.0)}
-	]
-	var created_corners := {}
-
-	for cell in _playable_cells(level):
+	var created_segments := {}
+	for cell in elevation_lookup.keys():
 		var cell_center := _cell_to_world(level, cell)
-		for direction in directions:
-			var neighbor: Vector2i = cell + direction.cell
-			if not _is_playable_cell(level, neighbor):
-				_create_box(cell_center + direction.offset, direction.size, _terrain_color("border", BORDER_BROWN))
+		for elevation in elevation_lookup[cell]:
+			for direction in directions:
+				var neighbor: Vector2i = Vector2i(cell) + Vector2i(direction.cell)
+				if _surface_exists(neighbor, int(elevation)) or _has_elevation_transition(Vector2i(cell), neighbor, int(elevation)):
+					continue
+				var segment_position: Vector2 = cell_center + Vector2(direction.offset)
+				var segment_key := "%d,%d,%d,%d,%d" % [
+					roundi(segment_position.x),
+					roundi(segment_position.y),
+					roundi(Vector2(direction.size).x),
+					roundi(Vector2(direction.size).y),
+					int(elevation),
+				]
+				if created_segments.has(segment_key):
+					continue
+				created_segments[segment_key] = true
+				_create_box(
+					segment_position,
+					direction.size,
+					_terrain_color("border", BORDER_BROWN),
+					&"boundary",
+					int(elevation),
+					_boundary_connections(level, Vector2i(cell), Vector2i(direction.cell), int(elevation))
+				)
 
-		for corner in corners:
-			if _is_playable_cell(level, cell + corner.side_a) or _is_playable_cell(level, cell + corner.side_b):
-				continue
 
-			var corner_position: Vector2 = cell_center + corner.offset
-			var corner_key := "%d,%d" % [roundi(corner_position.x), roundi(corner_position.y)]
-			if created_corners.has(corner_key):
-				continue
-
-			created_corners[corner_key] = true
-			_create_box(corner_position, Vector2(WALL_THICKNESS, WALL_THICKNESS), _terrain_color("border", BORDER_BROWN))
-
-
-func _create_box(pos: Vector2, size: Vector2, color: Color) -> void:
+func _create_box(
+	pos: Vector2,
+	size: Vector2,
+	color: Color,
+	collision_kind := &"blocker",
+	elevation := 0,
+	connections: Dictionary = {}
+) -> void:
 	var body := StaticBody2D.new()
 	body.position = pos
+	body.collision_layer = _collision_layer_for_elevation(elevation)
+	body.collision_mask = 1
+	body.z_index = _presentation_z_for_elevation(elevation) + 2
+	body.set_meta(&"collision_kind", collision_kind)
+	body.set_meta(&"elevation", elevation)
 	level_root.add_child(body)
 
-	var shadow := Polygon2D.new()
-	shadow.name = "CollisionShadow"
-	shadow.position = Vector2(4.0, 5.0)
-	shadow.polygon = CourseVisualFactory.rounded_rectangle_polygon(size, 7.0)
-	shadow.color = Color(0.03, 0.035, 0.04, 0.46)
-	body.add_child(shadow)
-
-	var visual := Polygon2D.new()
-	visual.name = "CollisionVisual"
-	visual.polygon = CourseVisualFactory.rounded_rectangle_polygon(size, 7.0)
-	visual.color = color
+	var visual := CourseVisualFactory.create_connected_wall_visual(size, color, connections)
 	body.add_child(visual)
-
-	var highlight := Line2D.new()
-	highlight.name = "CollisionHighlight"
-	highlight.width = 2.0
-	highlight.default_color = Color(color.lightened(0.22), 0.7)
-	highlight.points = PackedVector2Array([Vector2(-size.x * 0.36, -size.y * 0.3), Vector2(size.x * 0.36, -size.y * 0.3)])
-	body.add_child(highlight)
 
 	var collision := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
@@ -198,21 +257,25 @@ func _create_box(pos: Vector2, size: Vector2, color: Color) -> void:
 	body.add_child(collision)
 
 
-func _create_hole(pos: Vector2, radius: float) -> void:
+func _create_hole(pos: Vector2, radius: float, elevation: int) -> void:
 	var green := CourseVisualFactory.create_green_patch(
 		_terrain_color("green", _terrain_color("fairway_a", GREEN_DARK).lightened(0.18)),
 		Color(_terrain_color("outline", BORDER_BROWN.darkened(0.25)), 0.48),
 		radius
 	)
 	green.position = pos
+	green.z_index = _presentation_z_for_elevation(elevation)
 	level_root.add_child(green)
-	_create_hole_depth_visual(pos, radius)
-	_create_hole_flag(pos)
+	_create_cup_opening(pos, radius, elevation)
+	_create_hole_flag(pos, elevation)
 
 	var area := Area2D.new()
 	area.name = "Hole"
 	area.position = pos
-	area.body_entered.connect(_on_hole_body_entered)
+	area.collision_layer = 0
+	area.collision_mask = 1
+	area.set_meta(&"elevation", elevation)
+	area.body_entered.connect(_on_hole_body_entered.bind(elevation))
 	level_root.add_child(area)
 
 	var collision := CollisionShape2D.new()
@@ -221,47 +284,35 @@ func _create_hole(pos: Vector2, radius: float) -> void:
 	collision.shape = shape
 	area.add_child(collision)
 
-
-func _create_hole_depth_visual(pos: Vector2, radius: float) -> void:
-	var fairway_color := _terrain_color("fairway_a", GREEN_DARK)
-	var ring_colors := [
-		Color(fairway_color.r, fairway_color.g, fairway_color.b, 0.15),
-		Color(0.13, 0.28, 0.14, 0.45),
-		Color(0.06, 0.12, 0.065, 0.78),
-		Color(0.02, 0.018, 0.015, 1.0)
-	]
-	var radius_scale := radius / 28.0
-	var ring_sizes := [
-		Vector2(44.0, 28.0) * radius_scale,
-		Vector2(38.0, 24.0) * radius_scale,
-		Vector2(32.0, 20.0) * radius_scale,
-		Vector2(27.0, 17.0) * radius_scale
-	]
-
-	for i in range(ring_sizes.size()):
-		var ring := Polygon2D.new()
-		ring.position = pos
-		ring.polygon = _ellipse_polygon(ring_sizes[i])
-		ring.color = ring_colors[i]
-		level_root.add_child(ring)
+func _create_cup_opening(pos: Vector2, radius: float, elevation: int) -> void:
+	var opening := Polygon2D.new()
+	opening.name = "CupOpening"
+	opening.position = pos
+	opening.z_index = _presentation_z_for_elevation(elevation) + 1
+	opening.polygon = _ellipse_polygon(Vector2(radius * 0.52, radius * 0.34), 32)
+	opening.color = Color(0.02, 0.018, 0.015, 1.0)
+	level_root.add_child(opening)
 
 
-func _create_hole_flag(pos: Vector2) -> void:
+func _create_hole_flag(pos: Vector2, elevation: int) -> void:
 	var flag_root := CourseVisualFactory.create_flag(
 		_terrain_color("flag", Color("d9534f")),
 		_terrain_color("outline", Color("252a2c"))
 	)
 	flag_root.position = pos
+	flag_root.z_index = _presentation_z_for_elevation(elevation) + 2
 	level_root.add_child(flag_root)
 
 
-func _create_start_marker(pos: Vector2) -> void:
-	var marker := CourseVisualFactory.create_start_marker(
+func _create_start_marker(pos: Vector2, elevation: int) -> void:
+	tee_marker = CourseVisualFactory.create_start_marker(
 		_terrain_color("tee", _terrain_color("fairway_a", GREEN_DARK).lightened(0.24)),
 		_terrain_color("outline", BORDER_BROWN.darkened(0.25))
 	)
-	marker.position = pos
-	level_root.add_child(marker)
+	tee_marker.position = pos
+	tee_marker.z_index = _presentation_z_for_elevation(elevation) + 1
+	tee_marker.set_meta(&"tee_elevation", elevation)
+	level_root.add_child(tee_marker)
 
 
 func _create_hazards(level: Dictionary) -> void:
@@ -269,92 +320,206 @@ func _create_hazards(level: Dictionary) -> void:
 		if not _hazard_fits_playable_map(level, hazard):
 			push_warning("Skipping %s hazard because it does not fit the playable grid." % hazard.get("type", "unknown"))
 			continue
-
-		match hazard.type:
-			"sand":
-				_create_sand_tile(hazard.pos, hazard.size)
-			"rough":
-				_create_rough_tile(hazard.pos, hazard.size)
-			"water":
-				_create_water_tile(hazard.pos, hazard.size)
-			"out":
-				_create_out_tile(hazard.pos, hazard.size)
-			"direction":
-				_create_direction_tile(hazard.pos, hazard.size, hazard.direction.normalized())
+		_create_gameplay_hazard(hazard)
 
 
-func _create_sand_tile(pos: Vector2, size: Vector2) -> void:
-	var area := _create_hazard_area("Sand", "sand", pos, size, _terrain_color("sand", Color(0.78, 0.62, 0.36, 0.95)), _terrain_color("sand_detail", Color("f2d99a")))
-	area.body_entered.connect(_on_sand_body_entered)
-	area.body_exited.connect(_on_sand_body_exited)
+func _create_gameplay_hazard(definition: Dictionary) -> void:
+	var area = GameplayHazardScript.new()
+	area.name = "Hazard_%s" % String(definition.type)
+	area.configure(definition)
+	area.position = definition.pos
+	area.z_index = _presentation_z_for_elevation(int(definition.get("elevation", 0))) + 1
+	area.hazard_body_entered.connect(_on_gameplay_hazard_body_entered)
+	area.hazard_body_exited.connect(_on_gameplay_hazard_body_exited)
+	area.hazard_triggered.connect(_relay_hazard_triggered)
+	area.bounce_pad_triggered.connect(_relay_bounce_pad_triggered)
+	level_root.add_child(area)
+
+	var hazard_type := String(definition.type)
+	var base_color := _terrain_color(hazard_type, _terrain_color("direction", Color(0.52, 0.72, 0.62, 0.9)))
+	var detail_color := _terrain_color("%s_detail" % hazard_type, base_color.lightened(0.28))
+	var visual := CourseVisualFactory.create_hazard_visual(
+		hazard_type,
+		definition.size,
+		base_color,
+		detail_color,
+		Color(_terrain_color("outline", BORDER_BROWN.darkened(0.25)), 0.54)
+	)
+	area.add_child(visual)
+	if hazard_type == "direction":
+		_add_direction_indicator(area, Vector2(definition.direction).normalized(), detail_color)
+
+	var collision := CollisionShape2D.new()
+	if hazard_type == "bounce_pad":
+		var circle := CircleShape2D.new()
+		circle.radius = minf(Vector2(definition.size).x, Vector2(definition.size).y) * 0.5
+		collision.shape = circle
+	else:
+		var rectangle := RectangleShape2D.new()
+		rectangle.size = definition.size
+		collision.shape = rectangle
+	area.add_child(collision)
 
 
-func _create_rough_tile(pos: Vector2, size: Vector2) -> void:
-	var area := _create_hazard_area("Rough", "rough", pos, size, _terrain_color("rough", Color(0.12, 0.36, 0.14, 0.92)), _terrain_color("rough_detail", Color("73a86f")))
-	area.body_entered.connect(_on_rough_body_entered)
-	area.body_exited.connect(_on_rough_body_exited)
-
-
-func _create_water_tile(pos: Vector2, size: Vector2) -> void:
-	var area := _create_hazard_area("Water", "water", pos, size, _terrain_color("water", Color(0.35, 0.72, 0.95, 0.9)), _terrain_color("water_detail", Color("a8e4f5")))
-	area.body_entered.connect(_on_water_body_entered.bind(pos))
-
-
-func _create_out_tile(pos: Vector2, size: Vector2) -> void:
-	var area := _create_hazard_area("OutOfBounds", "out", pos, size, _terrain_color("out", Color(0.72, 0.08, 0.08, 0.82)), _terrain_color("out_detail", Color("f59a85")))
-	area.body_entered.connect(_on_out_body_entered.bind(pos))
-
-
-func _create_direction_tile(pos: Vector2, size: Vector2, direction: Vector2) -> void:
-	var area := _create_hazard_area("Direction", "direction", pos, size, _terrain_color("direction", Color(0.52, 0.72, 0.62, 0.9)), _terrain_color("direction_detail", Color("e8f4de")))
-	area.set_meta("direction", direction)
-	area.body_entered.connect(_on_direction_body_entered.bind(area))
-	area.body_exited.connect(_on_direction_body_exited.bind(area))
-
+func _add_direction_indicator(area: Node2D, direction: Vector2, detail_color: Color) -> void:
 	var arrow := Line2D.new()
 	arrow.width = 5.0
-	arrow.default_color = _terrain_color("direction_detail", Color("e8f4de"))
+	arrow.default_color = detail_color
 	arrow.points = PackedVector2Array([-direction * 24.0, direction * 24.0])
 	area.add_child(arrow)
-
 	var head := Polygon2D.new()
 	head.position = direction * 24.0
 	head.rotation = direction.angle()
-	head.polygon = PackedVector2Array([
-		Vector2(12.0, 0.0),
-		Vector2(-8.0, -7.0),
-		Vector2(-8.0, 7.0)
-	])
-	head.color = _terrain_color("direction_detail", Color("e8f4de"))
+	head.polygon = PackedVector2Array([Vector2(12.0, 0.0), Vector2(-8.0, -7.0), Vector2(-8.0, 7.0)])
+	head.color = detail_color
 	area.add_child(head)
 
 
-func _create_hazard_area(name: String, hazard_type: String, pos: Vector2, size: Vector2, color: Color, detail_color: Color) -> Area2D:
-	var area := Area2D.new()
-	area.name = name
-	area.position = pos
-	level_root.add_child(area)
+func _create_moving_hazards(level: Dictionary) -> void:
+	for definition in level.get("moving_hazards", []):
+		var moving = MovingHazardScript.new()
+		moving.name = "MovingHazard_%s" % String(definition.type)
+		moving.configure(definition)
+		moving.z_index = _presentation_z_for_elevation(int(definition.get("elevation", 0))) + 4
+		moving.setup_collision(definition.size, String(definition.type) == "pendulum")
+		moving.hazard_triggered.connect(_relay_hazard_triggered)
+		level_root.add_child(moving)
 
-	var visual := CourseVisualFactory.create_hazard_visual(
-		hazard_type,
-		size,
-		color,
-		detail_color,
-		Color(_terrain_color("outline", BORDER_BROWN.darkened(0.25)), 0.82)
+		var colors := _moving_hazard_colors(StringName(definition.type))
+		var moving_visual := CourseVisualFactory.create_moving_hazard_visual(
+			StringName(definition.type),
+			definition.size,
+			colors.primary,
+			colors.detail
+		)
+		moving.add_child(moving_visual)
+		_create_moving_hazard_telegraph(moving, definition)
+
+
+func _create_moving_hazard_telegraph(moving, definition: Dictionary) -> void:
+	var data: Dictionary = moving.get_telegraph_data()
+	var local_path := PackedVector2Array()
+	for point in data.path_points:
+		local_path.append(Vector2(point) - Vector2(definition.pos))
+	var telegraph = HazardTelegraphScript.new()
+	telegraph.name = "Telegraph_%s" % String(definition.type)
+	telegraph.position = definition.pos
+	telegraph.z_index = _presentation_z_for_elevation(int(definition.get("elevation", 0))) + 1
+	telegraph.configure(
+		StringName(definition.type),
+		definition.size,
+		local_path,
+		_terrain_color("hazard_telegraph", Color("d9534f")),
+		float(data.period),
+		float(definition.get("phase", 0.0))
 	)
-	area.add_child(visual)
+	level_root.add_child(telegraph)
 
-	var collision := CollisionShape2D.new()
-	var shape := RectangleShape2D.new()
-	shape.size = size
-	collision.shape = shape
-	area.add_child(collision)
 
-	return area
+func _create_elevation_presentation(level: Dictionary) -> void:
+	var rough_lookup := {}
+	for rough_cell in level.get("visual_rough_cells", []):
+		rough_lookup[Vector2i(rough_cell)] = true
+
+	var structure_lookup := {}
+	for structure in level.get("elevation_structures", []):
+		var structure_type := StringName(String(structure.get("type", "")))
+		for structure_cell in structure.get("cells", []):
+			var key := Vector3i(
+				Vector2i(structure_cell).x,
+				Vector2i(structure_cell).y,
+				int(structure.get("elevation", 0))
+			)
+			structure_lookup[key] = structure_type
+
+	var elevation_entries: Array = level.get("elevation_cells", [])
+	if elevation_entries.is_empty():
+		for cell in elevation_lookup:
+			elevation_entries.append({"cell": cell, "levels": elevation_lookup[cell]})
+
+	for entry in elevation_entries:
+		var cell: Vector2i = entry.cell
+		var levels: Array = entry.levels
+		for elevation_value in levels:
+			var elevation := int(elevation_value)
+			var structure_type: StringName = structure_lookup.get(
+				Vector3i(cell.x, cell.y, elevation),
+				&""
+			)
+			if elevation == 0 and structure_type == &"" and not rough_lookup.has(cell):
+				continue
+
+			var surface_color := _terrain_color(
+				"rough" if rough_lookup.has(cell) else "fairway_a",
+				_terrain_color("fairway_a", GREEN_DARK)
+			)
+			var edge_color := _terrain_color("elevation_edge", _terrain_color("border", BORDER_BROWN))
+			var visual: Node2D
+			match structure_type:
+				&"bridge", &"overpass":
+					visual = CourseVisualFactory.create_bridge_visual(
+						Vector2(GRID_CELL_SIZE - 8.0, GRID_CELL_SIZE - 8.0),
+						surface_color,
+						edge_color
+					)
+				&"pit":
+					visual = CourseVisualFactory.create_pit_visual(
+						Vector2(GRID_CELL_SIZE - 4.0, GRID_CELL_SIZE - 4.0),
+						surface_color,
+						edge_color
+					)
+				_:
+					visual = CourseVisualFactory.create_elevation_cell_visual(
+						Vector2(GRID_CELL_SIZE, GRID_CELL_SIZE),
+						elevation,
+						surface_color,
+						edge_color
+					)
+			visual.name = "Elevation_%d_%d_%d" % [cell.x, cell.y, elevation]
+			visual.position = _cell_to_world(level, cell)
+			visual.z_index = _presentation_z_for_elevation(elevation) + (1 if elevation < 0 else 0)
+			visual.set_meta(&"cell", cell)
+			visual.set_meta(&"elevation", elevation)
+			visual.set_meta(&"structure_type", structure_type)
+			level_root.add_child(visual)
+
+
+func _create_elevation_ramps(level: Dictionary) -> void:
+	for transition_index in range(level.get("elevation_transitions", []).size()):
+		var transition: Dictionary = level.elevation_transitions[transition_index]
+		var from_position := _cell_to_world(level, transition.from_cell)
+		var to_position := _cell_to_world(level, transition.to_cell)
+		var from_elevation := int(transition.from_elevation)
+		var to_elevation := int(transition.to_elevation)
+		var ramp = ElevationRampScript.new()
+		ramp.name = "ElevationRamp%d" % (transition_index + 1)
+		ramp.configure(from_position, to_position, from_elevation, to_elevation, 72.0)
+		ramp.z_index = _presentation_z_for_elevation(maxi(from_elevation, to_elevation)) + 2
+		ramp.elevation_transitioned.connect(_relay_elevation_transitioned)
+		level_root.add_child(ramp)
+
+		var ramp_visual := CourseVisualFactory.create_ramp_visual(
+			Vector2(from_position.distance_to(to_position), 72.0),
+			from_elevation,
+			to_elevation,
+			_terrain_color("fairway_a", GREEN_DARK),
+			_terrain_color("elevation_edge", _terrain_color("border", BORDER_BROWN))
+		)
+		ramp.add_child(ramp_visual)
+
+
+func _moving_hazard_colors(hazard_type: StringName) -> Dictionary:
+	match hazard_type:
+		&"falling_ice":
+			return {"primary": _terrain_color("ice", Color("9ed5e4")), "detail": _terrain_color("ice_detail", Color("f5fbff"))}
+		&"rotating_fire_rod":
+			return {"primary": _terrain_color("lava", Color("d9522f")), "detail": _terrain_color("lava_detail", Color("ffb13b"))}
+		_:
+			return {"primary": _terrain_color("border", BORDER_BROWN), "detail": _terrain_color("outline", Color("252a2c"))}
 
 
 func _create_decorations(level: Dictionary) -> void:
-	var decoration_ids: PackedStringArray = level.get("decoration_identifiers", PackedStringArray())
+	var decoration_ids := PackedStringArray(level.get("decoration_identifiers", PackedStringArray()))
 	if decoration_ids.is_empty():
 		return
 
@@ -393,7 +558,9 @@ func _background_color(key: String, fallback: Color) -> Color:
 	return active_background_palette.get(key, fallback)
 
 
-func _on_hole_body_entered(body: Node2D) -> void:
+func _on_hole_body_entered(body: Node2D, elevation: int) -> void:
+	if not _body_matches_elevation(body, elevation):
+		return
 	hole_body_entered.emit(body)
 
 
@@ -405,28 +572,44 @@ func _on_sand_body_exited(body: Node2D) -> void:
 	sand_body_exited.emit(body)
 
 
-func _on_rough_body_entered(body: Node2D) -> void:
-	rough_body_entered.emit(body)
-
-
-func _on_rough_body_exited(body: Node2D) -> void:
-	rough_body_exited.emit(body)
-
-
-func _on_water_body_entered(body: Node2D, water_position: Vector2) -> void:
-	water_body_entered.emit(body, water_position)
-
-
-func _on_out_body_entered(body: Node2D, out_position: Vector2) -> void:
-	out_body_entered.emit(body, out_position)
-
-
 func _on_direction_body_entered(body: Node2D, area: Area2D) -> void:
 	direction_body_entered.emit(body, area)
 
 
 func _on_direction_body_exited(body: Node2D, area: Area2D) -> void:
 	direction_body_exited.emit(body, area)
+
+
+func _on_gameplay_hazard_body_entered(body: Node2D, hazard) -> void:
+	match hazard.hazard_type:
+		&"sand":
+			sand_body_entered.emit(body)
+		&"water":
+			reset_hazard_body_entered.emit(body, hazard.global_position, &"water")
+		&"lava":
+			reset_hazard_body_entered.emit(body, hazard.global_position, &"lava")
+		&"direction":
+			direction_body_entered.emit(body, hazard)
+
+
+func _on_gameplay_hazard_body_exited(body: Node2D, hazard) -> void:
+	match hazard.hazard_type:
+		&"sand":
+			sand_body_exited.emit(body)
+		&"direction":
+			direction_body_exited.emit(body, hazard)
+
+
+func _relay_hazard_triggered(hazard_type: StringName, intensity: float, position: Vector2) -> void:
+	hazard_triggered.emit(hazard_type, clampf(intensity, 0.0, 1.0), position)
+
+
+func _relay_bounce_pad_triggered(strength: float, pad_type: StringName, position: Vector2) -> void:
+	bounce_pad_triggered.emit(clampf(strength, 0.0, 1.0), pad_type, position)
+
+
+func _relay_elevation_transitioned(body: Node2D, from_elevation: int, to_elevation: int) -> void:
+	elevation_transitioned.emit(body, from_elevation, to_elevation)
 
 
 func _playable_cells(level: Dictionary) -> Array[Vector2i]:
@@ -463,9 +646,6 @@ func _hazard_fits_playable_map(level: Dictionary, hazard: Dictionary) -> bool:
 
 	var rect := Rect2(hazard.pos - size / 2.0, size)
 	var top_left := _map_top_left(level)
-	if not _rect_aligns_to_grid(rect, top_left):
-		return false
-
 	var min_cell := Vector2i(
 		floori((rect.position.x - top_left.x) / GRID_CELL_SIZE),
 		floori((rect.position.y - top_left.y) / GRID_CELL_SIZE)
@@ -477,24 +657,83 @@ func _hazard_fits_playable_map(level: Dictionary, hazard: Dictionary) -> bool:
 
 	for y in range(min_cell.y, max_cell.y + 1):
 		for x in range(min_cell.x, max_cell.x + 1):
-			if not _is_playable_cell(level, Vector2i(x, y)):
+			var elevation := int(hazard.get("elevation", 0))
+			if not _surface_exists(Vector2i(x, y), elevation):
 				return false
 
 	return true
 
 
-func _rect_aligns_to_grid(rect: Rect2, grid_origin: Vector2) -> bool:
-	return (
-		_value_aligns_to_grid(rect.position.x, grid_origin.x)
-		and _value_aligns_to_grid(rect.position.y, grid_origin.y)
-		and _value_aligns_to_grid(rect.end.x, grid_origin.x)
-		and _value_aligns_to_grid(rect.end.y, grid_origin.y)
-	)
+func _rebuild_elevation_lookup(level: Dictionary) -> void:
+	elevation_lookup.clear()
+	if not level.has("elevation_cells"):
+		for cell in _playable_cells(level):
+			elevation_lookup[cell] = [0]
+		return
+	for entry in level.get("elevation_cells", []):
+		elevation_lookup[Vector2i(entry.cell)] = Array(entry.levels).duplicate()
 
 
-func _value_aligns_to_grid(value: float, origin: float) -> bool:
-	var cell_position := (value - origin) / GRID_CELL_SIZE
-	return absf(cell_position - roundf(cell_position)) < 0.001
+func _surface_exists(cell: Vector2i, elevation: int) -> bool:
+	return elevation_lookup.has(cell) and Array(elevation_lookup[cell]).has(elevation)
+
+
+func _has_elevation_transition(from_cell: Vector2i, to_cell: Vector2i, elevation: int) -> bool:
+	for transition in active_level.get("elevation_transitions", []):
+		var transition_from: Vector2i = transition.from_cell
+		var transition_to: Vector2i = transition.to_cell
+		var from_elevation := int(transition.from_elevation)
+		var to_elevation := int(transition.to_elevation)
+		if transition_from == from_cell and transition_to == to_cell and from_elevation == elevation:
+			return true
+		if transition_to == from_cell and transition_from == to_cell and to_elevation == elevation:
+			return true
+	return false
+
+
+func _boundary_connections(
+	level: Dictionary,
+	cell: Vector2i,
+	outward: Vector2i,
+	elevation: int
+) -> Dictionary:
+	var connections := {"left": false, "right": false, "top": false, "bottom": false}
+	if outward.y != 0:
+		connections.left = _has_parallel_boundary(level, cell + Vector2i.LEFT, outward, elevation)
+		connections.right = _has_parallel_boundary(level, cell + Vector2i.RIGHT, outward, elevation)
+	else:
+		connections.top = _has_parallel_boundary(level, cell + Vector2i.UP, outward, elevation)
+		connections.bottom = _has_parallel_boundary(level, cell + Vector2i.DOWN, outward, elevation)
+	return connections
+
+
+func _has_parallel_boundary(
+	_level: Dictionary,
+	cell: Vector2i,
+	outward: Vector2i,
+	elevation: int
+) -> bool:
+	return _surface_exists(cell, elevation) and not _surface_exists(cell + outward, elevation)
+
+
+func _body_matches_elevation(body: Node2D, elevation: int) -> bool:
+	if "current_elevation" not in body:
+		return elevation == 0
+	return int(body.current_elevation) == elevation
+
+
+func _collision_layer_for_elevation(elevation: int) -> int:
+	match clampi(elevation, -1, 1):
+		-1:
+			return 1 << 4
+		0:
+			return 1 << 5
+		_:
+			return 1 << 6
+
+
+static func _presentation_z_for_elevation(elevation: int) -> int:
+	return (clampi(elevation, -1, 1) + ELEVATION_Z_OFFSET) * ELEVATION_Z_STRIDE
 
 
 func _cell_to_world(level: Dictionary, cell: Vector2i) -> Vector2:

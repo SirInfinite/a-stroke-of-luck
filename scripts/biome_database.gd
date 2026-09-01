@@ -12,7 +12,7 @@ static func get_profiles() -> Array:
 		_palette(Color("63b75d"), Color("58a852"), Color("6f4a2f"), Color("d9bc78"), Color("3f7d44"), Color("4fa6d8"), Color("d9534f"), Color("79b88b")),
 		_background(Color("245c3a"), Color("3f7d44"), Color("f2cf5b")),
 		PackedStringArray(["wildflowers", "clover", "shrubs", "buttercups"]),
-		{"rough": 4.0, "sand": 2.0, "water": 1.0, "direction": 1.0, "out": 0.0},
+		{"water": 4.0, "sand": 2.0, "direction": 1.0, "bounce_pad": 1.0},
 		_difficulty(10, 6, 1, 0),
 		&"meadow_breeze"
 	))
@@ -22,7 +22,7 @@ static func get_profiles() -> Array:
 		_palette(Color("d8b45f"), Color("c69b4a"), Color("76502d"), Color("efd28a"), Color("9b7a3e"), Color("52a6bd"), Color("c9523f"), Color("ccb06e")),
 		_background(Color("6b512d"), Color("a77d3e"), Color("f0c45f")),
 		PackedStringArray(["cactus", "rocks", "dry_grass", "sunstone"]),
-		{"rough": 1.0, "sand": 5.0, "water": 0.5, "direction": 2.0, "out": 1.0},
+		{"sand": 5.0, "water": 1.0, "direction": 2.0, "bounce_pad": 1.5},
 		_difficulty(10, 6, 2, 1),
 		&"dry_wind"
 	))
@@ -32,7 +32,7 @@ static func get_profiles() -> Array:
 		_palette(Color("b56f39"), Color("934f2d"), Color("573722"), Color("d4a45d"), Color("69482f"), Color("477f9f"), Color("aa3f3a"), Color("c78545")),
 		_background(Color("442c2a"), Color("6c3e32"), Color("e29a3b")),
 		PackedStringArray(["red_maple", "fallen_leaves", "acorns", "amber_shrub"]),
-		{"rough": 4.0, "sand": 1.0, "water": 1.0, "direction": 3.0, "out": 1.0},
+		{"water": 2.5, "sand": 2.0, "direction": 2.0, "bounce_pad": 1.5},
 		_difficulty(11, 6, 2, 1),
 		&"leaf_rustle"
 	))
@@ -42,7 +42,7 @@ static func get_profiles() -> Array:
 		_palette(Color("dbe9ee"), Color("b9d3dc"), Color("5d7180"), Color("d5c49b"), Color("8ba4a2"), Color("4b91bd"), Color("ba4c58"), Color("a9d8e3")),
 		_background(Color("607785"), Color("8faebb"), Color("eefaff")),
 		PackedStringArray(["pine", "snowdrifts", "ice_crystals", "frost_stones"]),
-		{"rough": 2.0, "sand": 1.0, "water": 2.0, "direction": 4.0, "out": 1.0},
+		{"ice": 5.0, "water": 2.0, "sand": 1.0, "bounce_pad": 1.0},
 		_difficulty(11, 6, 2, 2),
 		&"winter_gust"
 	))
@@ -52,7 +52,7 @@ static func get_profiles() -> Array:
 		_palette(Color("55734a"), Color("405f3d"), Color("3e3526"), Color("89784d"), Color("31553b"), Color("3f7c75"), Color("8f3e45"), Color("718b5f")),
 		_background(Color("263a31"), Color("445b3e"), Color("9fbf66")),
 		PackedStringArray(["reeds", "mud_pool", "mushrooms", "lily_pads"]),
-		{"rough": 3.0, "sand": 1.0, "water": 5.0, "direction": 1.0, "out": 1.0},
+		{"water": 5.0, "sand": 1.5, "direction": 1.5, "bounce_pad": 1.0},
 		_difficulty(11, 7, 3, 2),
 		&"swamp_night"
 	))
@@ -62,7 +62,7 @@ static func get_profiles() -> Array:
 		_palette(Color("514846"), Color("3b3434"), Color("211d20"), Color("8c6245"), Color("4b3d39"), Color("d55b32"), Color("e13c2d"), Color("a96442")),
 		_background(Color("211d20"), Color("6f342b"), Color("ff7138")),
 		PackedStringArray(["basalt", "embers", "lava_crack", "smoke_vent"]),
-		{"rough": 1.0, "sand": 2.0, "water": 0.0, "direction": 3.0, "out": 5.0},
+		{"lava": 5.0, "sand": 1.0, "direction": 1.0, "bounce_pad": 1.5},
 		_difficulty(12, 7, 3, 3),
 		&"volcanic_rumble"
 	))
@@ -76,7 +76,7 @@ static func _palette(
 	sand: Color,
 	rough: Color,
 	water: Color,
-	out_color: Color,
+	danger: Color,
 	direction: Color
 ) -> Dictionary:
 	return {
@@ -93,11 +93,16 @@ static func _palette(
 		"rough_detail": rough.lightened(0.2),
 		"water": water,
 		"water_detail": water.lightened(0.3),
-		"out": out_color,
-		"out_detail": out_color.lightened(0.28),
+		"ice": Color("9ed5e4") if fairway_a.get_luminance() > 0.62 else water.lightened(0.18),
+		"ice_detail": Color("f5fbff"),
+		"lava": Color("d9522f") if fairway_a.get_luminance() < 0.42 else danger,
+		"lava_detail": Color("ffb13b"),
 		"direction": direction,
 		"direction_detail": direction.lightened(0.28),
-		"flag": out_color,
+		"flag": danger,
+		"hazard_telegraph": danger.lightened(0.16),
+		"elevation_edge": border.darkened(0.18),
+		"elevation_highlight": fairway_a.lightened(0.22),
 	}
 
 

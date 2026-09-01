@@ -25,7 +25,6 @@ func test_release_pool_covers_every_required_reusable_effect_category() -> void:
 	var covered := {
 		"shot_power": false,
 		"roll_friction": false,
-		"trajectory": false,
 		"power_control": false,
 		"terrain_mitigation": false,
 		"economy": false,
@@ -36,7 +35,7 @@ func test_release_pool_covers_every_required_reusable_effect_category() -> void:
 		for effects in [card.bonus_effects, card.curse_effects]:
 			covered.shot_power = covered.shot_power or not is_zero_approx(effects.shot_power_delta)
 			covered.roll_friction = covered.roll_friction or not is_zero_approx(effects.roll_damping_delta)
-			covered.trajectory = covered.trajectory or effects.trajectory_dot_delta != 0
+			assert_eq(effects.trajectory_dot_delta, 0, "Trajectory is standard and may not be card-gated.")
 			covered.power_control = covered.power_control or not is_zero_approx(effects.power_control_delta)
 			covered.terrain_mitigation = covered.terrain_mitigation or not is_zero_approx(effects.terrain_mitigation_delta) or not is_zero_approx(effects.direction_mitigation_delta)
 			covered.economy = covered.economy or effects.coin_reward_delta != 0

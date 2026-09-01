@@ -3,6 +3,7 @@ extends GutTest
 const BiomeDatabase := preload("res://scripts/biome_database.gd")
 const HoleGenerator := preload("res://scripts/hole_generator.gd")
 const LevelValidator := preload("res://scripts/level_validator.gd")
+const BiomeHazardProfiles := preload("res://scripts/biome_hazard_profiles.gd")
 
 const TEST_SEED := 8675309
 
@@ -61,6 +62,9 @@ func test_zero_retry_budget_uses_valid_authored_fallback() -> void:
 	assert_eq(int(fallback.overall_hole_number), 18)
 	assert_eq(String(fallback.biome_name), "Volcanic")
 	assert_true(LevelValidator.validate_level(fallback, 17))
+	assert_true(_hazard_types(fallback).has("lava"))
+	assert_true(_hazard_types(fallback).has("bounce_pad"))
+	assert_false(_hazard_types(fallback).has("water"))
 
 
 func test_card_hazard_modifier_is_seeded_bounded_and_valid() -> void:
@@ -91,8 +95,84 @@ func test_batch_seeds_keep_every_generated_hole_valid() -> void:
 			assert_true(LevelValidator.validate_level(levels[index], index))
 
 
+func test_biome_hazard_profiles_map_required_release_semantics() -> void:
+	assert_eq(BiomeHazardProfiles.reset_hazard_for(&"meadow"), "water")
+	assert_eq(BiomeHazardProfiles.reset_hazard_for(&"snow"), "water")
+	assert_eq(BiomeHazardProfiles.reset_hazard_for(&"volcanic"), "lava")
+	assert_eq(BiomeHazardProfiles.moving_hazard_for(&"meadow", 2), "pendulum")
+	assert_eq(BiomeHazardProfiles.moving_hazard_for(&"snow", 0), "falling_ice")
+	assert_eq(BiomeHazardProfiles.moving_hazard_for(&"volcanic", 0), "rotating_fire_rod")
+	assert_true(BiomeHazardProfiles.required_static_types(&"snow", 0).has("ice"))
+
+
+func test_generated_holes_use_no_removed_surface_hazards_and_include_biome_variants() -> void:
+	var levels := HoleGenerator.generate_run(BiomeDatabase.get_profiles(), TEST_SEED)
+	var seen_types := {}
+	var seen_moving := {}
+	for level in levels:
+		for hazard in level.hazards:
+			var hazard_type := String(hazard.type)
+			assert_false(hazard_type in ["rough", "out"])
+			seen_types[hazard_type] = true
+		for hazard in level.moving_hazards:
+			seen_moving[String(hazard.type)] = true
+
+	assert_true(seen_types.has("water"))
+	assert_true(seen_types.has("sand"))
+	assert_true(seen_types.has("ice"))
+	assert_true(seen_types.has("lava"))
+	assert_true(seen_types.has("bounce_pad"))
+	assert_true(seen_moving.has("pendulum"))
+	assert_true(seen_moving.has("falling_ice"))
+	assert_true(seen_moving.has("rotating_fire_rod"))
+
+
+func test_secondary_branches_are_routine_valid_and_never_replace_main_route() -> void:
+	var levels := HoleGenerator.generate_run(BiomeDatabase.get_profiles(), TEST_SEED)
+	var holes_with_branches := 0
+	var dead_end_count := 0
+	for level_index in range(levels.size()):
+		var level: Dictionary = levels[level_index]
+		if not level.branches.is_empty():
+			holes_with_branches += 1
+		for branch in level.branches:
+			assert_true(String(branch.kind) in ["alternate", "dead_end", "shortcut"])
+			assert_true(Array(branch.cells).has(branch.entry_cell))
+			assert_true(Array(branch.cells).has(branch.escape_cell) or branch.escape_cell == branch.entry_cell)
+			if String(branch.kind) == "dead_end":
+				dead_end_count += 1
+		assert_true(LevelValidator.validate_level(level, level_index))
+
+	assert_gte(holes_with_branches, 15)
+	assert_gte(dead_end_count, 5)
+
+
+func test_later_generation_adds_discrete_elevation_and_overpasses() -> void:
+	var levels := HoleGenerator.generate_run(BiomeDatabase.get_profiles(), TEST_SEED)
+	var elevation_holes := 0
+	var saw_ramp := false
+	var saw_overpass := false
+	for level_index in range(3, levels.size()):
+		var level: Dictionary = levels[level_index]
+		if not level.elevation_transitions.is_empty():
+			elevation_holes += 1
+			saw_ramp = true
+		for structure in level.elevation_structures:
+			saw_overpass = saw_overpass or String(structure.type) == "overpass"
+	assert_gte(elevation_holes, 8)
+	assert_true(saw_ramp)
+	assert_true(saw_overpass)
+
+
 func _profile_names(profiles: Array) -> Array:
 	var names: Array = []
 	for profile in profiles:
 		names.append(profile.display_name)
 	return names
+
+
+func _hazard_types(level: Dictionary) -> Array[String]:
+	var types: Array[String] = []
+	for hazard in level.hazards:
+		types.append(String(hazard.type))
+	return types
