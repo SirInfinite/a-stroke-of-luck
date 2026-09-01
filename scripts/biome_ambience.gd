@@ -1,7 +1,7 @@
 class_name BiomeAmbience
 extends Node2D
 
-const PARTICLE_COUNT := 16
+const PARTICLE_COUNT := 24
 
 var ambience_id: StringName = &"meadow_breeze"
 var primary_color := Color.WHITE
@@ -38,6 +38,7 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var rng := RandomNumberGenerator.new()
 	rng.seed = visual_seed
+	_draw_environment_layers(rng)
 	for i in range(PARTICLE_COUNT):
 		var point := _surround_point(rng, i)
 		var phase := elapsed * (0.18 + float(i % 4) * 0.035) + float(i) * 0.71
@@ -54,6 +55,50 @@ func _draw() -> void:
 				_draw_wisp(point + Vector2(sin(phase) * 8.0, -fmod(elapsed * 5.0 + float(i) * 4.0, 35.0)), i)
 			&"volcanic_rumble":
 				_draw_ember(point + Vector2(sin(phase) * 10.0, -fmod(elapsed * 11.0 + float(i) * 7.0, 60.0)), i)
+
+
+func _draw_environment_layers(rng: RandomNumberGenerator) -> void:
+	var half_map := map_size / 2.0
+	match ambience_id:
+		&"meadow_breeze":
+			for side in [-1.0, 1.0]:
+				var center := Vector2(side * (half_map.x + 190.0), -half_map.y * 0.18)
+				draw_arc(center, 120.0, -1.2, 1.2, 24, Color(primary_color, 0.09), 5.0, true)
+		&"dry_wind":
+			for band in range(3):
+				var y := half_map.y + 110.0 + float(band) * 42.0
+				var points := PackedVector2Array()
+				for point_index in range(9):
+					var x := lerpf(-half_map.x - 320.0, half_map.x + 320.0, float(point_index) / 8.0)
+					points.append(Vector2(x, y + sin(float(point_index) * 1.35 + float(band)) * 18.0))
+				draw_polyline(points, Color(primary_color, 0.09), 6.0, true)
+		&"leaf_rustle":
+			for i in range(6):
+				var x := rng.randf_range(-half_map.x - 280.0, half_map.x + 280.0)
+				var y := (-half_map.y - 100.0) if i % 2 == 0 else (half_map.y + 100.0)
+				draw_circle(Vector2(x, y), 34.0 + float(i % 3) * 12.0, Color(primary_color, 0.07))
+		&"winter_gust":
+			for side in [-1.0, 1.0]:
+				var bank_center := Vector2(side * (half_map.x + 210.0), half_map.y * 0.35)
+				draw_circle(bank_center, 95.0, Color(accent_color, 0.075))
+				draw_arc(bank_center - Vector2(16.0, 8.0), 73.0, PI * 1.06, TAU * 0.94, 18, Color(primary_color.lightened(0.3), 0.1), 4.0, true)
+		&"swamp_night":
+			for i in range(5):
+				var side := -1.0 if i % 2 == 0 else 1.0
+				var center := Vector2(side * (half_map.x + 130.0 + float(i) * 26.0), rng.randf_range(-half_map.y, half_map.y))
+				draw_circle(center, 24.0 + float(i % 3) * 9.0, Color(primary_color.darkened(0.15), 0.11))
+				draw_arc(center, 11.0 + float(i % 2) * 5.0, 0.0, TAU, 16, Color(accent_color, 0.1), 2.0, true)
+		&"volcanic_rumble":
+			for side_value in [-1.0, 1.0]:
+				var side := float(side_value)
+				var x: float = side * (half_map.x + 160.0)
+				var crack := PackedVector2Array([
+					Vector2(x, -half_map.y - 220.0),
+					Vector2(x - side * 24.0, -half_map.y * 0.4),
+					Vector2(x + side * 18.0, half_map.y * 0.18),
+					Vector2(x - side * 12.0, half_map.y + 220.0),
+				])
+				draw_polyline(crack, Color(accent_color, 0.13), 7.0, true)
 
 
 func _surround_point(rng: RandomNumberGenerator, index: int) -> Vector2:
@@ -91,11 +136,14 @@ func _draw_snow(point: Vector2, index: int) -> void:
 	var color := Color(accent_color, 0.24)
 	draw_line(point - Vector2(radius, 0.0), point + Vector2(radius, 0.0), color, 1.5, true)
 	draw_line(point - Vector2(0.0, radius), point + Vector2(0.0, radius), color, 1.5, true)
+	draw_line(point - Vector2(radius, radius), point + Vector2(radius, radius), color, 1.0, true)
 
 
 func _draw_wisp(point: Vector2, index: int) -> void:
 	var radius := 5.0 + float(index % 4) * 1.5
 	draw_arc(point, radius, PI, TAU, 10, Color(accent_color, 0.16), 2.0, true)
+	if index % 4 == 0:
+		draw_circle(point + Vector2(0.0, 5.0), radius * 0.34, Color(primary_color, 0.12))
 
 
 func _draw_ember(point: Vector2, index: int) -> void:
