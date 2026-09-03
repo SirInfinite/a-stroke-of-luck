@@ -53,6 +53,9 @@ var active_terrain_palette: Dictionary = {}
 var active_background_palette: Dictionary = {}
 var active_biome_id: StringName = &"meadow"
 var last_feedback_kind: StringName = &""
+var screen_shake_scale := 1.0
+var visual_effects_scale := 1.0
+var reduced_motion := false
 
 var _trail_points := PackedVector2Array()
 var _last_trail_point := Vector2.ZERO
@@ -96,6 +99,12 @@ func configure_level(level: Dictionary) -> void:
 	active_terrain_palette = level.get("terrain_palette", {}).duplicate(true)
 	active_background_palette = level.get("background_palette", {}).duplicate(true)
 	active_biome_id = StringName(level.get("biome_id", &"meadow"))
+
+
+func apply_player_settings(shake_intensity: float, effects_intensity: float, reduce_motion: bool) -> void:
+	reduced_motion = reduce_motion
+	screen_shake_scale = 0.0 if reduced_motion else clampf(shake_intensity, 0.0, 1.0)
+	visual_effects_scale = clampf(effects_intensity, 0.0, 1.0)
 
 
 func reset_feedback() -> void:
@@ -279,6 +288,8 @@ func _spawn_roll_tick(position: Vector2, direction: Vector2) -> void:
 
 
 func _spawn_ring(position: Vector2, color: Color, start_radius: float, end_radius: float, duration: float, width: float) -> void:
+	if visual_effects_scale <= 0.01:
+		return
 	var ring := Line2D.new()
 	ring.name = "FeedbackRing"
 	ring.position = position
@@ -296,6 +307,9 @@ func _spawn_ring(position: Vector2, color: Color, start_radius: float, end_radiu
 
 
 func _spawn_radial_burst(position: Vector2, color: Color, ray_count: int, radius: float, duration: float) -> void:
+	if visual_effects_scale <= 0.01:
+		return
+	ray_count = maxi(roundi(float(ray_count) * visual_effects_scale), 1)
 	var burst := Node2D.new()
 	burst.name = "RadialBurst"
 	burst.position = position
@@ -314,6 +328,9 @@ func _spawn_radial_burst(position: Vector2, color: Color, ray_count: int, radius
 
 
 func _spawn_puffs(position: Vector2, color: Color, puff_count: int, duration: float) -> void:
+	if visual_effects_scale <= 0.01:
+		return
+	puff_count = maxi(roundi(float(puff_count) * visual_effects_scale), 1)
 	for i in range(puff_count):
 		var angle := TAU * float(i) / float(puff_count)
 		var direction := Vector2(cos(angle), sin(angle))
@@ -331,6 +348,9 @@ func _spawn_puffs(position: Vector2, color: Color, puff_count: int, duration: fl
 
 
 func _spawn_droplets(position: Vector2, color: Color, drop_count: int, duration: float) -> void:
+	if visual_effects_scale <= 0.01:
+		return
+	drop_count = maxi(roundi(float(drop_count) * visual_effects_scale), 1)
 	for i in range(drop_count):
 		var angle := -PI + PI * float(i) / float(maxi(drop_count - 1, 1))
 		var direction := Vector2(cos(angle), sin(angle) - 0.25).normalized()
@@ -347,6 +367,9 @@ func _spawn_droplets(position: Vector2, color: Color, drop_count: int, duration:
 
 
 func _spawn_confetti(position: Vector2, color: Color, piece_count: int, duration: float) -> void:
+	if visual_effects_scale <= 0.01:
+		return
+	piece_count = maxi(roundi(float(piece_count) * visual_effects_scale), 1)
 	for i in range(piece_count):
 		var angle := TAU * float(i) / float(piece_count) + float(i % 3) * 0.11
 		var direction := Vector2(cos(angle), sin(angle))
@@ -370,6 +393,9 @@ func _spawn_confetti(position: Vector2, color: Color, piece_count: int, duration
 
 
 func _spawn_ice_shards(position: Vector2, color: Color, shard_count: int, duration: float) -> void:
+	if visual_effects_scale <= 0.01:
+		return
+	shard_count = maxi(roundi(float(shard_count) * visual_effects_scale), 1)
 	for i in range(shard_count):
 		var angle := TAU * float(i) / float(shard_count)
 		var direction := Vector2(cos(angle), sin(angle))
@@ -387,6 +413,9 @@ func _spawn_ice_shards(position: Vector2, color: Color, shard_count: int, durati
 
 
 func _spawn_tufts(position: Vector2, color: Color, tuft_count: int, duration: float) -> void:
+	if visual_effects_scale <= 0.01:
+		return
+	tuft_count = maxi(roundi(float(tuft_count) * visual_effects_scale), 1)
 	var tufts := Node2D.new()
 	tufts.name = "RoughTufts"
 	tufts.position = position
@@ -402,6 +431,8 @@ func _spawn_tufts(position: Vector2, color: Color, tuft_count: int, duration: fl
 
 
 func _spawn_wind_lines(position: Vector2, color: Color, duration: float) -> void:
+	if visual_effects_scale <= 0.01:
+		return
 	var wind := Node2D.new()
 	wind.name = "DirectionFeedback"
 	wind.position = position
@@ -439,6 +470,9 @@ func _play_ball_punch(target_scale: float, duration: float) -> void:
 
 
 func _play_camera_impulse(direction: Vector2, strength: float, duration: float) -> void:
+	strength *= screen_shake_scale
+	if strength <= 0.01:
+		return
 	if not camera or direction.is_zero_approx():
 		return
 	if _camera_tween:
@@ -449,12 +483,14 @@ func _play_camera_impulse(direction: Vector2, strength: float, duration: float) 
 
 
 func _play_camera_shake(normalized_strength: float) -> void:
+	if screen_shake_scale <= 0.01:
+		return
 	if not camera:
 		return
 	if _camera_tween:
 		_camera_tween.kill()
 	camera.offset = Vector2.ZERO
-	var amplitude := clampf(normalized_strength * wall_shake_max_strength, 0.0, wall_shake_max_strength)
+	var amplitude := clampf(normalized_strength * wall_shake_max_strength * screen_shake_scale, 0.0, wall_shake_max_strength)
 	var segment_duration := wall_shake_duration / 4.0
 	_camera_tween = create_tween()
 	_camera_tween.tween_property(camera, "offset", Vector2(amplitude, -amplitude * 0.45), segment_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -477,6 +513,9 @@ func _play_cup_camera_emphasis(is_final_hole: bool) -> void:
 
 
 func _play_screen_flash(color: Color, intensity: float, duration: float) -> void:
+	if reduced_motion or visual_effects_scale <= 0.01:
+		return
+	intensity *= visual_effects_scale
 	if not screen_flash:
 		return
 	if _screen_tween:

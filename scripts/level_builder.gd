@@ -20,7 +20,7 @@ signal hazard_triggered(hazard_type: StringName, intensity: float, position: Vec
 signal elevation_transitioned(body: Node2D, from_elevation: int, to_elevation: int)
 
 const GRID_CELL_SIZE := 100.0
-const WALL_THICKNESS := 30.0
+const WALL_THICKNESS := 42.0
 const ELEVATION_Z_STRIDE := 8
 const ELEVATION_Z_OFFSET := 1
 const GREEN_DARK := Color(0.232, 0.554, 0.248, 1.0)
@@ -33,6 +33,7 @@ var active_background_palette: Dictionary = {}
 var active_level: Dictionary = {}
 var elevation_lookup: Dictionary = {}
 var tee_marker: Node2D
+var active_elevation := 0
 
 
 func build_level(level: Dictionary, parent: Node) -> Node2D:
@@ -73,6 +74,7 @@ func build_level(level: Dictionary, parent: Node) -> Node2D:
 			int(obstacle.get("elevation", 0))
 		)
 	_create_decorations(level)
+	set_active_elevation(get_start_elevation(level))
 
 	return level_root
 
@@ -104,6 +106,24 @@ func get_start_elevation(level: Dictionary) -> int:
 	return int(level.get("start_elevation", 0))
 
 
+func is_position_on_playable_surface(world_position: Vector2, elevation: int) -> bool:
+	if active_level.is_empty():
+		return false
+	var top_left := _map_top_left(active_level)
+	var cell := Vector2i(
+		floori((world_position.x - top_left.x) / GRID_CELL_SIZE),
+		floori((world_position.y - top_left.y) / GRID_CELL_SIZE)
+	)
+	return _surface_exists(cell, clampi(elevation, -1, 1))
+
+
+func set_active_elevation(elevation: int) -> void:
+	active_elevation = clampi(elevation, -1, 1)
+	if not level_root:
+		return
+	_apply_elevation_treatment(level_root, false)
+
+
 func on_ball_left_tee(_position: Vector2, _elevation: int) -> void:
 	if tee_marker:
 		tee_marker.visible = false
@@ -122,7 +142,10 @@ func _create_course(level: Dictionary) -> void:
 
 func _create_background(level: Dictionary) -> void:
 	var map_size := _map_size(level)
-	var surround_size := map_size + Vector2(1400.0, 1000.0)
+	var surround_size := Vector2(
+		maxf(map_size.x + 6400.0, 7600.0),
+		maxf(map_size.y + 3800.0, 4600.0)
+	)
 
 	var backdrop := Polygon2D.new()
 	backdrop.name = "BiomeBackground"
@@ -166,6 +189,7 @@ func _create_floor(level: Dictionary) -> void:
 	body.name = "Green"
 	body.collision_layer = 2
 	body.collision_mask = 1
+	body.set_meta(&"elevation", 0)
 	level_root.add_child(body)
 
 	for cell in _playable_cells(level):
@@ -265,6 +289,7 @@ func _create_hole(pos: Vector2, radius: float, elevation: int) -> void:
 	)
 	green.position = pos
 	green.z_index = _presentation_z_for_elevation(elevation)
+	green.set_meta(&"elevation", elevation)
 	level_root.add_child(green)
 	_create_cup_opening(pos, radius, elevation)
 	_create_hole_flag(pos, elevation)
@@ -289,6 +314,7 @@ func _create_cup_opening(pos: Vector2, radius: float, elevation: int) -> void:
 	opening.name = "CupOpening"
 	opening.position = pos
 	opening.z_index = _presentation_z_for_elevation(elevation) + 1
+	opening.set_meta(&"elevation", elevation)
 	opening.polygon = _ellipse_polygon(Vector2(radius * 0.52, radius * 0.34), 32)
 	opening.color = Color(0.02, 0.018, 0.015, 1.0)
 	level_root.add_child(opening)
@@ -301,6 +327,7 @@ func _create_hole_flag(pos: Vector2, elevation: int) -> void:
 	)
 	flag_root.position = pos
 	flag_root.z_index = _presentation_z_for_elevation(elevation) + 2
+	flag_root.set_meta(&"elevation", elevation)
 	level_root.add_child(flag_root)
 
 
@@ -312,6 +339,7 @@ func _create_start_marker(pos: Vector2, elevation: int) -> void:
 	tee_marker.position = pos
 	tee_marker.z_index = _presentation_z_for_elevation(elevation) + 1
 	tee_marker.set_meta(&"tee_elevation", elevation)
+	tee_marker.set_meta(&"elevation", elevation)
 	level_root.add_child(tee_marker)
 
 
@@ -383,6 +411,7 @@ func _create_moving_hazards(level: Dictionary) -> void:
 		moving.z_index = _presentation_z_for_elevation(int(definition.get("elevation", 0))) + 4
 		moving.setup_collision(definition.size, String(definition.type) == "pendulum")
 		moving.hazard_triggered.connect(_relay_hazard_triggered)
+		moving.body_hit.connect(_relay_moving_hazard_body_hit)
 		level_root.add_child(moving)
 
 		var colors := _moving_hazard_colors(StringName(definition.type))
@@ -393,6 +422,7 @@ func _create_moving_hazards(level: Dictionary) -> void:
 			colors.detail
 		)
 		moving.add_child(moving_visual)
+		moving.set_visual_node(moving_visual)
 		_create_moving_hazard_telegraph(moving, definition)
 
 
@@ -405,6 +435,7 @@ func _create_moving_hazard_telegraph(moving, definition: Dictionary) -> void:
 	telegraph.name = "Telegraph_%s" % String(definition.type)
 	telegraph.position = definition.pos
 	telegraph.z_index = _presentation_z_for_elevation(int(definition.get("elevation", 0))) + 1
+	telegraph.set_meta(&"elevation", int(definition.get("elevation", 0)))
 	telegraph.configure(
 		StringName(definition.type),
 		definition.size,
@@ -414,6 +445,7 @@ func _create_moving_hazard_telegraph(moving, definition: Dictionary) -> void:
 		float(definition.get("phase", 0.0))
 	)
 	level_root.add_child(telegraph)
+	moving.telegraph_started.connect(telegraph.trigger_drop)
 
 
 func _create_elevation_presentation(level: Dictionary) -> void:
@@ -495,6 +527,7 @@ func _create_elevation_ramps(level: Dictionary) -> void:
 		ramp.name = "ElevationRamp%d" % (transition_index + 1)
 		ramp.configure(from_position, to_position, from_elevation, to_elevation, 72.0)
 		ramp.z_index = _presentation_z_for_elevation(maxi(from_elevation, to_elevation)) + 2
+		ramp.set_meta(&"elevation_span", [from_elevation, to_elevation])
 		ramp.elevation_transitioned.connect(_relay_elevation_transitioned)
 		level_root.add_child(ramp)
 
@@ -558,6 +591,30 @@ func _background_color(key: String, fallback: Color) -> Color:
 	return active_background_palette.get(key, fallback)
 
 
+func _apply_elevation_treatment(node: Node, inherited_layer: bool) -> void:
+	var owns_layer := false
+	if node is CanvasItem and not inherited_layer:
+		var canvas_item := node as CanvasItem
+		if node.has_meta(&"elevation"):
+			var node_elevation := int(node.get_meta(&"elevation", 0))
+			canvas_item.self_modulate = _elevation_modulate(node_elevation)
+			owns_layer = true
+		elif node.has_meta(&"elevation_span"):
+			var span: Array = node.get_meta(&"elevation_span", [])
+			canvas_item.self_modulate = Color.WHITE if span.has(active_elevation) else Color(0.58, 0.61, 0.6, 0.82)
+			owns_layer = true
+	for child in node.get_children():
+		_apply_elevation_treatment(child, inherited_layer or owns_layer)
+
+
+func _elevation_modulate(node_elevation: int) -> Color:
+	if node_elevation == active_elevation:
+		return Color.WHITE
+	if node_elevation < active_elevation:
+		return Color(0.46, 0.5, 0.49, 0.74)
+	return Color(0.59, 0.62, 0.61, 0.82)
+
+
 func _on_hole_body_entered(body: Node2D, elevation: int) -> void:
 	if not _body_matches_elevation(body, elevation):
 		return
@@ -602,6 +659,10 @@ func _on_gameplay_hazard_body_exited(body: Node2D, hazard) -> void:
 
 func _relay_hazard_triggered(hazard_type: StringName, intensity: float, position: Vector2) -> void:
 	hazard_triggered.emit(hazard_type, clampf(intensity, 0.0, 1.0), position)
+
+
+func _relay_moving_hazard_body_hit(body: Node2D, hazard_type: StringName, position: Vector2) -> void:
+	reset_hazard_body_entered.emit(body, position, hazard_type)
 
 
 func _relay_bounce_pad_triggered(strength: float, pad_type: StringName, position: Vector2) -> void:

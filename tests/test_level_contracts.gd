@@ -105,6 +105,86 @@ func test_validator_requires_explicit_valid_elevation_transitions() -> void:
 	assert_true(LevelValidatorScript.validate_level(level, 0))
 
 
+func test_validator_rejects_conflicting_hazard_and_blocker_occupancy() -> void:
+	var level := {
+		"map": [".....", ".....", "....."],
+		"start_cell": Vector2i(0, 1),
+		"hole_cell": Vector2i(4, 1),
+		"par": 3,
+		"hazards": [{
+			"type": "sand",
+			"pos": Vector2.ZERO,
+			"size": Vector2(100.0, 100.0),
+		}],
+		"obstacles": [{
+			"type": "blocker",
+			"pos": Vector2.ZERO,
+			"size": Vector2(60.0, 60.0),
+		}],
+	}
+	assert_false(LevelValidatorScript.validate_level(level, 0))
+	var occupied := LevelValidatorScript.placement_occupancy(level)
+	assert_true(occupied.values().any(func(entries: Array) -> bool: return entries.size() > 1))
+
+
+func test_validator_rejects_duplicate_moving_hazard_anchor_regions() -> void:
+	var level := {
+		"map": [".......", ".......", "......."],
+		"start_cell": Vector2i(0, 1),
+		"hole_cell": Vector2i(6, 1),
+		"par": 3,
+		"hazards": [],
+		"obstacles": [],
+		"moving_hazards": [
+			{
+				"type": "pendulum",
+				"pos": Vector2.ZERO,
+				"size": Vector2(38.0, 38.0),
+				"period": 2.5,
+				"phase": 0.0,
+				"travel_radius": 28.0,
+				"blocks_main_route": false,
+			},
+			{
+				"type": "falling_ice",
+				"pos": Vector2.ZERO,
+				"size": Vector2(72.0, 72.0),
+				"period": 3.0,
+				"phase": 0.5,
+				"blocks_main_route": false,
+			},
+		],
+	}
+	assert_false(LevelValidatorScript.validate_level(level, 0))
+
+
+func test_validator_rejects_a_discontinuous_or_occupied_primary_route() -> void:
+	var level := {
+		"map": [".....", ".....", "....."],
+		"start_cell": Vector2i(0, 1),
+		"hole_cell": Vector2i(4, 1),
+		"par": 3,
+		"hazards": [],
+		"obstacles": [],
+		"main_route_cells": [Vector2i(0, 1), Vector2i(2, 1), Vector2i(4, 1)],
+	}
+	assert_false(LevelValidatorScript.validate_level(level, 0))
+
+	level.main_route_cells = [
+		Vector2i(0, 1),
+		Vector2i(1, 1),
+		Vector2i(2, 1),
+		Vector2i(3, 1),
+		Vector2i(4, 1),
+	]
+	level.hazards = [{
+		"type": "water",
+		"pos": Vector2.ZERO,
+		"size": Vector2(100.0, 100.0),
+	}]
+	assert_false(LevelValidatorScript.validate_level(level, 0))
+
+
 func _minimal_level() -> Dictionary:
 	return {
 		"map": [".."],

@@ -5,6 +5,10 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 ## Startup
 
 - [ ] Game launches into the main menu without errors.
+- [ ] The title screen contains the large integrated wordmark and exactly the primary PLAY, TUTORIAL, SETTINGS, and QUIT actions without explanatory paragraphs.
+- [ ] The generated-course attract loop and cursor parallax remain subdued, loop cleanly, and do not change run/save/settings state.
+- [ ] SETTINGS tabs expose only functional Video, Audio, Controls, and Gameplay / Accessibility options; changes apply, persist across relaunch, and Reset Controls restores defaults.
+- [ ] A valid entered seed begins a run with that seed; invalid input stays on the menu with clear feedback; COPY SEED copies the visible run seed and confirms success.
 - [ ] Play opens Run Intro (`RUN_START`), then the Meadow biome intro, then Hole 1.
 - [ ] Ball, hole, flag, course bounds, HUD, and power meter are visible.
 - [ ] Player HUD clearly prioritizes biome, overall hole, strokes/par, timer, coins, active bonuses, and a distinct `ACTIVE CURSES / PENALTIES` band; debug-only values remain hidden until toggled.
@@ -46,6 +50,10 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Timer resets on the next hole.
 - [ ] After Volcanic Hole 3 / overall Hole 18, continuing reaches Run Results, then Ending.
 - [ ] New Run clears run state and returns to Run Start with a fresh seed.
+- [ ] Hole Results shows the correct named golf result, one-to-five-star banner, strokes, par, time, and reward without internal/debug status text.
+- [ ] Representative exceptional, solid, weak, and forced results match deterministic `HoleRating` boundaries; fast time never upgrades a poor stroke result to five stars.
+- [ ] Expanding the hole selector shows a smooth five-row mechanical reel; mouse wheel and keyboard navigation can select only completed/current holes.
+- [ ] Selecting history updates the six-stat snapshot and independently animates the biome/hole identity without replaying or mutating run state; every future hole remains visibly LOCKED and leaks no statline.
 
 ## Coin Rewards
 
@@ -62,6 +70,7 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Shops appear after biomes 1–5 and never after Volcanic / biome 6.
 - [ ] Shop shows 4 unique seeded-random card buttons and a Skip / Continue button.
 - [ ] Each card shows name, cost, persistent bonus, three-hole curse, and stacking behavior.
+- [ ] Benefit and curse are the largest lower information bands, stack state has its own blue icon-led band, and the larger gold price remains readable at all target resolutions.
 - [ ] Cards that cost more than current coins are disabled.
 - [ ] Buying an affordable card subtracts the correct coin cost.
 - [ ] Bought card appears in the HUD card summary.
@@ -69,6 +78,7 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Card curses apply to the next biome's 3 holes, display remaining duration, and expire after Hole 3 without removing the bonus.
 - [ ] Duplicate cards stack deterministically and stay inside the documented safety bounds.
 - [ ] Zero, one, or two affordable cards can be bought; a third purchase is blocked.
+- [ ] Shop footer reads `PICK UP TO TWO`, then `PICK UP TO ONE` plus red singular `CURSE SELECTED`, then `PICK UP TO ZERO` plus red plural `CURSES SELECTED`.
 - [ ] Skip / Continue works with no purchase and advances to the next biome intro.
 - [ ] Starting coins, score rewards, purchases, and final coins reconcile.
 - [ ] Shop animation finishes in a usable position.
@@ -111,6 +121,16 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Pressing `R` during sink, water reset, or shop does not corrupt progression.
 - [ ] Pressing `R` at par + 4 resolves the forced failure result and cannot refund the final accepted shot.
 
+## Course Containment And Moving Hazards
+
+- [ ] Maximum-power shots into straight and corner boundaries do not tunnel through the course with shape-cast CCD active.
+- [ ] If the ball does leave all playable surfaces, an `OUT OF BOUNDS` 3–2–1 warning pulses and returns it to the last accepted shot origin without a stroke refund, extra stroke, duplicate penalty, or stale hazard state.
+- [ ] Re-entering playable terrain during the countdown cancels the return cleanly.
+- [ ] Falling ice begins with only its circular landing shadow and no visible block or active wall collision.
+- [ ] Crossing the shadow triggers one fair drop; the landed ice becomes and remains a physical blocker until rebuild, with no duplicate blocks.
+- [ ] A direct ice landing crush produces failure feedback and exactly one authoritative reset.
+- [ ] The pendulum visibly traverses both sides of its arc on a deterministic period; contact resets the ball exactly once, pause freezes it, and resume continues coherently.
+
 ## Menu Pause
 
 - [ ] Opening Menu during a moving shot freezes ball velocity, collision, hazard timers, hole time, and gameplay state behind the overlay.
@@ -134,14 +154,30 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] Swamp holes 13–15 use the Swamp presentation and rise from introductory to hardest.
 - [ ] Volcanic holes 16–18 use the Volcanic presentation and rise from introductory to hardest.
 - [ ] All holes use the shared generator and show the recorded run seed.
+- [ ] Copying and replaying a seed reproduces all 18 selected candidate definitions for the same version/configuration.
 - [ ] Start and cup positions are playable and reachable on every generated hole.
 - [ ] Generated hazards remain contained and a failed generation uses a playable authored fallback.
+- [ ] Every accepted generated hole clears the deterministic quality floor for route continuity, width, endpoint safety, separation, recovery room, rhythm, and composition; failed seeds are logged for exact replay.
+- [ ] No playable cell/elevation footprint contains more than one static hazard, blocker, or moving-hazard region; the main route and tee/cup recovery cells remain reserved.
+- [ ] The large deterministic seed corpus has no disconnected/repeated main-route cell, sealed route, pathological one-cell corridor, or accepted impossible candidate.
 - [ ] Secondary branches/shortcuts/dead ends occur routinely while the validated main route remains reachable and ordinary dead ends remain escapable.
 - [ ] Later holes include readable ramps, pits, bridges, and overpass crossings; objects on different elevations do not collide.
+- [ ] Lower/current/upper visual states update when the ball changes elevation: the current layer stays foreground while non-current layers darken/desaturate; normal bridges and raised paths are generally two-to-four cells wide.
 - [ ] Meadow uses water/basic blockers/pendulum hazards; Snow demonstrates ice/falling ice; Volcanic demonstrates lava/rotating fire rods; later biomes increase hazard variety without impossible geometry.
 - [ ] Circular bounce pads redirect deterministically for the recorded seed, retain bounded speed, and do not immediately retrigger.
 - [ ] Ball begins visibly on a tee and cleanly leaves it after the first accepted shot.
 - [ ] Ball cannot escape playable course bounds during normal play.
+
+## Biome World Presentation
+
+- [ ] Meadow includes subordinate lakes, lily flowers, frogs, bushes, trees, flowers, grass detail, and varied natural motion.
+- [ ] Desert includes dunes, rocks, cacti with occasional pink flowers, tumbleweeds, and wind/sand motion.
+- [ ] Autumn includes warm varied trees, fallen and drifting leaves, and rare apples.
+- [ ] Snow includes snowfall, ice formations, snowbanks, penguins, and cool environmental detail.
+- [ ] Swamp includes reeds, water, fog, bubbles, plants, and layered wet-organic detail.
+- [ ] Volcanic includes cracks, pools, rock mounds, embers, smoke/heat detail, and particles that fade out before invisible recycle instead of teleporting visibly.
+- [ ] Each biome's putting region uses the same local tile language at a darker value; the cup/flag brings no standalone grass, sand, or land patch.
+- [ ] Course surround and ambience cover 1920×1080, 2560×1440, and the tested ultrawide frame during ordinary camera movement with no grey/clear-color edge.
 
 ## Game Feel And Audio
 
@@ -149,7 +185,8 @@ Use this checklist after each gameplay or stability change. Start from a fresh r
 - [ ] A moving ball leaves a short bounded trail and emits one restrained yellow confetti burst when it becomes fully still.
 - [ ] Sand, water/lava, ice, direction zones, bounce pads, blockers, and moving hazards trigger distinct readable reactions; visual rough never changes physics.
 - [ ] Meaningful wall impacts produce clamped camera shake and physical wall audio; gentle scrapes produce tiny or no response.
-- [ ] Menu plus all six biome themes are recognizable, crossfade cleanly, and never stack; biome ambience remains secondary.
+- [ ] Title, tutorial, and all six biome themes are compositionally recognizable, crossfade cleanly, and never stack; biome ambience remains secondary.
+- [ ] All eight music loops remain pleasant across a full run on speakers and headphones, have no irritating high-frequency fatigue or abrupt seam, and are not simple pitch/tempo variants.
 - [ ] Strike, high-speed-only swoosh, sand, water, lava, ice, wall, cup, UI, purchase, boost, failure, biome, and final-completion cues are audible, balanced, and routed without clipping.
 - [ ] Normal/slow ball movement has no continuous rolling sound; all three supplied boost sounds map to strength; both supplied failure sounds play together at par + 4 without the positive completion cue.
 - [ ] Cup entry plays a sink cue, brief camera emphasis, readable completion effect, and short pause before Hole Results.

@@ -132,7 +132,7 @@ static func _moving_hazard_level() -> Dictionary:
 	level.moving_hazards = [
 		{
 			"type": "pendulum",
-			"pos": Vector2(100.0, -50.0),
+			"pos": Vector2(150.0, -50.0),
 			"size": Vector2(38.0, 38.0),
 			"elevation": 0,
 			"period": 2.8,

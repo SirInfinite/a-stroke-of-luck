@@ -83,7 +83,7 @@ static func _palette(
 		"fairway_a": fairway_a,
 		"fairway_b": fairway_a.lerp(fairway_b, 0.42),
 		"fairway_detail": fairway_a.lightened(0.09),
-		"green": fairway_a.lightened(0.18),
+		"green": fairway_a.darkened(0.17),
 		"tee": fairway_a.lightened(0.24),
 		"border": border,
 		"outline": border.darkened(0.32),

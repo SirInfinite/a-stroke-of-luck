@@ -2,10 +2,14 @@ class_name MovingHazard
 extends AnimatableBody2D
 
 signal hazard_triggered(hazard_type: StringName, intensity: float, position: Vector2)
+signal body_hit(body: Node2D, hazard_type: StringName, position: Vector2)
 signal telegraph_started(data: Dictionary)
 signal active_state_changed(active: bool)
 
 const MIN_PERIOD := 0.6
+const FALL_ARMED := &"armed"
+const FALL_DROPPING := &"dropping"
+const FALL_LANDED := &"landed"
 
 var hazard_type: StringName = &"pendulum"
 var elevation := 0
@@ -26,6 +30,11 @@ var detector: Area2D
 var collision_shape: CollisionShape2D
 var detector_shape: CollisionShape2D
 var _last_cycle_index := -1
+var fall_state: StringName = FALL_ARMED
+var fall_elapsed := 0.0
+var visual_node: Node2D
+var _fall_crush_pending := false
+var _fall_trigger_body_ref: WeakRef
 
 
 func configure(definition: Dictionary) -> void:
@@ -71,6 +80,12 @@ func setup_collision(size: Vector2, circular := false) -> void:
 	detector_shape = CollisionShape2D.new()
 	detector_shape.shape = collision_shape.shape.duplicate()
 	detector.add_child(detector_shape)
+	_apply_collision_state()
+
+
+func set_visual_node(node: Node2D) -> void:
+	visual_node = node
+	_apply_falling_visual_state()
 
 
 func _ready() -> void:
@@ -85,17 +100,27 @@ func _physics_process(delta: float) -> void:
 
 
 func advance_cycle(delta: float) -> void:
-	elapsed += maxf(delta, 0.0)
+	if hazard_type == &"falling_ice":
+		if fall_state == FALL_DROPPING:
+			fall_elapsed += maxf(delta, 0.0)
+	else:
+		elapsed += maxf(delta, 0.0)
 	_apply_motion_state(delta)
 
 
 func reset_state() -> void:
 	elapsed = phase * _cycle_duration()
 	_last_cycle_index = -1
+	fall_elapsed = 0.0
+	fall_state = FALL_ARMED
+	_fall_crush_pending = false
+	_fall_trigger_body_ref = null
 	active = hazard_type != &"falling_ice"
 	position = origin
 	rotation = 0.0
 	_apply_motion_state(0.0)
+	_apply_collision_state()
+	_apply_falling_visual_state()
 
 
 func get_telegraph_data() -> Dictionary:
@@ -110,7 +135,7 @@ func get_telegraph_data() -> Dictionary:
 		&"rotating_fire_rod":
 			path_points = PackedVector2Array([origin])
 		&"falling_ice":
-			path_points = PackedVector2Array([origin - Vector2(0.0, drop_distance), origin])
+			path_points = PackedVector2Array([origin])
 	return {
 		"type": hazard_type,
 		"position": origin,
@@ -143,23 +168,23 @@ func _apply_motion_state(_delta: float) -> void:
 
 
 func _update_falling_ice() -> void:
-	var cycle_duration := _cycle_duration()
-	var cycle_index := floori(elapsed / cycle_duration)
-	var cycle_time := fposmod(elapsed, cycle_duration)
-	if cycle_index != _last_cycle_index:
-		_last_cycle_index = cycle_index
-		telegraph_started.emit(get_telegraph_data())
+	position = origin
+	rotation = 0.0
+	if fall_state != FALL_DROPPING:
+		_apply_collision_state()
+		_apply_falling_visual_state()
+		return
 
-	if cycle_time < telegraph_duration:
-		var fall_progress := clampf(cycle_time / telegraph_duration, 0.0, 1.0)
-		position = origin - Vector2(0.0, drop_distance * (1.0 - fall_progress))
-		_set_active(false)
-	elif cycle_time < telegraph_duration + active_duration:
-		position = origin
-		_set_active(true)
-	else:
-		position = origin - Vector2(0.0, drop_distance)
-		_set_active(false)
+	var fall_progress := clampf(fall_elapsed / telegraph_duration, 0.0, 1.0)
+	var eased_progress := 1.0 - pow(1.0 - fall_progress, 3.0)
+	var local_offset := Vector2(0.0, -drop_distance * (1.0 - eased_progress))
+	if collision_shape:
+		collision_shape.position = local_offset
+	if visual_node:
+		visual_node.position = local_offset
+		visual_node.visible = true
+	if fall_progress >= 1.0:
+		_land_falling_ice()
 
 
 func _set_active(next_active: bool) -> void:
@@ -168,14 +193,106 @@ func _set_active(next_active: bool) -> void:
 		active_state_changed.emit(active)
 	if collision_shape:
 		collision_shape.set_deferred("disabled", not active)
-	if detector_shape:
+	if detector_shape and hazard_type != &"falling_ice":
 		detector_shape.set_deferred("disabled", not active)
 
 
 func _on_detector_body_entered(body: Node2D) -> void:
-	if not active or not _body_matches_elevation(body):
+	if not _body_matches_elevation(body):
 		return
+	if hazard_type == &"falling_ice":
+		if fall_state == FALL_ARMED:
+			_trigger_falling_ice(body)
+		return
+	if not active:
+		return
+	body_hit.emit(body, hazard_type, global_position)
+
+
+func _trigger_falling_ice(trigger_body: Node2D) -> void:
+	if fall_state != FALL_ARMED:
+		return
+	fall_state = FALL_DROPPING
+	fall_elapsed = 0.0
+	_fall_trigger_body_ref = weakref(trigger_body)
+	telegraph_started.emit(get_telegraph_data())
+	_apply_collision_state()
+	_apply_falling_visual_state()
+
+
+func _land_falling_ice() -> void:
+	if fall_state != FALL_DROPPING:
+		return
+	fall_state = FALL_LANDED
+	fall_elapsed = telegraph_duration
+	_fall_crush_pending = true
+	_set_active(true)
+	_apply_collision_state()
+	_apply_falling_visual_state()
 	hazard_triggered.emit(hazard_type, intensity, global_position)
+	call_deferred("_resolve_falling_ice_crush")
+
+
+func _resolve_falling_ice_crush() -> void:
+	_fall_crush_pending = false
+	if fall_state != FALL_LANDED or not detector:
+		return
+	var hit_body: Node2D
+	if _fall_trigger_body_ref:
+		var trigger_body := _fall_trigger_body_ref.get_ref() as Node2D
+		if trigger_body and _body_matches_elevation(trigger_body) and _body_is_inside_landing_footprint(trigger_body):
+			hit_body = trigger_body
+	for body in detector.get_overlapping_bodies():
+		if hit_body == null and body is Node2D and _body_matches_elevation(body) and _body_is_inside_landing_footprint(body):
+			hit_body = body
+			break
+	if hit_body:
+		body_hit.emit(hit_body, hazard_type, global_position)
+	_fall_trigger_body_ref = null
+	if detector_shape:
+		detector_shape.set_deferred("disabled", true)
+
+
+func _body_is_inside_landing_footprint(body: Node2D) -> bool:
+	if not collision_shape or not collision_shape.shape:
+		return false
+	var local_position := to_local(body.global_position)
+	if collision_shape.shape is RectangleShape2D:
+		var half_size := (collision_shape.shape as RectangleShape2D).size * 0.5
+		return absf(local_position.x) <= half_size.x and absf(local_position.y) <= half_size.y
+	if collision_shape.shape is CircleShape2D:
+		return local_position.length() <= (collision_shape.shape as CircleShape2D).radius
+	return false
+
+
+func _apply_collision_state() -> void:
+	if hazard_type != &"falling_ice":
+		if collision_shape:
+			collision_shape.set_deferred("disabled", not active)
+		if detector_shape:
+			detector_shape.set_deferred("disabled", not active)
+		return
+	var landed := fall_state == FALL_LANDED
+	if collision_shape:
+		collision_shape.position = Vector2.ZERO if landed else Vector2(0.0, -drop_distance)
+		collision_shape.set_deferred("disabled", not landed)
+	if detector_shape:
+		detector_shape.set_deferred("disabled", fall_state == FALL_LANDED and not _fall_crush_pending)
+
+
+func _apply_falling_visual_state() -> void:
+	if hazard_type != &"falling_ice" or not visual_node:
+		return
+	match fall_state:
+		FALL_ARMED:
+			visual_node.visible = false
+			visual_node.position = Vector2(0.0, -drop_distance)
+		FALL_DROPPING:
+			visual_node.visible = true
+			visual_node.position = Vector2(0.0, -drop_distance)
+		FALL_LANDED:
+			visual_node.visible = true
+			visual_node.position = Vector2.ZERO
 
 
 func _body_matches_elevation(body: Node2D) -> bool:
@@ -186,7 +303,7 @@ func _body_matches_elevation(body: Node2D) -> bool:
 
 func _cycle_duration() -> float:
 	if hazard_type == &"falling_ice":
-		return telegraph_duration + active_duration + cooldown_duration
+		return telegraph_duration
 	if hazard_type == &"rotating_fire_rod":
 		return TAU / maxf(absf(angular_speed), 0.1)
 	return period

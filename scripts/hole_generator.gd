@@ -6,10 +6,11 @@ const LevelValidator := preload("res://scripts/level_validator.gd")
 const BiomeHazardProfilesScript := preload("res://scripts/biome_hazard_profiles.gd")
 
 const HOLES_PER_BIOME := 3
-const MAX_GENERATION_ATTEMPTS := 4
+const MAX_GENERATION_ATTEMPTS := 8
 const GRID_CELL_SIZE := 100.0
 const HAZARD_TYPES := ["sand", "water", "lava", "ice", "direction", "bounce_pad"]
 const DIFFICULTY_LABELS := ["Introductory", "Normal", "Hardest"]
+const MINIMUM_QUALITY_SCORE := 72.0
 
 
 static func generate_run(profiles: Array, run_seed: int) -> Array[Dictionary]:
@@ -28,15 +29,106 @@ static func generate_hole(
 	max_attempts := MAX_GENERATION_ATTEMPTS
 ) -> Dictionary:
 	var bounded_attempts := clampi(max_attempts, 0, MAX_GENERATION_ATTEMPTS)
+	var best_candidate: Dictionary = {}
+	var best_report: Dictionary = {}
 	for attempt in range(bounded_attempts):
 		var candidate := _generate_candidate(profile, run_seed, biome_index, hole_index, attempt)
-		if LevelValidator.validate_level(candidate, biome_index * HOLES_PER_BIOME + hole_index):
-			return candidate
+		if not LevelValidator.validate_level(candidate, biome_index * HOLES_PER_BIOME + hole_index):
+			continue
+		var report := score_candidate(candidate)
+		candidate["quality_score"] = float(report.score)
+		candidate["quality_breakdown"] = Dictionary(report.breakdown).duplicate(true)
+		if best_candidate.is_empty() or float(report.score) > float(best_report.score):
+			best_candidate = candidate
+			best_report = report
+
+	if not best_candidate.is_empty() and float(best_report.score) >= MINIMUM_QUALITY_SCORE:
+		best_candidate["candidate_count_considered"] = bounded_attempts
+		best_candidate["quality_passed"] = true
+		return best_candidate
 
 	var fallback := fallback_hole(profile, run_seed, biome_index, hole_index)
+	var fallback_report := score_candidate(fallback)
+	fallback["quality_score"] = float(fallback_report.score)
+	fallback["quality_breakdown"] = Dictionary(fallback_report.breakdown).duplicate(true)
+	fallback["candidate_count_considered"] = bounded_attempts
+	fallback["quality_passed"] = false
 	if not LevelValidator.validate_level(fallback, biome_index * HOLES_PER_BIOME + hole_index):
 		push_error("Authored fallback failed validation for biome %s hole %d." % [profile.id, hole_index + 1])
 	return fallback
+
+
+static func score_candidate(level: Dictionary) -> Dictionary:
+	var breakdown := {
+		"route": 0.0,
+		"width": 0.0,
+		"safety": 0.0,
+		"separation": 0.0,
+		"recovery": 0.0,
+		"rhythm": 0.0,
+		"composition": 0.0,
+	}
+	if not level.has("map") or not level.map is Array:
+		return {"score": 0.0, "breakdown": breakdown}
+
+	var playable := _cell_lookup(_playable_cells_from_rows(level.map))
+	var route: Array = level.get("main_route_cells", [])
+	var start_cell := Vector2i(level.get("start_cell", Vector2i.ZERO))
+	var hole_cell := Vector2i(level.get("hole_cell", Vector2i.ZERO))
+	if _is_contiguous_route(route, start_cell, hole_cell):
+		breakdown.route = 24.0
+
+	if not route.is_empty():
+		var broad_route_cells := 0
+		for raw_cell in route:
+			var cell := Vector2i(raw_cell)
+			var open_neighbors := _cardinal_neighbor_count(playable, cell)
+			if open_neighbors >= 3:
+				broad_route_cells += 1
+		var broad_ratio := float(broad_route_cells) / float(route.size())
+		breakdown.width = clampf(broad_ratio * 18.0, 0.0, 18.0)
+
+	var endpoint_clear := _endpoint_clearance_score(level, start_cell) + _endpoint_clearance_score(level, hole_cell)
+	breakdown.safety = endpoint_clear * 7.0
+
+	var occupied_surfaces := _all_placement_surfaces(level)
+	var separated_count := 0
+	for surface in occupied_surfaces:
+		var isolated := true
+		for other_surface in occupied_surfaces:
+			if surface == other_surface or int(surface.z) != int(other_surface.z):
+				continue
+			if _manhattan_distance(Vector2i(surface.x, surface.y), Vector2i(other_surface.x, other_surface.y)) <= 1:
+				isolated = false
+				break
+		if isolated:
+			separated_count += 1
+	breakdown.separation = 14.0 if occupied_surfaces.is_empty() else 14.0 * float(separated_count) / float(occupied_surfaces.size())
+
+	var recoverable_cells := 0
+	var playable_cells := _playable_cells_from_rows(level.map)
+	for cell in playable_cells:
+		if _cardinal_neighbor_count(playable, cell) >= 2:
+			recoverable_cells += 1
+	if not playable_cells.is_empty():
+		breakdown.recovery = clampf(14.0 * float(recoverable_cells) / float(playable_cells.size()), 0.0, 14.0)
+
+	var turn_count := _route_turn_count(route)
+	var alternate_count := 0
+	for branch in level.get("branches", []):
+		if branch is Dictionary and String(branch.get("kind", "")) in ["alternate", "shortcut"]:
+			alternate_count += 1
+	breakdown.rhythm = clampf(2.0 + float(turn_count) * 1.5 + float(alternate_count) * 3.0, 0.0, 9.0)
+
+	var map_area := maxi(_map_columns(level.map) * level.map.size(), 1)
+	var fill_ratio := float(playable_cells.size()) / float(map_area)
+	var target_distance := absf(fill_ratio - 0.62)
+	breakdown.composition = clampf(7.0 - target_distance * 18.0, 0.0, 7.0)
+
+	var total := 0.0
+	for value in breakdown.values():
+		total += float(value)
+	return {"score": snappedf(clampf(total, 0.0, 100.0), 0.01), "breakdown": breakdown}
 
 
 static func fallback_hole(profile, run_seed: int, biome_index: int, hole_index: int) -> Dictionary:
@@ -63,17 +155,22 @@ static func apply_hazard_modifier(
 	var hazard_type := String(preferred_hazard_type)
 	if not HAZARD_TYPES.has(hazard_type):
 		hazard_type = "direction"
-	var occupied_cells := {
-		Vector2i(level.start_cell): true,
-		Vector2i(level.hole_cell): true,
-	}
-	for hazard in level.hazards:
-		if hazard is Dictionary and hazard.has("pos"):
-			occupied_cells[_world_to_cell(level, Vector2(hazard.pos))] = true
+	var occupied_surfaces := {}
+	_reserve_surface(occupied_surfaces, Vector2i(level.start_cell), int(level.get("start_elevation", 0)))
+	_reserve_surface(occupied_surfaces, Vector2i(level.hole_cell), int(level.get("hole_elevation", 0)))
+	for surface in _all_placement_surfaces(level):
+		occupied_surfaces[surface] = true
+	var main_route_lookup := {}
+	for route_cell in level.get("main_route_cells", []):
+		if route_cell is Vector2i:
+			main_route_lookup[Vector2i(route_cell)] = true
 
 	var candidates: Array[Vector2i] = []
 	for cell in _playable_cells_from_rows(level.map):
-		if occupied_cells.has(cell):
+		if main_route_lookup.has(cell):
+			continue
+		var elevation := _elevation_for_cell(level, cell)
+		if occupied_surfaces.has(Vector3i(cell.x, cell.y, elevation)):
 			continue
 		if _manhattan_distance(cell, Vector2i(level.start_cell)) <= 1:
 			continue
@@ -98,6 +195,7 @@ static func apply_hazard_modifier(
 			rng
 		)
 		level.hazards.append(hazard)
+		_reserve_surface(occupied_surfaces, cell, int(hazard.elevation))
 		added_count += 1
 	level["card_hazard_count"] = added_count
 	return level
@@ -122,15 +220,21 @@ static func _generate_candidate(
 	var start_cell := Vector2i(1, start_y)
 	var hole_cell := Vector2i(width - 2, hole_y)
 	var lane_radius := _lane_radius(parameters, hole_index)
-	var route_centers: Array[int] = []
-	var main_route_cells: Array[Vector2i] = []
+	var route_centers := _generate_route_centers(
+		width,
+		height,
+		start_y,
+		hole_y,
+		max_bend,
+		hole_index,
+		rng
+	)
+	var main_route_cells: Array[Vector2i] = [start_cell]
+	for x in range(start_cell.x + 1, hole_cell.x + 1):
+		_append_cardinal_line(main_route_cells, main_route_cells[-1], Vector2i(x, route_centers[x]))
 	var playable := {}
 	for x in range(width):
-		var progress := float(x) / float(width - 1)
-		var route_y := clampi(roundi(lerpf(float(start_y), float(hole_y), progress)), 1, height - 2)
-		route_centers.append(route_y)
-		main_route_cells.append(Vector2i(x, route_y))
-		_carve_disc(playable, Vector2i(x, route_y), lane_radius, width, height)
+		_carve_disc(playable, Vector2i(x, route_centers[x]), lane_radius, width, height)
 
 	var branches := _generate_branches(
 		playable,
@@ -145,6 +249,7 @@ static func _generate_candidate(
 	var elevation_contract := _generate_elevation_contract(
 		playable,
 		branches,
+		main_route_cells,
 		route_centers,
 		width,
 		height,
@@ -152,6 +257,9 @@ static func _generate_candidate(
 		hole_index
 	)
 	var rows := _rows_from_playable(playable, width, height)
+	var reserved_surfaces := {}
+	_reserve_surface(reserved_surfaces, start_cell, 0)
+	_reserve_surface(reserved_surfaces, hole_cell, 0)
 	var hazards := _generate_hazards(
 		profile,
 		rows,
@@ -163,7 +271,8 @@ static func _generate_candidate(
 		biome_index,
 		hole_index,
 		run_seed,
-		rng
+		rng,
+		reserved_surfaces
 	)
 	var obstacles := _generate_obstacles(
 		rows,
@@ -174,7 +283,8 @@ static func _generate_candidate(
 		elevation_contract.levels_by_cell,
 		biome_index,
 		hole_index,
-		rng
+		rng,
+		reserved_surfaces
 	)
 	var moving_hazards := _generate_moving_hazards(
 		profile,
@@ -186,7 +296,8 @@ static func _generate_candidate(
 		elevation_contract.levels_by_cell,
 		biome_index,
 		hole_index,
-		rng
+		rng,
+		reserved_surfaces
 	)
 
 	var level := {
@@ -207,6 +318,7 @@ static func _generate_candidate(
 		"elevation_structures": elevation_contract.structures,
 		"visual_rough_cells": _visual_rough_cells(playable, main_route_cells, start_cell, hole_cell),
 		"tee": {"cell": start_cell, "elevation": 0},
+		"placement_reservation_count": reserved_surfaces.size(),
 	}
 	_apply_profile_metadata(level, profile, run_seed, biome_index, hole_index, attempt + 1, false)
 	return level
@@ -250,7 +362,7 @@ static func _generate_branches(
 			exit_cell = Vector2i(end_x, route_centers[end_x])
 			_append_cardinal_line(path_cells, path_cells[-1], exit_cell)
 		for cell in path_cells:
-			_carve_disc(playable, cell, 0, width, height)
+			_carve_disc(playable, cell, 1, width, height)
 		branches.append({
 			"kind": kind,
 			"cells": path_cells,
@@ -265,6 +377,7 @@ static func _generate_branches(
 static func _generate_elevation_contract(
 	playable: Dictionary,
 	branches: Array[Dictionary],
+	main_route_cells: Array[Vector2i],
 	route_centers: Array[int],
 	width: int,
 	height: int,
@@ -276,6 +389,7 @@ static func _generate_elevation_contract(
 		levels_by_cell[Vector2i(cell)] = [0]
 	var transitions: Array[Dictionary] = []
 	var structures: Array[Dictionary] = []
+	var main_route_lookup := _cell_lookup(main_route_cells)
 	var should_add_elevation := biome_index >= 1 and (hole_index >= 1 or biome_index >= 3)
 	if should_add_elevation:
 		for branch in branches:
@@ -284,12 +398,43 @@ static func _generate_elevation_contract(
 			var path: Array = branch.cells
 			if path.size() < 5:
 				continue
+			var branch_crosses_main_route := false
+			for path_index in range(1, path.size() - 1):
+				if main_route_lookup.has(Vector2i(path[path_index])):
+					branch_crosses_main_route = true
+					break
+			if branch_crosses_main_route:
+				continue
 			var elevation := -1 if biome_index == 4 and hole_index == 2 else 1
 			var elevated_cells: Array[Vector2i] = []
+			var elevated_lookup := {}
 			for path_index in range(1, path.size() - 1):
 				var cell := Vector2i(path[path_index])
-				levels_by_cell[cell] = [elevation]
-				elevated_cells.append(cell)
+				var previous_cell := Vector2i(path[path_index - 1])
+				var next_cell := Vector2i(path[path_index + 1])
+				var direction := next_cell - previous_cell
+				var width_offsets: Array[Vector2i] = [Vector2i.ZERO]
+				if absi(direction.x) >= absi(direction.y):
+					width_offsets.append(Vector2i.UP)
+					width_offsets.append(Vector2i.DOWN)
+				else:
+					width_offsets.append(Vector2i.LEFT)
+					width_offsets.append(Vector2i.RIGHT)
+				for width_offset in width_offsets:
+					var elevated_cell := cell + width_offset
+					if not playable.has(elevated_cell):
+						continue
+					if elevated_cell == Vector2i(path[0]) or elevated_cell == Vector2i(path[-1]):
+						continue
+					if main_route_lookup.has(elevated_cell):
+						continue
+					var main_y := route_centers[clampi(elevated_cell.x, 0, route_centers.size() - 1)]
+					if width_offset != Vector2i.ZERO and elevated_cell.y == main_y:
+						continue
+					levels_by_cell[elevated_cell] = [elevation]
+					if not elevated_lookup.has(elevated_cell):
+						elevated_lookup[elevated_cell] = true
+						elevated_cells.append(elevated_cell)
 			transitions.append({
 				"type": "ramp",
 				"from_cell": Vector2i(path[0]),
@@ -366,10 +511,12 @@ static func _generate_hazards(
 	biome_index: int,
 	hole_index: int,
 	run_seed: int,
-	rng: RandomNumberGenerator
+	rng: RandomNumberGenerator,
+	reserved_surfaces: Dictionary
 ) -> Array[Dictionary]:
 	var main_route_lookup := _cell_lookup(main_route_cells)
 	var candidates := _candidate_cells(playable, start_cell, hole_cell, main_route_lookup, 2)
+	candidates = _available_candidates(candidates, levels_by_cell, reserved_surfaces)
 	var hazard_bonus := maxi(int(profile.generator_difficulty.get("hazard_bonus", 0)), 0)
 	var desired_count := clampi(1 + hole_index + hazard_bonus, 1, 7)
 	var required := BiomeHazardProfilesScript.required_static_types(profile.id, hole_index)
@@ -383,6 +530,7 @@ static func _generate_hazards(
 			rng
 		)
 		var elevation := int(Array(levels_by_cell.get(cell, [0]))[0])
+		_reserve_surface(reserved_surfaces, cell, elevation)
 		hazards.append(_static_hazard_definition(
 			hazard_type,
 			_cell_to_world(rows, cell),
@@ -402,20 +550,24 @@ static func _generate_obstacles(
 	levels_by_cell: Dictionary,
 	biome_index: int,
 	hole_index: int,
-	rng: RandomNumberGenerator
+	rng: RandomNumberGenerator,
+	reserved_surfaces: Dictionary
 ) -> Array[Dictionary]:
 	var main_route_lookup := _cell_lookup(main_route_cells)
 	var candidates := _candidate_cells(playable, start_cell, hole_cell, main_route_lookup, 2)
+	candidates = _available_candidates(candidates, levels_by_cell, reserved_surfaces)
 	var desired_count := clampi(hole_index + floori(float(biome_index) / 3.0), 0, 3)
 	var obstacles: Array[Dictionary] = []
 	for _obstacle_index in range(mini(desired_count, candidates.size())):
 		var cell: Vector2i = candidates.pop_at(rng.randi_range(0, candidates.size() - 1))
 		var vertical := rng.randi_range(0, 1) == 0
+		var elevation := int(Array(levels_by_cell.get(cell, [0]))[0])
+		_reserve_surface(reserved_surfaces, cell, elevation)
 		obstacles.append({
 			"type": "blocker",
 			"pos": _cell_to_world(rows, cell),
 			"size": Vector2(24.0, 76.0) if vertical else Vector2(76.0, 24.0),
-			"elevation": int(Array(levels_by_cell.get(cell, [0]))[0]),
+			"elevation": elevation,
 		})
 	return obstacles
 
@@ -430,22 +582,26 @@ static func _generate_moving_hazards(
 	levels_by_cell: Dictionary,
 	biome_index: int,
 	hole_index: int,
-	rng: RandomNumberGenerator
+	rng: RandomNumberGenerator,
+	reserved_surfaces: Dictionary
 ) -> Array[Dictionary]:
 	var hazard_type := BiomeHazardProfilesScript.moving_hazard_for(profile.id, hole_index)
 	if hazard_type == "":
 		return []
 	var main_route_lookup := _cell_lookup(main_route_cells)
 	var candidates := _candidate_cells(playable, start_cell, hole_cell, main_route_lookup, 2)
+	candidates = _available_candidates(candidates, levels_by_cell, reserved_surfaces)
 	var count := 1 + (1 if biome_index >= 4 and hole_index == 2 else 0)
 	var moving_hazards: Array[Dictionary] = []
 	for _moving_index in range(mini(count, candidates.size())):
 		var cell: Vector2i = candidates.pop_at(rng.randi_range(0, candidates.size() - 1))
+		var elevation := int(Array(levels_by_cell.get(cell, [0]))[0])
+		_reserve_surface(reserved_surfaces, cell, elevation)
 		var definition := {
 			"type": hazard_type,
 			"pos": _cell_to_world(rows, cell),
 			"size": Vector2(38.0, 38.0),
-			"elevation": int(Array(levels_by_cell.get(cell, [0]))[0]),
+			"elevation": elevation,
 			"period": 2.8 - minf(float(biome_index) * 0.12, 0.6),
 			"phase": rng.randf(),
 			"intensity": clampf(0.55 + float(biome_index + hole_index) * 0.06, 0.55, 1.0),
@@ -550,7 +706,14 @@ static func _apply_fallback_hazard_profile(
 		var hazard_type := String(hazard.get("type", ""))
 		if hazard_type in ["water", "lava"]:
 			hazard["type"] = reset_hazard
-		occupied[_world_to_cell(level, Vector2(hazard.pos))] = true
+		if hazard.has("pos"):
+			occupied[_world_to_cell(level, Vector2(hazard.pos))] = true
+	for obstacle in level.get("obstacles", []):
+		if obstacle is Dictionary and obstacle.has("pos"):
+			occupied[_world_to_cell(level, Vector2(obstacle.pos))] = true
+	for moving_hazard in level.get("moving_hazards", []):
+		if moving_hazard is Dictionary and moving_hazard.has("pos"):
+			occupied[_world_to_cell(level, Vector2(moving_hazard.pos))] = true
 
 	var candidates: Array[Vector2i] = []
 	for cell in _playable_cells_from_rows(level.map):
@@ -615,6 +778,161 @@ static func _apply_profile_metadata(
 	level["decoration_identifiers"] = profile.decoration_identifiers.duplicate()
 	level["ambience"] = profile.ambience
 	level["gameplay_hazard_profile"] = profile.id
+
+
+static func _generate_route_centers(
+	width: int,
+	height: int,
+	start_y: int,
+	hole_y: int,
+	max_bend: int,
+	hole_index: int,
+	rng: RandomNumberGenerator
+) -> Array[int]:
+	var first_x := clampi(roundi(float(width - 1) * 0.36), 2, width - 4)
+	var second_x := clampi(roundi(float(width - 1) * 0.68), first_x + 1, width - 3)
+	var bend_strength := maxi(max_bend, 1)
+	if hole_index == 2:
+		bend_strength += 1
+	var first_offset := rng.randi_range(-bend_strength, bend_strength)
+	if first_offset == 0 and hole_index > 0:
+		first_offset = -1 if rng.randi_range(0, 1) == 0 else 1
+	var first_y := clampi(start_y + first_offset, 1, height - 2)
+	var second_offset := rng.randi_range(-bend_strength, bend_strength)
+	if hole_index > 0 and signi(second_offset) == signi(first_y - start_y):
+		second_offset = -signi(first_y - start_y) * maxi(absi(second_offset), 1)
+	var second_y := clampi(hole_y + second_offset, 1, height - 2)
+	var anchors: Array[Vector2i] = [
+		Vector2i(0, start_y),
+		Vector2i(1, start_y),
+		Vector2i(first_x, first_y),
+		Vector2i(second_x, second_y),
+		Vector2i(width - 2, hole_y),
+		Vector2i(width - 1, hole_y),
+	]
+	var centers: Array[int] = []
+	centers.resize(width)
+	for anchor_index in range(anchors.size() - 1):
+		var from_anchor := anchors[anchor_index]
+		var to_anchor := anchors[anchor_index + 1]
+		var span := maxi(to_anchor.x - from_anchor.x, 1)
+		for x in range(from_anchor.x, to_anchor.x + 1):
+			var progress := float(x - from_anchor.x) / float(span)
+			centers[x] = clampi(roundi(lerpf(float(from_anchor.y), float(to_anchor.y), progress)), 1, height - 2)
+	centers[0] = start_y
+	centers[1] = start_y
+	centers[width - 2] = hole_y
+	centers[width - 1] = hole_y
+	return centers
+
+
+static func _available_candidates(
+	candidates: Array[Vector2i],
+	levels_by_cell: Dictionary,
+	reserved_surfaces: Dictionary
+) -> Array[Vector2i]:
+	var available: Array[Vector2i] = []
+	for cell in candidates:
+		var elevations: Array = levels_by_cell.get(cell, [0])
+		if elevations.is_empty():
+			continue
+		var surface := Vector3i(cell.x, cell.y, int(elevations[0]))
+		if not reserved_surfaces.has(surface):
+			available.append(cell)
+	return available
+
+
+static func _reserve_surface(reserved_surfaces: Dictionary, cell: Vector2i, elevation: int) -> void:
+	reserved_surfaces[Vector3i(cell.x, cell.y, elevation)] = true
+
+
+static func _all_placement_surfaces(level: Dictionary) -> Array[Vector3i]:
+	var result: Array[Vector3i] = []
+	var seen := {}
+	for collection_name in ["hazards", "obstacles", "moving_hazards"]:
+		for definition in level.get(collection_name, []):
+			if not definition is Dictionary or not definition.get("pos") is Vector2:
+				continue
+			for surface in _definition_surfaces(level, definition):
+				if not seen.has(surface):
+					seen[surface] = true
+					result.append(surface)
+	return result
+
+
+static func _definition_surfaces(level: Dictionary, definition: Dictionary) -> Array[Vector3i]:
+	var surfaces: Array[Vector3i] = []
+	var size := Vector2(definition.get("size", Vector2.ONE))
+	if String(definition.get("type", "")) == "pendulum":
+		size += Vector2(float(definition.get("travel_radius", 0.0)) * 2.0, 0.0)
+	var rect := Rect2(Vector2(definition.pos) - size / 2.0, size)
+	var top_left := -Vector2(float(_map_columns(level.map)), float(level.map.size())) * GRID_CELL_SIZE / 2.0
+	var min_cell := Vector2i(
+		floori((rect.position.x - top_left.x) / GRID_CELL_SIZE),
+		floori((rect.position.y - top_left.y) / GRID_CELL_SIZE)
+	)
+	var max_cell := Vector2i(
+		floori((rect.end.x - top_left.x - 0.001) / GRID_CELL_SIZE),
+		floori((rect.end.y - top_left.y - 0.001) / GRID_CELL_SIZE)
+	)
+	var elevation := int(definition.get("elevation", 0))
+	for y in range(min_cell.y, max_cell.y + 1):
+		for x in range(min_cell.x, max_cell.x + 1):
+			surfaces.append(Vector3i(x, y, elevation))
+	return surfaces
+
+
+static func _is_contiguous_route(route: Array, start_cell: Vector2i, hole_cell: Vector2i) -> bool:
+	if route.size() < 2 or not route[0] is Vector2i or not route[-1] is Vector2i:
+		return false
+	if Vector2i(route[0]) != start_cell or Vector2i(route[-1]) != hole_cell:
+		return false
+	var seen := {}
+	for route_index in range(route.size()):
+		if not route[route_index] is Vector2i:
+			return false
+		var cell := Vector2i(route[route_index])
+		if seen.has(cell):
+			return false
+		seen[cell] = true
+		if route_index > 0 and _manhattan_distance(Vector2i(route[route_index - 1]), cell) != 1:
+			return false
+	return true
+
+
+static func _cardinal_neighbor_count(playable: Dictionary, cell: Vector2i) -> int:
+	var count := 0
+	for direction in [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]:
+		if playable.has(cell + direction):
+			count += 1
+	return count
+
+
+static func _endpoint_clearance_score(level: Dictionary, endpoint: Vector2i) -> float:
+	for surface in _all_placement_surfaces(level):
+		if _manhattan_distance(endpoint, Vector2i(surface.x, surface.y)) <= 1:
+			return 0.0
+	return 1.0
+
+
+static func _route_turn_count(route: Array) -> int:
+	var turns := 0
+	var previous_direction := Vector2i.ZERO
+	for route_index in range(1, route.size()):
+		if not route[route_index - 1] is Vector2i or not route[route_index] is Vector2i:
+			continue
+		var direction := Vector2i(route[route_index]) - Vector2i(route[route_index - 1])
+		if previous_direction != Vector2i.ZERO and direction != previous_direction:
+			turns += 1
+		previous_direction = direction
+	return turns
+
+
+static func _map_columns(rows: Array) -> int:
+	var columns := 0
+	for row in rows:
+		columns = maxi(columns, String(row).length())
+	return columns
 
 
 static func _lane_radius(parameters: Dictionary, hole_index: int) -> int:

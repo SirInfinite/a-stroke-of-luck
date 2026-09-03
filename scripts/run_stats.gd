@@ -10,8 +10,10 @@ var hazards_entered := {
 	"direction": 0
 }
 var water_resets := 0
+var hazard_resets := {}
 var manual_resets := 0
 var total_run_time := 0.0
+var hole_history: Array[Dictionary] = []
 
 
 func reset() -> void:
@@ -24,8 +26,10 @@ func reset() -> void:
 		"direction": 0
 	}
 	water_resets = 0
+	hazard_resets.clear()
 	manual_resets = 0
 	total_run_time = 0.0
+	hole_history.clear()
 
 
 func update_time(delta: float) -> void:
@@ -47,11 +51,52 @@ func record_hazard_entered(hazard_type: String) -> void:
 
 
 func record_water_reset() -> void:
-	water_resets += 1
+	record_hazard_reset("water")
+
+
+func record_hazard_reset(hazard_type: String) -> void:
+	if not hazard_resets.has(hazard_type):
+		hazard_resets[hazard_type] = 0
+	hazard_resets[hazard_type] += 1
+	if hazard_type == "water":
+		water_resets += 1
 
 
 func record_manual_reset() -> void:
 	manual_resets += 1
+
+
+func record_hole_result(entry: Dictionary) -> void:
+	var hole_number := int(entry.get("hole_number", 0))
+	if hole_number <= 0:
+		return
+	for history_index in range(hole_history.size()):
+		if int(hole_history[history_index].get("hole_number", 0)) == hole_number:
+			hole_history[history_index] = entry.duplicate(true)
+			return
+	hole_history.append(entry.duplicate(true))
+	hole_history.sort_custom(func(first: Dictionary, second: Dictionary) -> bool:
+		return int(first.get("hole_number", 0)) < int(second.get("hole_number", 0))
+	)
+
+
+func can_view_hole(hole_number: int, current_hole_number: int) -> bool:
+	if hole_number < 1 or hole_number > current_hole_number:
+		return false
+	if hole_number == current_hole_number:
+		return true
+	return not get_hole_result(hole_number).is_empty()
+
+
+func get_hole_result(hole_number: int) -> Dictionary:
+	for entry in hole_history:
+		if int(entry.get("hole_number", 0)) == hole_number:
+			return entry.duplicate(true)
+	return {}
+
+
+func history_snapshot() -> Array[Dictionary]:
+	return hole_history.duplicate(true)
 
 
 func print_summary(total_par: int) -> void:

@@ -41,9 +41,12 @@ static func validate_level(level: Dictionary, level_index: int) -> bool:
 		_warn(label, "hole elevation %d has no surface at %s." % [hole_elevation, hole_cell])
 		is_valid = false
 
+	is_valid = _validate_main_route(level, elevation_lookup, label) and is_valid
 	is_valid = _validate_obstacles(level, elevation_lookup, label) and is_valid
 	is_valid = _validate_static_hazards(level, elevation_lookup, label) and is_valid
 	is_valid = _validate_moving_hazards(level, elevation_lookup, label) and is_valid
+	is_valid = _validate_placement_occupancy(level, label) and is_valid
+	is_valid = _validate_endpoint_safety(level, label) and is_valid
 	is_valid = _validate_branches(level, label) and is_valid
 	is_valid = _validate_optional_builder_fields(level, elevation_lookup, label) and is_valid
 
@@ -78,6 +81,122 @@ static func cell_elevations(level: Dictionary, cell: Vector2i) -> Array[int]:
 				result.append(int(elevation))
 			return result
 	return []
+
+
+static func placement_occupancy(level: Dictionary) -> Dictionary:
+	var occupancy := {}
+	for collection_name in ["hazards", "obstacles", "moving_hazards"]:
+		var entries = level.get(collection_name, [])
+		if not entries is Array:
+			continue
+		for entry_index in range(entries.size()):
+			var definition = entries[entry_index]
+			if not definition is Dictionary:
+				continue
+			if not definition.get("pos") is Vector2 or not definition.get("size") is Vector2:
+				continue
+			var placement_id := "%s:%d" % [collection_name, entry_index]
+			for surface in _definition_surfaces(level, definition):
+				if not occupancy.has(surface):
+					occupancy[surface] = []
+				occupancy[surface].append(placement_id)
+	return occupancy
+
+
+static func _validate_main_route(level: Dictionary, elevation_lookup: Dictionary, label: String) -> bool:
+	var route = level.get("main_route_cells", [])
+	if route is Array and route.is_empty():
+		return true
+	if not route is Array:
+		_warn(label, "main_route_cells must be an Array.")
+		return false
+	if route.size() < 2:
+		_warn(label, "main_route_cells must connect tee to cup.")
+		return false
+	if not route[0] is Vector2i or Vector2i(route[0]) != Vector2i(level.start_cell):
+		_warn(label, "main route must begin at start_cell.")
+		return false
+	if not route[-1] is Vector2i or Vector2i(route[-1]) != Vector2i(level.hole_cell):
+		_warn(label, "main route must end at hole_cell.")
+		return false
+
+	var valid := true
+	var seen := {}
+	var route_elevation := int(level.get("main_route_elevation", level.get("start_elevation", 0)))
+	var occupancy := placement_occupancy(level)
+	for route_index in range(route.size()):
+		if not route[route_index] is Vector2i:
+			_warn(label, "main route entry %d must be a Vector2i." % (route_index + 1))
+			valid = false
+			continue
+		var cell := Vector2i(route[route_index])
+		if seen.has(cell):
+			_warn(label, "main route repeats cell %s." % cell)
+			valid = false
+		seen[cell] = true
+		if not _is_playable_cell(level, cell) or not _surface_exists(elevation_lookup, cell, route_elevation):
+			_warn(label, "main route cell %s has no playable route surface." % cell)
+			valid = false
+		if route_index > 0 and route[route_index - 1] is Vector2i:
+			if _manhattan_distance(Vector2i(route[route_index - 1]), cell) != 1:
+				_warn(label, "main route cells must be cardinally contiguous.")
+				valid = false
+		var surface := Vector3i(cell.x, cell.y, route_elevation)
+		if occupancy.has(surface):
+			_warn(label, "main route surface %s is occupied by %s." % [surface, ", ".join(occupancy[surface])])
+			valid = false
+	return valid
+
+
+static func _validate_placement_occupancy(level: Dictionary, label: String) -> bool:
+	var valid := true
+	var occupancy := placement_occupancy(level)
+	for surface in occupancy:
+		var placements: Array = occupancy[surface]
+		if placements.size() > 1:
+			_warn(label, "surface %s has conflicting placements: %s." % [surface, ", ".join(placements)])
+			valid = false
+	return valid
+
+
+static func _validate_endpoint_safety(level: Dictionary, label: String) -> bool:
+	var valid := true
+	var endpoints := [
+		Vector3i(level.start_cell.x, level.start_cell.y, int(level.get("start_elevation", 0))),
+		Vector3i(level.hole_cell.x, level.hole_cell.y, int(level.get("hole_elevation", 0))),
+	]
+	var occupancy := placement_occupancy(level)
+	for endpoint in endpoints:
+		for surface in occupancy:
+			var occupied_surface := Vector3i(surface)
+			if endpoint.z != occupied_surface.z:
+				continue
+			if _manhattan_distance(Vector2i(endpoint.x, endpoint.y), Vector2i(occupied_surface.x, occupied_surface.y)) <= 1:
+				_warn(label, "tee/cup recovery space is occupied at %s." % occupied_surface)
+				valid = false
+	return valid
+
+
+static func _definition_surfaces(level: Dictionary, definition: Dictionary) -> Array[Vector3i]:
+	var surfaces: Array[Vector3i] = []
+	var size := Vector2(definition.size)
+	if String(definition.get("type", "")) == "pendulum":
+		size += Vector2(float(definition.get("travel_radius", 0.0)) * 2.0, 0.0)
+	var rect := Rect2(Vector2(definition.pos) - size / 2.0, size)
+	var top_left := _map_top_left(level)
+	var min_cell := Vector2i(
+		floori((rect.position.x - top_left.x) / GRID_CELL_SIZE),
+		floori((rect.position.y - top_left.y) / GRID_CELL_SIZE)
+	)
+	var max_cell := Vector2i(
+		floori((rect.end.x - top_left.x - 0.001) / GRID_CELL_SIZE),
+		floori((rect.end.y - top_left.y - 0.001) / GRID_CELL_SIZE)
+	)
+	var elevation := int(definition.get("elevation", 0))
+	for y in range(min_cell.y, max_cell.y + 1):
+		for x in range(min_cell.x, max_cell.x + 1):
+			surfaces.append(Vector3i(x, y, elevation))
+	return surfaces
 
 
 static func _validate_required_builder_fields(level: Dictionary, label: String) -> bool:

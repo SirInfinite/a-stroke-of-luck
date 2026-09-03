@@ -19,15 +19,15 @@ func test_audio_assets_and_required_buses_are_available() -> void:
 	assert_eq(AudioServer.get_bus_send(AudioServer.get_bus_index(&"SFX")), &"Master")
 	assert_gt(AudioServer.get_bus_effect_count(AudioServer.get_bus_index(&"Master")), 0)
 	assert_true(AudioServer.get_bus_effect(AudioServer.get_bus_index(&"Master"), 0) is AudioEffectLimiter)
-	assert_eq(AudioControllerScript.THEME_STREAMS.size(), 7)
+	assert_eq(AudioControllerScript.THEME_STREAMS.size(), 8)
 	assert_eq(AudioControllerScript.AMBIENCE_STREAMS.size(), 6)
 	var theme_paths: Dictionary = {}
 	for theme in AudioControllerScript.THEME_STREAMS:
 		var theme_stream: AudioStream = AudioControllerScript.THEME_STREAMS[theme]
 		assert_not_null(theme_stream, "Missing theme for %s." % theme)
-		assert_gt(theme_stream.get_length(), 14.0, "%s must be a substantive musical loop." % theme)
+		assert_gte(theme_stream.get_length(), 30.0, "%s must be a substantive long-form musical loop." % theme)
 		theme_paths[theme_stream.resource_path] = true
-	assert_eq(theme_paths.size(), 7, "Every music state must use a distinct stream.")
+	assert_eq(theme_paths.size(), 8, "Every music state must use a distinct stream.")
 	for ambience in AudioControllerScript.AMBIENCE_STREAMS:
 		var ambience_stream: AudioStream = AudioControllerScript.AMBIENCE_STREAMS[ambience]
 		assert_not_null(ambience_stream, "Missing ambience for %s." % ambience)
@@ -63,6 +63,10 @@ func test_music_state_keeps_only_target_theme_and_ambience_active() -> void:
 
 	assert_eq(audio.music_state, &"menu")
 	assert_eq(_assigned_stream_count(audio.music_players), 1)
+	assert_eq(_assigned_stream_count(audio.ambience_players), 0)
+	audio.play_tutorial_music()
+	assert_eq(audio.music_state, &"tutorial")
+	assert_same(audio.music_players[audio.active_music_player_index].stream, AudioControllerScript.THEME_STREAMS[&"tutorial"])
 	assert_eq(_assigned_stream_count(audio.ambience_players), 0)
 	audio.set_biome(3)
 	assert_eq(audio.music_state, &"snow")

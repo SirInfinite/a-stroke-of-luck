@@ -20,15 +20,30 @@ All other WAV files under `assets/audio/` are original deterministic composition
 
 The generated set includes:
 
-- seven melodic loops: menu, Meadow, Desert, Autumn, Snow, Swamp, and Volcanic;
+- eight distinct melodic loops: title, tutorial, Meadow, Desert, Autumn, Snow, Swamp, and Volcanic;
 - six biome ambience loops: wind/birds, dry wind, leaves, icy wind/chimes, wet insects/bubbles, and volcanic rumble/crackle;
 - physical-action cues for golf strike, high-speed wind/swoosh, water, cup/drop, purchase, UI, terrain/sand, progression, and completion.
 
 `assets/audio/terrain_impact.wav` remains the existing intended sand sound. The shipping pass did not replace its synthesis or semantic mapping.
 
+### Original music manifest
+
+These compositions share a restrained synthetic palette, but each has its own meter, form, melody, harmony, bass motion, and percussion arrangement. The source is the repository generator rather than an online recording, so there is no external source URL or third-party modification chain.
+
+| File | Track title | Creator | Source | License / distribution status | Modifications |
+|---|---|---|---|---|---|
+| `assets/audio/theme_menu.wav` | Lucky on the Turn | A Stroke of Luck project | `tools/generate_audio_assets.py` (`lucky_waltz`) | Original project asset; no third-party material | Deterministic 3/4 synthesis, mastered to the shared music peak |
+| `assets/audio/theme_tutorial.wav` | Practice Makes Par | A Stroke of Luck project | `tools/generate_audio_assets.py` (`practice_steps`) | Original project asset; no third-party material | Deterministic 4/4 instructional motif and metronome-like accents |
+| `assets/audio/theme_meadow.wav` | Open Fairway | A Stroke of Luck project | `tools/generate_audio_assets.py` (`open_fairway`) | Original project asset; no third-party material | Deterministic bright 4/4 pluck arrangement with moving arpeggio |
+| `assets/audio/theme_desert.wav` | Seven-Step Caravan | A Stroke of Luck project | `tools/generate_audio_assets.py` (`seven_step_caravan`) | Original project asset; no third-party material | Deterministic 7/8 reed/drone arrangement with asymmetric frame-drum pulse |
+| `assets/audio/theme_autumn.wav` | Leaves on the Green | A Stroke of Luck project | `tools/generate_audio_assets.py` (`leaf_ballad`) | Original project asset; no third-party material | Deterministic mellow 3/4 mallet ballad with counterline |
+| `assets/audio/theme_snow.wav` | Crystal Air | A Stroke of Luck project | `tools/generate_audio_assets.py` (`crystal_air`) | Original project asset; no third-party material | Deterministic sparse 5/4 bell composition with long air tones |
+| `assets/audio/theme_swamp.wav` | Bog Shuffle | A Stroke of Luck project | `tools/generate_audio_assets.py` (`bog_shuffle`) | Original project asset; no third-party material | Deterministic slow compound-meter reed/marimba shuffle |
+| `assets/audio/theme_volcanic.wav` | Magma Drive | A Stroke of Luck project | `tools/generate_audio_assets.py` (`magma_drive`) | Original project asset; no third-party material | Deterministic driving 4/4 ostinato, tom pattern, and minor-mode motif |
+
 ## Reusable-audio research not incorporated
 
-The shipping pass reviewed clearly reusable options before choosing original generated loops for a cohesive seven-theme set and deterministic repository regeneration. No audio was downloaded or copied from these references:
+The refinement pass reviewed clearly reusable options before choosing original generated loops for a cohesive eight-theme set and deterministic repository regeneration. No audio was downloaded or copied from these references:
 
 | Reference | Listed creator | Listed license | URL |
 |---|---|---|---|

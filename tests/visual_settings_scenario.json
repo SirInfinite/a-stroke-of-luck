@@ -1,0 +1,13 @@
+{
+  "scene_path": "scenes/main.tscn",
+  "viewport_size": {"width": 1920, "height": 1080},
+  "settle_frames": 12,
+  "steps": [
+    {"type": "mouse_motion", "position": {"x": 1510, "y": 630}, "relative": {"x": 0, "y": 0}},
+    {"type": "mouse_button", "button_index": 1, "position": {"x": 1510, "y": 630}, "pressed": true},
+    {"type": "mouse_button", "button_index": 1, "position": {"x": 1510, "y": 630}, "pressed": false},
+    {"type": "wait_seconds", "seconds": 0.35},
+    {"type": "assert", "assertion": "visible", "node_path": "HUD/SettingsScreen"},
+    {"type": "screenshot", "path": "user://release_showcase_settings_video.png"}
+  ]
+}

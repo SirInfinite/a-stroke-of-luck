@@ -1,0 +1,14 @@
+{
+  "scene_path": "scenes/main.tscn",
+  "viewport_size": {"width": 1920, "height": 1080},
+  "settle_frames": 5,
+  "steps": [
+    {"type": "mouse_button", "button_index": 1, "position": {"x": 1500, "y": 550}, "pressed": true},
+    {"type": "mouse_button", "button_index": 1, "position": {"x": 1500, "y": 550}, "pressed": false},
+    {"type": "wait_seconds", "seconds": 0.8},
+    {"type": "assert", "assertion": "node_exists", "node_path": "Level"},
+    {"type": "assert", "assertion": "visible", "node_path": "HUD/TutorialCoach"},
+    {"type": "assert", "assertion": "visible", "node_path": "HUD/SkipTutorialButton"},
+    {"type": "screenshot", "path": "user://release_ui_tutorial.png"}
+  ]
+}

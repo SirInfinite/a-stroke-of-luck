@@ -7,6 +7,7 @@ signal music_transition_completed(state: StringName)
 
 const THEME_STREAMS := {
 	&"menu": preload("res://assets/audio/theme_menu.wav"),
+	&"tutorial": preload("res://assets/audio/theme_tutorial.wav"),
 	&"meadow": preload("res://assets/audio/theme_meadow.wav"),
 	&"desert": preload("res://assets/audio/theme_desert.wav"),
 	&"autumn": preload("res://assets/audio/theme_autumn.wav"),
@@ -175,6 +176,10 @@ func set_music_state(next_state: StringName, immediate := false) -> void:
 
 func play_menu_music() -> void:
 	set_music_state(&"menu")
+
+
+func play_tutorial_music() -> void:
+	set_music_state(&"tutorial")
 
 
 func play_results_music() -> void:

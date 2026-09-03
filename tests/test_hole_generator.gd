@@ -86,13 +86,57 @@ func test_card_hazard_modifier_is_seeded_bounded_and_valid() -> void:
 	assert_true(LevelValidator.validate_level(clamped, 3))
 
 
-func test_batch_seeds_keep_every_generated_hole_valid() -> void:
+func test_large_seed_corpus_keeps_every_generated_hole_valid_and_above_quality_floor() -> void:
 	var profiles: Array = BiomeDatabase.get_profiles()
-	for seed_value in range(1, 33):
-		var levels: Array[Dictionary] = HoleGenerator.generate_run(profiles, seed_value * 7919)
+	for seed_value in range(1, 97):
+		var reproducible_seed := seed_value * 7919
+		var levels: Array[Dictionary] = HoleGenerator.generate_run(profiles, reproducible_seed)
 		assert_eq(levels.size(), 18)
 		for index in range(levels.size()):
-			assert_true(LevelValidator.validate_level(levels[index], index))
+			var failure_context := "seed=%d hole=%d" % [reproducible_seed, index + 1]
+			assert_true(LevelValidator.validate_level(levels[index], index), failure_context)
+			assert_false(bool(levels[index].used_fallback), failure_context)
+			assert_gte(float(levels[index].quality_score), HoleGenerator.MINIMUM_QUALITY_SCORE, failure_context)
+			for placements in LevelValidator.placement_occupancy(levels[index]).values():
+				assert_eq(Array(placements).size(), 1, failure_context)
+
+
+func test_best_candidate_selection_is_deterministic_and_score_driven() -> void:
+	var profile = BiomeDatabase.get_profiles()[5]
+	var selected := HoleGenerator.generate_hole(profile, TEST_SEED, 5, 2)
+	var repeated := HoleGenerator.generate_hole(profile, TEST_SEED, 5, 2)
+	assert_eq(selected, repeated)
+	assert_eq(int(selected.candidate_count_considered), HoleGenerator.MAX_GENERATION_ATTEMPTS)
+	assert_true(bool(selected.quality_passed))
+
+	var best_score := -1.0
+	for attempt in range(HoleGenerator.MAX_GENERATION_ATTEMPTS):
+		var candidate := HoleGenerator._generate_candidate(profile, TEST_SEED, 5, 2, attempt)
+		if LevelValidator.validate_level(candidate, 17):
+			best_score = maxf(best_score, float(HoleGenerator.score_candidate(candidate).score))
+	assert_eq(float(selected.quality_score), best_score)
+
+
+func test_quality_score_penalizes_a_broken_primary_route() -> void:
+	var profile = BiomeDatabase.get_profiles()[2]
+	var coherent := HoleGenerator.generate_hole(profile, TEST_SEED, 2, 1)
+	var broken := coherent.duplicate(true)
+	broken.main_route_cells = [broken.start_cell, broken.hole_cell]
+	assert_gt(float(HoleGenerator.score_candidate(coherent).score), float(HoleGenerator.score_candidate(broken).score))
+
+
+func test_all_generated_placements_are_surface_exclusive_and_endpoint_safe() -> void:
+	var levels := HoleGenerator.generate_run(BiomeDatabase.get_profiles(), TEST_SEED)
+	for level_index in range(levels.size()):
+		var level: Dictionary = levels[level_index]
+		for placements in LevelValidator.placement_occupancy(level).values():
+			assert_eq(Array(placements).size(), 1, "hole=%d" % (level_index + 1))
+		var start := Vector2i(level.start_cell)
+		var cup := Vector2i(level.hole_cell)
+		for surface in LevelValidator.placement_occupancy(level):
+			var occupied_cell := Vector2i(surface.x, surface.y)
+			assert_gt(_manhattan(start, occupied_cell), 1)
+			assert_gt(_manhattan(cup, occupied_cell), 1)
 
 
 func test_biome_hazard_profiles_map_required_release_semantics() -> void:
@@ -176,3 +220,7 @@ func _hazard_types(level: Dictionary) -> Array[String]:
 	for hazard in level.hazards:
 		types.append(String(hazard.type))
 	return types
+
+
+func _manhattan(first: Vector2i, second: Vector2i) -> int:
+	return absi(first.x - second.x) + absi(first.y - second.y)

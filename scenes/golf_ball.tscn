@@ -20,6 +20,7 @@ physics_material_override = SubResource("PhysicsMaterial_70p3a")
 gravity_scale = 0.0
 linear_damp = 1.2
 angular_damp = 2.0
+continuous_cd = 2
 script = ExtResource("1_s1xsf")
 max_impulse = 1600.0
 trajectory_dot_count = 20

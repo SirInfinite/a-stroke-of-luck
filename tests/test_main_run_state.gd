@@ -3,6 +3,7 @@ extends GutTest
 const MAIN_SCENE := preload("res://scenes/main.tscn")
 const CardDatabase := preload("res://scripts/card_database.gd")
 const LevelValidator := preload("res://scripts/level_validator.gd")
+const MovingHazardScript := preload("res://scripts/moving_hazard.gd")
 const TEST_SEED := 424242
 
 
@@ -302,22 +303,24 @@ func test_full_eighteen_hole_smoke_visits_every_runtime_state_and_resets() -> vo
 	var seen_states := {main.get_run_phase_name(): true}
 	assert_true(main.main_menu_overlay.visible)
 	assert_eq(main.main_menu_overlay.name, "MainMenuScreen")
-	assert_eq(main.main_menu_title_label.text, "A Stroke Of Luck")
-	assert_true(main.main_menu_summary_label.text.contains("Eighteen holes"))
+	assert_eq(main.main_menu_logo.kicker_label.text, "A STROKE")
+	assert_eq(main.main_menu_title_label.text, "OF LUCK")
+	assert_eq(main.main_menu_summary_label.text, "")
+	assert_not_null(main.menu_settings_button)
 	assert_false(main.score_label.visible)
 	main.menu_play_button.pressed.emit()
 	seen_states[main.get_run_phase_name()] = true
 	assert_eq(main.get_run_phase_name(), "RUN_START")
 	assert_true(main.interstitial_overlay.visible)
-	assert_eq(main.interstitial_title_label.text, "Run Intro")
-	assert_true(main.interstitial_body_label.text.contains("Seed: %d" % main.run_seed))
-	assert_eq(main.interstitial_continue_button.text, "Begin Course")
+	assert_eq(main.interstitial_title_label.text, "TEE OFF")
+	assert_true(main.transition_presentation.eyebrow_label.text.contains("COURSE IS DEALT"))
+	assert_eq(main.interstitial_continue_button.text, "BEGIN COURSE")
 	main.interstitial_continue_button.pressed.emit()
 	seen_states[main.get_run_phase_name()] = true
 	assert_eq(main.get_run_phase_name(), "BIOME_INTRO")
-	assert_true(main.interstitial_title_label.text.contains("Biome 1/6: Meadow"))
-	assert_true(main.interstitial_body_label.text.contains("Holes 1-3"))
-	assert_eq(main.interstitial_continue_button.text, "Play Hole 1")
+	assert_eq(main.interstitial_title_label.text, "MEADOW")
+	assert_true(main.interstitial_body_label.text.contains("HOLES 01 — 03"))
+	assert_eq(main.interstitial_continue_button.text, "PLAY HOLE 01")
 	main.interstitial_continue_button.pressed.emit()
 	seen_states[main.get_run_phase_name()] = true
 
@@ -334,16 +337,17 @@ func test_full_eighteen_hole_smoke_visits_every_runtime_state_and_resets() -> vo
 		assert_true(main.release_hud.visible)
 		assert_true(main.power_meter.visible)
 		assert_false(main.interstitial_overlay.visible)
-		assert_true(main.release_hud.biome_label.text.contains("BIOME %d/6" % (main.biome_index + 1)))
-		assert_eq(main.release_hud.hole_label.text, "HOLE %d / 18" % expected_hole)
-		assert_eq(main.release_hud.timer_label.text, "TIME  00:00")
+		assert_eq(main.release_hud.biome_label.text, String(main.levels[main.level_index].biome_name).to_upper())
+		assert_true(main.release_hud.hole_label.text.contains("%02d / 18" % expected_hole))
+		assert_eq(main.release_hud.timer_label.text, "00:00")
 
 		main._complete_current_hole(false, false)
 		seen_states[main.get_run_phase_name()] = true
 		assert_eq(main.get_run_phase_name(), "HOLE_RESULTS")
 		assert_false(main.score_label.visible)
-		assert_eq(main.interstitial_title_label.text, "Hole %d Results" % expected_hole)
-		assert_true(main.interstitial_body_label.text.contains("Coins held: %d" % main.tokens))
+		assert_eq(main.interstitial_title_label.text, String(main.last_hole_rating.golf_result))
+		assert_eq(main.interstitial_body_label.text, "", "No filler or debug-like status copy should appear without a real curse event.")
+		assert_true(main.transition_presentation.eyebrow_label.text.contains("HOLE %02d / 18" % expected_hole))
 		main.interstitial_continue_button.pressed.emit()
 		seen_states[main.get_run_phase_name()] = true
 
@@ -351,29 +355,29 @@ func test_full_eighteen_hole_smoke_visits_every_runtime_state_and_resets() -> vo
 			assert_eq(main.get_run_phase_name(), "SHOP")
 			shop_visits += 1
 			assert_true(main.shop_manager.shop_overlay.visible)
-			assert_eq(main.shop_manager.shop_title_label.text, "THE CLUBHOUSE SHOP")
+			assert_eq(main.shop_manager.shop_title_label.text, "THE LUCKY CLUBHOUSE")
 			assert_true(main.shop_manager.shop_destination_label.text.contains("Biome %d/6" % (shop_visits + 1)))
 			assert_true(main.shop_manager.shop_destination_label.text.contains("overall %d/18" % (expected_hole + 1)))
 			assert_false(main.shop_manager.continue_button.disabled)
 			main.shop_manager.continue_button.pressed.emit()
 			seen_states[main.get_run_phase_name()] = true
 			assert_eq(main.get_run_phase_name(), "BIOME_INTRO")
-			assert_true(main.interstitial_title_label.text.contains("Biome %d/6" % (shop_visits + 1)))
-			assert_eq(main.interstitial_continue_button.text, "Play Hole %d" % (expected_hole + 1))
+			assert_eq(main.transition_presentation.eyebrow_label.text, "BIOME %02d / 06" % (shop_visits + 1))
+			assert_eq(main.interstitial_continue_button.text, "PLAY HOLE %02d" % (expected_hole + 1))
 			main.interstitial_continue_button.pressed.emit()
 			seen_states[main.get_run_phase_name()] = true
 
 	assert_eq(shop_visits, 5)
 	assert_eq(main.get_run_phase_name(), "RUN_RESULTS")
-	assert_eq(main.interstitial_title_label.text, "Run Results")
-	assert_true(main.interstitial_body_label.text.contains("All 18 holes complete."))
-	assert_eq(main.interstitial_continue_button.text, "See Ending")
+	assert_eq(main.interstitial_title_label.text, "COURSE COMPLETE")
+	assert_true(main.interstitial_body_label.text.contains("SIX BIOMES"))
+	assert_eq(main.interstitial_continue_button.text, "SEE ENDING")
 	main.interstitial_continue_button.pressed.emit()
 	seen_states[main.get_run_phase_name()] = true
 	assert_eq(main.get_run_phase_name(), "ENDING")
-	assert_eq(main.interstitial_title_label.text, "A Stroke of Luck")
-	assert_true(main.interstitial_body_label.text.contains("all eighteen holes"))
-	assert_eq(main.interstitial_continue_button.text, "New Run")
+	assert_eq(main.interstitial_title_label.text, "ANOTHER ROUND?")
+	assert_true(main.interstitial_body_label.text.contains("Eighteen flags down"))
+	assert_eq(main.interstitial_continue_button.text, "NEW RUN")
 
 	main.tokens = 99
 	main.owned_cards.append("Stale Card")
@@ -381,7 +385,7 @@ func test_full_eighteen_hole_smoke_visits_every_runtime_state_and_resets() -> vo
 	main.interstitial_continue_button.pressed.emit()
 	seen_states[main.get_run_phase_name()] = true
 	assert_eq(main.get_run_phase_name(), "RUN_START")
-	assert_eq(main.interstitial_title_label.text, "Run Intro")
+	assert_eq(main.interstitial_title_label.text, "TEE OFF")
 	assert_ne(main.run_seed, previous_seed)
 	assert_eq(main.tokens, 2)
 	assert_true(main.owned_cards.is_empty())
@@ -404,12 +408,12 @@ func test_hud_menu_resume_and_tutorial_buttons_are_navigable() -> void:
 	assert_false(main.score_label.visible)
 	assert_true(main.release_hud.visible)
 	assert_eq(main.release_hud.biome_label.text, "TUTORIAL")
-	assert_eq(main.release_hud.hole_label.text, "HOLE 1 / 6")
+	assert_eq(main.release_hud.hole_label.text, "01 / 06")
 
 	main.menu_button.pressed.emit()
 	assert_true(main.main_menu_overlay.visible)
 	assert_true(main.menu_resume_button.visible)
-	assert_true(main.menu_skip_button.visible)
+	assert_not_null(main.menu_settings_button)
 	assert_true(main.ball.simulation_paused)
 	assert_eq(main.level_builder.level_root.process_mode, Node.PROCESS_MODE_DISABLED)
 	main.menu_resume_button.pressed.emit()
@@ -419,10 +423,14 @@ func test_hud_menu_resume_and_tutorial_buttons_are_navigable() -> void:
 	assert_eq(main.level_builder.level_root.process_mode, Node.PROCESS_MODE_INHERIT)
 
 	main.menu_button.pressed.emit()
-	main.menu_skip_button.pressed.emit()
+	main.menu_settings_button.pressed.emit()
+	assert_true(main.settings_screen.visible)
+	main.settings_screen.close_button.pressed.emit()
+	assert_false(main.settings_screen.visible)
+	main.menu_play_button.pressed.emit()
 	assert_false(main.tutorial_mode)
 	assert_eq(main.get_run_phase_name(), "RUN_START")
-	assert_eq(main.interstitial_title_label.text, "Run Intro")
+	assert_eq(main.interstitial_title_label.text, "TEE OFF")
 
 
 func test_menu_during_moving_ball_preserves_shot_and_blocks_background_progress() -> void:
@@ -448,6 +456,52 @@ func test_menu_during_moving_ball_preserves_shot_and_blocks_background_progress(
 	assert_eq(main.ball.linear_velocity, expected_velocity)
 
 
+func test_pause_freezes_and_resume_advances_a_pendulum_cycle() -> void:
+	var main = _spawn_playing_main()
+	var hazard = MovingHazardScript.new()
+	hazard.configure({
+		"type": "pendulum",
+		"pos": Vector2.ZERO,
+		"size": Vector2(38.0, 38.0),
+		"elevation": 0,
+		"period": 2.4,
+		"phase": 0.0,
+		"travel_radius": 60.0,
+		"blocks_main_route": false,
+	})
+	main.level_root.add_child(hazard)
+	await get_tree().physics_frame
+	main.menu_button.pressed.emit()
+	var paused_elapsed: float = hazard.elapsed
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	assert_eq(hazard.elapsed, paused_elapsed)
+	main.menu_resume_button.pressed.emit()
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	assert_gt(hazard.elapsed, paused_elapsed)
+
+
+func test_moving_hazard_contact_adds_one_penalty_and_one_reset_record() -> void:
+	var main = _spawn_playing_main()
+	var strokes_before: int = main.strokes
+	var total_before: int = main.total_strokes
+	var resets_before := int(main.run_stats.hazard_resets.get("pendulum", 0))
+	var level: Dictionary = main.levels[main.level_index]
+	var start_position: Vector2 = main.level_builder.level_point(level, "start", "start_cell")
+
+	main._on_reset_hazard_body_entered(main.ball, main.ball.global_position, &"pendulum")
+	assert_eq(main.strokes, strokes_before + 1)
+	assert_eq(main.total_strokes, total_before + 1)
+	assert_true(main.hazard_resetting)
+	await main.ball.hazard_sink_finished
+	await get_tree().process_frame
+
+	assert_false(main.hazard_resetting)
+	assert_eq(int(main.run_stats.hazard_resets.get("pendulum", 0)), resets_before + 1)
+	assert_eq(main.ball.global_position, start_position)
+
+
 func test_manual_reset_at_par_plus_four_forces_result_without_erasing_cost() -> void:
 	var main = _spawn_playing_main()
 	var par: int = main.levels[main.level_index].par
@@ -464,6 +518,41 @@ func test_manual_reset_at_par_plus_four_forces_result_without_erasing_cost() -> 
 	assert_eq(main.run_stats.total_strokes, par + 4)
 	assert_eq(main.get_run_phase_name(), "HOLE_RESULTS")
 	assert_true(main.last_hole_forced)
+
+
+func test_out_of_bounds_countdown_returns_to_shot_origin_without_double_accounting() -> void:
+	var main = _spawn_playing_main()
+	var safe_position: Vector2 = main.ball.global_position
+	main._on_ball_shot_started(safe_position, Vector2.RIGHT, 1.0)
+	var strokes_after_shot: int = main.strokes
+	var total_after_shot: int = main.total_strokes
+	var resets_before: Dictionary = main.run_stats.hazard_resets.duplicate()
+
+	main.ball.global_position = Vector2(100000.0, 100000.0)
+	main._update_out_of_bounds_recovery(0.1)
+	assert_true(main.out_of_bounds_active)
+	assert_true(main.release_hud.oob_panel.visible)
+	assert_string_contains(main.release_hud.oob_countdown_label.text, "3")
+	main._update_out_of_bounds_recovery(3.0)
+
+	assert_false(main.out_of_bounds_active)
+	assert_false(main.release_hud.oob_panel.visible)
+	assert_eq(main.ball.global_position, safe_position)
+	assert_eq(main.strokes, strokes_after_shot)
+	assert_eq(main.total_strokes, total_after_shot)
+	assert_eq(main.run_stats.hazard_resets, resets_before)
+
+
+func test_out_of_bounds_warning_cancels_when_ball_returns_to_play() -> void:
+	var main = _spawn_playing_main()
+	var safe_position: Vector2 = main.ball.global_position
+	main.ball.global_position = Vector2(-100000.0, -100000.0)
+	main._update_out_of_bounds_recovery(0.5)
+	assert_true(main.out_of_bounds_active)
+	main.ball.global_position = safe_position
+	main._update_out_of_bounds_recovery(0.1)
+	assert_false(main.out_of_bounds_active)
+	assert_false(main.release_hud.oob_panel.visible)
 
 
 func _spawn_main_menu() -> Variant:

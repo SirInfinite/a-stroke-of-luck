@@ -3,6 +3,10 @@ extends Node
 
 signal skip_requested
 
+const UIStyleScript := preload("res://scripts/ui/ui_style.gd")
+const UIIconScript := preload("res://scripts/ui/ui_icon.gd")
+const UIActionButtonScript := preload("res://scripts/ui/ui_action_button.gd")
+
 class Highlight:
 	extends Node2D
 
@@ -43,6 +47,8 @@ var main: Node
 var canvas_layer: CanvasLayer
 var hint_panel: PanelContainer
 var hint_label: Label
+var hint_icon: UIIcon
+var lesson_label: Label
 var skip_button: Button
 var highlight := Highlight.new()
 var current_level: Dictionary = {}
@@ -55,6 +61,8 @@ var last_aim_power := 0.0
 var last_shot_active := false
 var blocker_text := ""
 var blocker_timer := 0.0
+var _last_presented_hint := ""
+var _hint_tween: Tween
 
 
 static func is_tutorial_complete() -> bool:
@@ -153,31 +161,65 @@ func _process(delta: float) -> void:
 
 func _create_overlay() -> void:
 	hint_panel = PanelContainer.new()
+	hint_panel.name = "TutorialCoach"
 	hint_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	hint_panel.position = Vector2(650.0, 24.0)
-	hint_panel.custom_minimum_size = Vector2(420.0, 68.0)
 	canvas_layer.add_child(hint_panel)
+	hint_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	hint_panel.offset_left = -365.0
+	hint_panel.offset_top = 122.0
+	hint_panel.offset_right = 365.0
+	hint_panel.offset_bottom = 230.0
+	hint_panel.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK_DEEP, 0.94), Color(UIStyleScript.FOCUS, 0.78), 15, 3, 9))
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 18)
-	margin.add_theme_constant_override("margin_top", 12)
-	margin.add_theme_constant_override("margin_right", 18)
-	margin.add_theme_constant_override("margin_bottom", 12)
+	margin.add_theme_constant_override("margin_left", 13)
+	margin.add_theme_constant_override("margin_top", 9)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_bottom", 9)
 	hint_panel.add_child(margin)
 
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	margin.add_child(row)
+	var icon_stage := PanelContainer.new()
+	icon_stage.custom_minimum_size = Vector2(58.0, 58.0)
+	icon_stage.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color("234239"), UIStyleScript.FOCUS, 12, 2, 3))
+	row.add_child(icon_stage)
+	var icon_center := CenterContainer.new()
+	icon_stage.add_child(icon_center)
+	hint_icon = UIIconScript.new()
+	hint_icon.custom_minimum_size = Vector2(42.0, 42.0)
+	hint_icon.configure(&"tutorial", UIStyleScript.PAPER, UIStyleScript.FOCUS)
+	icon_center.add_child(hint_icon)
+	var copy := VBoxContainer.new()
+	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	copy.alignment = BoxContainer.ALIGNMENT_CENTER
+	copy.add_theme_constant_override("separation", -2)
+	row.add_child(copy)
+	lesson_label = Label.new()
+	lesson_label.text = "PRACTICE ROUND"
+	UIStyleScript.apply_ui(lesson_label, 11, UIStyleScript.FOCUS, true)
+	copy.add_child(lesson_label)
 	hint_label = Label.new()
-	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	hint_label.custom_minimum_size.y = 44.0
 	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint_label.add_theme_font_size_override("font_size", 22)
-	margin.add_child(hint_label)
+	hint_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_WORD_ELLIPSIS
+	UIStyleScript.apply_ui(hint_label, 18, UIStyleScript.PAPER, true)
+	copy.add_child(hint_label)
 
-	skip_button = Button.new()
-	skip_button.text = "Skip Tutorial"
-	skip_button.position = Vector2(1740.0, 24.0)
-	skip_button.custom_minimum_size = Vector2(150.0, 40.0)
-	skip_button.pressed.connect(func() -> void: skip_requested.emit())
+	skip_button = UIActionButtonScript.new()
+	skip_button.name = "SkipTutorialButton"
+	skip_button.custom_minimum_size = Vector2(188.0, 52.0)
 	canvas_layer.add_child(skip_button)
+	skip_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	skip_button.offset_left = -202.0
+	skip_button.offset_top = -72.0
+	skip_button.offset_right = -14.0
+	skip_button.offset_bottom = -14.0
+	skip_button.pressed.connect(func() -> void: skip_requested.emit())
+	(skip_button as UIActionButton).configure("SKIP", &"continue", &"quiet")
 
 
 func _advance_completed_steps() -> void:
@@ -193,6 +235,7 @@ func _update_hint() -> void:
 	if blocker_text != "":
 		hint_label.text = blocker_text
 		hint_panel.visible = true
+		_update_hint_presentation()
 		return
 
 	var steps: Array = current_level.get("steps", [])
@@ -205,7 +248,44 @@ func _update_hint() -> void:
 	var step: Dictionary = steps[current_step_index]
 	hint_label.text = String(step.get("text", ""))
 	hint_panel.visible = hint_label.text != ""
+	_update_hint_presentation()
 	_update_highlight_position()
+
+
+func _update_hint_presentation() -> void:
+	if not hint_panel or not hint_panel.visible:
+		return
+	lesson_label.text = "PRACTICE %d / %d  •  STEP %d" % [current_level_index + 1, maxi(level_count, 1), current_step_index + 1]
+	var icon_name := &"tutorial"
+	var step := _current_step()
+	var target := String(step.get("target", ""))
+	var event_name := String(step.get("event", ""))
+	if target == "ball":
+		icon_name = &"control"
+	elif target == "hole":
+		icon_name = &"hole"
+	elif target == "shop":
+		icon_name = &"shop"
+	elif event_name.contains("sand"):
+		icon_name = &"sand"
+	elif event_name.contains("water"):
+		icon_name = &"water"
+	elif event_name.contains("curse"):
+		icon_name = &"curse"
+	elif event_name.contains("benefit"):
+		icon_name = &"bonus"
+	hint_icon.configure(icon_name, UIStyleScript.PAPER, UIStyleScript.FOCUS)
+	if hint_label.text == _last_presented_hint:
+		return
+	_last_presented_hint = hint_label.text
+	if _hint_tween:
+		_hint_tween.kill()
+	hint_panel.pivot_offset = hint_panel.size * 0.5
+	hint_panel.scale = Vector2(0.985, 0.985)
+	hint_panel.modulate = Color(UIStyleScript.FOCUS, 0.62)
+	_hint_tween = create_tween().set_parallel(true)
+	_hint_tween.tween_property(hint_panel, "scale", Vector2.ONE, 0.16).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_hint_tween.tween_property(hint_panel, "modulate", Color.WHITE, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 
 
 func _update_highlight_position() -> void:

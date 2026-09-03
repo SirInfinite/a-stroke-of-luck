@@ -48,7 +48,7 @@ func test_shared_course_renderer_builds_all_required_visual_assets_for_every_bio
 		assert_not_null(level_root.get_node_or_null("BiomeAmbience"))
 		assert_not_null(level_root.get_node_or_null("Green"))
 		assert_not_null(level_root.get_node_or_null("TeeStartMarker"))
-		assert_not_null(level_root.get_node_or_null("PuttingGreen"))
+		assert_not_null(level_root.get_node_or_null("PuttingSurface"))
 		assert_not_null(level_root.get_node_or_null("FlagAsset"))
 		assert_not_null(level_root.get_node_or_null("Hole"))
 		assert_eq(_decoration_count(level_root), 8)
@@ -106,11 +106,12 @@ func test_tee_flag_and_green_avoid_target_ring_language() -> void:
 
 	var green := CourseVisualFactory.create_green_patch(Color("8dcf63"), Color("252a2c"), 28.0)
 	assert_null(green.get_node_or_null("GreenOutline"))
-	assert_not_null(green.get_node_or_null("GreenShadow"))
-	assert_not_null(green.get_node_or_null("GreenSurface"))
+	assert_null(green.get_node_or_null("GreenShadow"))
+	assert_not_null(green.get_node_or_null("BiomePuttingTile"))
 	green.free()
 
 	var flag := CourseVisualFactory.create_flag(Color("d9534f"), Color("252a2c"))
+	assert_null(flag.get_node_or_null("FlagShadow"))
 	assert_not_null(flag.get_node_or_null("Pole"))
 	assert_not_null(flag.get_node_or_null("Flag"))
 	flag.free()

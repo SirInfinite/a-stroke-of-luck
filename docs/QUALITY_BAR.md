@@ -16,7 +16,8 @@ A player-facing feature is finished only when it is correct, understandable, sat
 - A first-time player can identify the feature, its state, and its consequence without developer explanation.
 - Inputs and outcomes have timely visual feedback; important effects also have non-color cues.
 - Shop text states both benefit and penalty before purchase and agrees with actual behavior.
-- HUD and results use consistent terms, values, and hierarchy.
+- HUD and results use consistent terms, values, icon language, and hierarchy; repeated text does not substitute for a readable visual symbol where one is established.
+- Hole history never exposes future data, result stars visibly prioritize stroke efficiency, seed copy/input feedback is plain-language, and every settings control demonstrably changes its advertised system.
 
 ### Good Game Feel
 
@@ -29,7 +30,7 @@ A player-facing feature is finished only when it is correct, understandable, sat
 
 - Presentation follows `ART_DIRECTION.md` at gameplay scale.
 - Collision footprints, hazard boundaries, aim information, disabled states, and active penalties are legible.
-- Layout works at the project’s 1920×1080 target with no overlap, clipping, unreadable text, or mouse-blocking decoration.
+- Layout works at 1920×1080, 1600×900, 1280×720, and the explicitly tested large/ultrawide frames with no overlap, clipping, unreadable text, hidden card disclosure, engine-clear-color exposure, or mouse-blocking decoration.
 - Placeholders are acceptable only when explicitly outside the requested polish scope and clearly tracked.
 
 ### Resilient
@@ -53,9 +54,9 @@ A player-facing feature is finished only when it is correct, understandable, sat
 |---|---|
 | Shot/physics | Tested at low, medium, and high power and preview distance; terrain entry/exit; menu pause/resume while moving; reset while moving; no duplicate or refunded stroke. |
 | Card/economy | Affordability, deduction, disclosed effects, stacking, duration/expiry, and HUD/results reporting. |
-| Hole/hazard | Validator-builder contract pass, reachable main route, escapable branches/dead ends, boundary containment, elevation transitions/crossings, readable static/moving telegraphs, and tested reset behavior. |
-| UI/screen | Mouse and keyboard usability, all button states, long text/value cases, transition in/out, and 1920×1080 capture. |
-| Audio/music | All streams load, one exclusive music/ambience state, physical semantic cues, failure/success separation, no duplicate/stuck voices, provenance, and full-run listening on speakers/headphones. |
+| Hole/hazard | Validator-builder contract pass, quality-scored reachable main route, exclusive placement occupancy, escapable branches/dead ends, boundary/OOB containment, elevation transitions/crossings, readable static/moving telegraphs, and tested reset behavior. |
+| UI/screen | Mouse and keyboard usability, all button/settings/history states, long text/value cases, transition in/out, 1920×1080 reference captures, 1600×900 plus 1280×720 fit checks, and no clear-color exposure at tested large/ultrawide sizes. |
+| Audio/music | All eight distinct theme streams load, one exclusive music/ambience state, physical semantic cues, failure/success separation, no duplicate/stuck voices, provenance, and full-run listening on speakers/headphones. |
 | Tutorial | Fresh save, completed save, skip/restart, required event, blocker, and return to normal run. |
 | Run progression | Full 18-hole/six-biome run, correct local and overall indices, five biome shops, results timing, timer pause, ending, and clean new-run reset. |
 

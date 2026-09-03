@@ -64,6 +64,8 @@ var trajectory_dot_bonus := 0
 var roll_damping_multiplier := 1.0
 var base_linear_damp := -1.0
 var base_keyboard_power_speed := -1.0
+var base_keyboard_turn_speed := -1.0
+var trajectory_preview_enabled := true
 var input_enabled := true
 var simulation_paused := false
 var current_elevation := 0
@@ -83,6 +85,7 @@ var _trajectory_backing_color := Color(0.145, 0.165, 0.173, 0.58)
 func _ready() -> void:
 	base_linear_damp = linear_damp
 	base_keyboard_power_speed = keyboard_power_speed
+	base_keyboard_turn_speed = keyboard_turn_speed
 	contact_monitor = true
 	max_contacts_reported = 8
 	_update_elevation_collision_mask()
@@ -154,11 +157,10 @@ func _input(event: InputEvent) -> void:
 	if sunk or simulation_paused:
 		return
 
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_SPACE or event.keycode == KEY_ENTER:
-			if keyboard_active:
-				shoot(_keyboard_shot_impulse())
-				_hide_previews()
+	if event.is_action_pressed("shoot") or event.is_action_pressed("ui_accept"):
+		if keyboard_active:
+			shoot(_keyboard_shot_impulse())
+			_hide_previews()
 
 	if event.is_action_pressed("left_mb"):
 		_select_if_mouse_is_on_ball()
@@ -234,6 +236,17 @@ func set_input_enabled(enabled: bool) -> void:
 		selected = false
 		keyboard_active = false
 		_hide_previews()
+
+
+func apply_player_settings(show_trajectory: bool, aim_sensitivity: float) -> void:
+	trajectory_preview_enabled = show_trajectory
+	var bounded_sensitivity := clampf(aim_sensitivity, 0.5, 2.0)
+	if base_keyboard_turn_speed >= 0.0:
+		keyboard_turn_speed = base_keyboard_turn_speed * bounded_sensitivity
+	if base_keyboard_power_speed >= 0.0:
+		keyboard_power_speed = base_keyboard_power_speed * bounded_sensitivity
+	if not trajectory_preview_enabled:
+		trajectory_prediction_changed.emit({})
 
 
 func set_gameplay_simulation_paused(paused: bool) -> void:
@@ -493,7 +506,7 @@ func _update_shot_previews(power_line: Vector2, impulse: Vector2) -> void:
 
 
 func _emit_trajectory_prediction(impulse: Vector2, power: float) -> void:
-	if impulse.is_zero_approx():
+	if impulse.is_zero_approx() or not trajectory_preview_enabled:
 		trajectory_prediction_changed.emit({})
 		return
 

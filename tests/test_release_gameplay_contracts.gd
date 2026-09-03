@@ -21,6 +21,12 @@ func test_trajectory_distance_scales_low_medium_high_without_fake_minimum() -> v
 	assert_lt(float(low.dot_spacing), float(high.dot_spacing))
 
 
+func test_ball_uses_shape_cast_continuous_collision_detection() -> void:
+	var ball = BALL_SCENE.instantiate()
+	add_child_autofree(ball)
+	assert_eq(ball.continuous_cd, RigidBody2D.CCD_MODE_CAST_SHAPE)
+
+
 func test_bounce_pad_is_deterministic_bounded_and_never_zero() -> void:
 	var incoming := Vector2(640.0, -120.0)
 	var first: Vector2 = GameplayHazardScript.deterministic_bounce_velocity(incoming, 8147, 0, 0.76)
@@ -159,6 +165,112 @@ func test_moving_hazard_reset_restores_seeded_initial_state_without_timers() -> 
 	assert_almost_eq(hazard.rotation, initial_rotation, 0.0001)
 	assert_eq(hazard.find_children("*", "Timer", true, false).size(), 0)
 	hazard.free()
+
+
+func test_pendulum_traverses_both_sides_and_emits_reset_hit() -> void:
+	var hazard = MovingHazardScript.new()
+	hazard.configure({
+		"type": "pendulum",
+		"pos": Vector2.ZERO,
+		"size": Vector2(38.0, 38.0),
+		"elevation": 0,
+		"period": 2.4,
+		"phase": 0.0,
+		"travel_radius": 60.0,
+		"swing_angle": 0.9,
+		"blocks_main_route": false,
+	})
+	watch_signals(hazard)
+	var ball = BALL_SCENE.instantiate()
+	add_child_autofree(ball)
+	ball.set_current_elevation(0)
+
+	hazard.advance_cycle(0.6)
+	var first_side: float = hazard.position.x
+	hazard.advance_cycle(1.2)
+	var opposite_side: float = hazard.position.x
+	assert_lt(first_side * opposite_side, 0.0)
+	assert_almost_eq(absf(first_side), absf(opposite_side), 0.001)
+	hazard._on_detector_body_entered(ball)
+	assert_signal_emitted(hazard, "body_hit")
+	hazard.free()
+
+
+func test_falling_ice_is_invisible_until_trigger_then_lands_once_and_persists() -> void:
+	var hazard = MovingHazardScript.new()
+	hazard.configure({
+		"type": "falling_ice",
+		"pos": Vector2.ZERO,
+		"size": Vector2(72.0, 72.0),
+		"elevation": 0,
+		"period": 2.4,
+		"phase": 0.0,
+		"telegraph_duration": 0.8,
+		"active_duration": 0.55,
+		"cooldown_duration": 1.15,
+		"drop_distance": 110.0,
+		"blocks_main_route": false,
+	})
+	hazard.setup_collision(Vector2(72.0, 72.0))
+	var visual := Node2D.new()
+	hazard.add_child(visual)
+	hazard.set_visual_node(visual)
+	watch_signals(hazard)
+	var ball = BALL_SCENE.instantiate()
+	add_child_autofree(ball)
+	ball.set_current_elevation(0)
+
+	assert_eq(hazard.fall_state, MovingHazardScript.FALL_ARMED)
+	assert_false(visual.visible)
+	hazard._on_detector_body_entered(ball)
+	assert_eq(hazard.fall_state, MovingHazardScript.FALL_DROPPING)
+	assert_true(visual.visible)
+	assert_signal_emit_count(hazard, "telegraph_started", 1)
+	hazard._on_detector_body_entered(ball)
+	assert_signal_emit_count(hazard, "telegraph_started", 1)
+	hazard.advance_cycle(0.8)
+	assert_eq(hazard.fall_state, MovingHazardScript.FALL_LANDED)
+	assert_true(hazard.active)
+	assert_true(visual.visible)
+	assert_eq(visual.position, Vector2.ZERO)
+	hazard.advance_cycle(10.0)
+	assert_eq(hazard.fall_state, MovingHazardScript.FALL_LANDED)
+	hazard.free()
+
+
+func test_falling_ice_landing_on_ball_emits_exactly_one_crush_hit() -> void:
+	var hazard = MovingHazardScript.new()
+	hazard.configure({
+		"type": "falling_ice",
+		"pos": Vector2.ZERO,
+		"size": Vector2(72.0, 72.0),
+		"elevation": 0,
+		"period": 2.4,
+		"phase": 0.0,
+		"telegraph_duration": 0.2,
+		"active_duration": 0.55,
+		"cooldown_duration": 1.15,
+		"drop_distance": 110.0,
+		"blocks_main_route": false,
+	})
+	hazard.setup_collision(Vector2(72.0, 72.0))
+	add_child_autofree(hazard)
+	watch_signals(hazard)
+
+	var ball = BALL_SCENE.instantiate()
+	ball.position = Vector2.ZERO
+	ball.set_current_elevation(0)
+	add_child_autofree(ball)
+	await get_tree().physics_frame
+	if hazard.fall_state == MovingHazardScript.FALL_ARMED:
+		hazard._on_detector_body_entered(ball)
+	hazard.advance_cycle(0.2)
+	await get_tree().process_frame
+
+	assert_eq(hazard.fall_state, MovingHazardScript.FALL_LANDED)
+	assert_signal_emit_count(hazard, "body_hit", 1)
+	await get_tree().process_frame
+	assert_signal_emit_count(hazard, "body_hit", 1, "A landed block must not duplicate the crush reset signal.")
 
 
 func _prediction_for_power(power: float) -> Dictionary:

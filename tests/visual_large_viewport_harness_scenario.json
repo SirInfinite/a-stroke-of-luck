@@ -1,0 +1,20 @@
+{
+  "scene_path": "tests/visual_large_viewport_harness.tscn",
+  "viewport_size": {"width": 1920, "height": 1080},
+  "settle_frames": 8,
+  "steps": [
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "logical_width", "expected": 2560},
+    {"type": "screenshot", "path": "user://release_ui_true_2560_main_menu.png"},
+    {"type": "key", "keycode": 4194309, "pressed": true},
+    {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_frames", "frames": 5},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "logical_width", "expected": 3440},
+    {"type": "screenshot", "path": "user://release_ui_true_3440_main_menu.png"},
+    {"type": "key", "keycode": 4194309, "pressed": true},
+    {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_seconds", "seconds": 0.75},
+    {"type": "assert", "assertion": "node_exists", "node_path": "LargeViewport/Main/Level/BiomeBackground"},
+    {"type": "assert", "assertion": "node_exists", "node_path": "LargeViewport/Main/Level/BiomeAmbience"},
+    {"type": "screenshot", "path": "user://release_ui_true_3440_hud.png"}
+  ]
+}

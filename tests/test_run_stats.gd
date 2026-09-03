@@ -13,6 +13,7 @@ func test_reset_restores_current_baseline_values() -> void:
 	stats.record_hazard_entered("direction")
 	stats.record_hazard_entered("future_hazard")
 	stats.record_water_reset()
+	stats.record_hazard_reset("pendulum")
 	stats.record_manual_reset()
 	stats.update_time(12.5)
 
@@ -27,5 +28,6 @@ func test_reset_restores_current_baseline_values() -> void:
 		"direction": 0
 	})
 	assert_eq(stats.water_resets, 0)
+	assert_true(stats.hazard_resets.is_empty())
 	assert_eq(stats.manual_resets, 0)
 	assert_eq(stats.total_run_time, 0.0)

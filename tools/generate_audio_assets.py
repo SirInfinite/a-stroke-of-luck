@@ -272,46 +272,52 @@ def generate_final_run_completion() -> None:
 
 MUSIC_THEMES = {
     "menu": {
-        "root": 60, "scale": (0, 2, 4, 7, 9), "tempo": 112.0,
-        "chords": (0, 3, 1, 4, 0, 3, 4, 1),
-        "motif": (0, 2, 4, 2, 1, -1, 0, 2, 4, 5, 4, 2, 1, 2, 0, -1),
-        "instrument": "pluck", "drums": 0.35,
+        "style": "lucky_waltz", "root": 60, "scale": (0, 2, 4, 7, 9),
+        "tempo": 80.0, "bar_beats": 3, "bars": 16,
+        "chords": (0, 3, 1, 4, 0, 2, 4, 1),
+        "motif": (0, 2, 4, -1, 5, 4, 2, -1, 1, 3, 5, -1),
+    },
+    "tutorial": {
+        "style": "practice_steps", "root": 60, "scale": (0, 2, 4, 5, 7, 9),
+        "tempo": 92.0, "bar_beats": 4, "bars": 16,
+        "chords": (0, 3, 4, 0, 1, 3, 4, 0),
+        "motif": (0, -1, 2, -1, 4, -1, 2, -1, 1, -1, 3, -1, 4, 3, 2, -1),
     },
     "meadow": {
-        "root": 62, "scale": (0, 2, 4, 7, 9), "tempo": 120.0,
-        "chords": (0, 3, 4, 1, 0, 4, 3, 1),
-        "motif": (0, 2, 4, 5, 4, 2, 1, -1, 2, 4, 6, 4, 3, 2, 0, -1),
-        "instrument": "pluck", "drums": 0.42,
+        "style": "open_fairway", "root": 62, "scale": (0, 2, 4, 7, 9),
+        "tempo": 116.0, "bar_beats": 4, "bars": 20,
+        "chords": (0, 3, 4, 1, 0, 4, 3, 1, 2, 4),
+        "motif": (0, 2, 4, 5, -1, 4, 2, 1, 2, 4, 6, -1, 5, 4, 2, -1),
     },
     "desert": {
-        "root": 57, "scale": (0, 1, 4, 5, 7, 8, 10), "tempo": 108.0,
-        "chords": (0, 3, 1, 0, 4, 3, 1, 0),
-        "motif": (0, 1, 2, 1, 0, -1, 4, 3, 2, 1, 0, 1, 3, 2, 1, -1),
-        "instrument": "reed", "drums": 0.55,
+        "style": "seven_step_caravan", "root": 57, "scale": (0, 1, 4, 5, 7, 8, 10),
+        "tempo": 106.0, "bar_beats": 3.5, "bars": 20,
+        "chords": (0, 3, 1, 0, 4, 3, 1, 0, 5, 1),
+        "motif": (0, 1, 2, -1, 1, 4, -1, 3, 2, 1, 0, -1, 5, -1),
     },
     "autumn": {
-        "root": 57, "scale": (0, 2, 3, 5, 7, 8, 10), "tempo": 104.0,
+        "style": "leaf_ballad", "root": 57, "scale": (0, 2, 3, 5, 7, 8, 10),
+        "tempo": 84.0, "bar_beats": 3, "bars": 16,
         "chords": (0, 5, 3, 4, 0, 2, 3, 4),
-        "motif": (4, 3, 2, 0, 2, -1, 3, 4, 5, 4, 3, 1, 2, 1, 0, -1),
-        "instrument": "mallet", "drums": 0.30,
+        "motif": (4, -1, 3, 2, -1, 0, 2, -1, 3, 5, -1, 4, 3, 1, 2, -1, 1, 0),
     },
     "snow": {
-        "root": 65, "scale": (0, 2, 3, 7, 9), "tempo": 96.0,
+        "style": "crystal_air", "root": 65, "scale": (0, 2, 3, 7, 9),
+        "tempo": 72.0, "bar_beats": 5, "bars": 8,
         "chords": (0, 2, 3, 1, 0, 3, 2, 1),
-        "motif": (0, 2, 4, 2, 3, -1, 1, 2, 4, 6, 4, 3, 2, 1, 0, -1),
-        "instrument": "bell", "drums": 0.18,
+        "motif": (0, -1, -1, 2, -1, 4, -1, -1, 3, -1, 1, -1, -1, 4, -1, 6, -1, -1, 2, -1),
     },
     "swamp": {
-        "root": 50, "scale": (0, 3, 5, 6, 7, 10), "tempo": 88.0,
+        "style": "bog_shuffle", "root": 50, "scale": (0, 3, 5, 6, 7, 10),
+        "tempo": 72.0, "bar_beats": 6, "bars": 8,
         "chords": (0, 3, 1, 0, 4, 1, 3, 0),
-        "motif": (0, -1, 1, 0, 3, 2, 1, -1, 0, 2, 4, 3, 2, 1, 0, -1),
-        "instrument": "reed", "drums": 0.28,
+        "motif": (0, -1, 1, 0, -1, 3, 2, -1, 1, -1, 0, -1, 4, 3, -1, 2, 1, -1, 0, -1, 2, -1, 5, -1),
     },
     "volcanic": {
-        "root": 45, "scale": (0, 1, 3, 5, 6, 8, 10), "tempo": 128.0,
-        "chords": (0, 1, 0, 4, 0, 3, 1, 0),
-        "motif": (0, 1, 3, 1, 0, 4, 3, 1, 0, 1, 5, 4, 3, 1, 0, -1),
-        "instrument": "mallet", "drums": 0.72,
+        "style": "magma_drive", "root": 45, "scale": (0, 1, 3, 5, 6, 8, 10),
+        "tempo": 132.0, "bar_beats": 4, "bars": 24,
+        "chords": (0, 1, 0, 4, 0, 3, 1, 0, 5, 1, 0, 4),
+        "motif": (0, 1, 3, 1, 0, -1, 4, 3, 1, 0, 1, 5, 4, 3, 1, -1),
     },
 }
 
@@ -326,54 +332,160 @@ def _instrument_sample(kind: str, frequency: float, time: float) -> float:
     return 0.78 * _triangle(frequency, time) + 0.22 * _tone(frequency * 2.0, time)
 
 
+def _sequence_voice(
+    time: float,
+    step_duration: float,
+    sequence: tuple[int, ...],
+    root: int,
+    scale: tuple[int, ...],
+    octave: int,
+    instrument: str,
+    gate: float,
+    gain: float,
+    phase_steps: int = 0,
+) -> float:
+    step_index = int(time / step_duration) + phase_steps
+    degree = int(sequence[step_index % len(sequence)])
+    if degree < 0:
+        return 0.0
+    local = time % step_duration
+    note = _scale_note(root + octave * 12, scale, degree)
+    envelope = _note_envelope(local, step_duration * gate, 0.012, step_duration * (0.42 if instrument == "bell" else 0.24))
+    return _instrument_sample(instrument, _midi(note), local) * envelope * gain
+
+
+def _chord_bed(
+    time: float,
+    bar_duration: float,
+    bar: int,
+    root: int,
+    scale: tuple[int, ...],
+    chords: tuple[int, ...],
+    gain: float,
+) -> float:
+    local = time % bar_duration
+    envelope = _note_envelope(local, bar_duration * 0.985, min(0.16, bar_duration * 0.08), min(0.42, bar_duration * 0.14))
+    degree = int(chords[bar % len(chords)])
+    sound = 0.0
+    for offset, weight in ((0, 0.44), (2, 0.31), (4, 0.25)):
+        note = _scale_note(root, scale, degree + offset)
+        sound += _tone(_midi(note), local) * weight
+    return sound * envelope * gain
+
+
 def generate_music_theme(name: str, config: dict) -> None:
+    style = str(config["style"])
     root = int(config["root"])
     scale = tuple(config["scale"])
     tempo = float(config["tempo"])
+    bar_beats = float(config["bar_beats"])
+    bars = int(config["bars"])
     chords = tuple(config["chords"])
     motif = tuple(config["motif"])
-    instrument = str(config["instrument"])
-    drums = float(config["drums"])
-    eighth = 30.0 / tempo
-    steps = 64
-    duration = eighth * steps
+    beat = 60.0 / tempo
+    bar_duration = beat * bar_beats
+    duration = bar_duration * bars
 
     def sample(time: float) -> float:
-        step = min(int(time / eighth), steps - 1)
-        local = time - step * eighth
-        bar = step // 8
+        bar = min(int(time / bar_duration), bars - 1)
+        bar_local = time - bar * bar_duration
+        section = bar // max(1, bars // 4)
         chord_degree = int(chords[bar % len(chords)])
-        motif_degree = int(motif[step % len(motif)])
-        variation = 1 if step >= 32 and step % 16 in (10, 12) else 0
-        melody = 0.0
-        if motif_degree >= 0:
-            note = _scale_note(root + 12, scale, motif_degree + variation)
-            melody_env = _note_envelope(local, eighth * 0.93, 0.012, eighth * (0.34 if instrument != "bell" else 0.55))
-            melody = _instrument_sample(instrument, _midi(note), local) * melody_env * 0.43
+        bed_gain = {
+            "lucky_waltz": 0.18,
+            "practice_steps": 0.15,
+            "open_fairway": 0.12,
+            "seven_step_caravan": 0.10,
+            "leaf_ballad": 0.20,
+            "crystal_air": 0.13,
+            "bog_shuffle": 0.11,
+            "magma_drive": 0.09,
+        }[style]
+        bed = _chord_bed(time, bar_duration, bar, root, scale, chords, bed_gain)
 
-        beat = step // 2
-        beat_local = time - beat * eighth * 2.0
-        bass_note = _scale_note(root - 12, scale, chord_degree)
-        bass = _tone(_midi(bass_note), beat_local) * _note_envelope(beat_local, eighth * 1.75, 0.008, eighth * 0.58) * 0.34
+        if style == "lucky_waltz":
+            melody = _sequence_voice(time, beat / 2.0, motif, root, scale, 1, "pluck", 0.78, 0.28)
+            reply = _sequence_voice(max(0.0, time - beat * 0.75), beat, (4, -1, 3, -1, 2, -1), root, scale, 1, "bell", 0.82, 0.11, section)
+            bass_local = bar_local
+            bass_note = _scale_note(root - 12, scale, chord_degree)
+            bass = _tone(_midi(bass_note), bass_local) * _note_envelope(bass_local, beat * 1.55, 0.02, 0.4) * 0.23
+            waltz_step = int(bar_local / beat)
+            strum_local = bar_local % beat
+            strum = _triangle(_midi(_scale_note(root, scale, chord_degree + (2 if waltz_step else 0))), strum_local)
+            strum *= _note_envelope(strum_local, beat * 0.62, 0.01, 0.18) * (0.06 if waltz_step else 0.035)
+            return bed + melody + reply + bass + strum
 
-        half_bar = eighth * 4.0
-        chord_local = time % half_bar
-        chord = 0.0
-        chord_env = _note_envelope(chord_local, half_bar * 0.96, 0.09, 0.25)
-        for offset, weight in ((0, 0.16), (2, 0.12), (4, 0.10)):
-            chord_note = _scale_note(root, scale, chord_degree + offset)
-            chord += _tone(_midi(chord_note), chord_local) * weight * chord_env
+        if style == "practice_steps":
+            melody = _sequence_voice(time, beat / 2.0, motif, root, scale, 1, "pluck", 0.58, 0.24)
+            bass = _sequence_voice(time, beat, (0, 2, 4, 2), root - 12, scale, 0, "pluck", 0.66, 0.18, bar)
+            tick_local = time % beat
+            tick = _tone(880.0 if int(time / beat) % 4 == 0 else 660.0, tick_local) * math.exp(-42.0 * tick_local) * 0.025
+            answer = _sequence_voice(max(0.0, time - bar_duration * 0.5), beat, (4, -1, 3, -1), root, scale, 1, "mallet", 0.5, 0.09, section)
+            return bed + melody + bass + tick + answer
 
-        beat_phase = time % (eighth * 2.0)
-        kick = _tone(76.0 - 24.0 * min(beat_phase / 0.11, 1.0), beat_phase) * math.exp(-32.0 * beat_phase) if beat_phase < 0.16 else 0.0
-        hat_phase = time % eighth
-        hat = (_tone(3920.0, hat_phase) + 0.45 * _tone(5710.0, hat_phase)) * math.exp(-74.0 * hat_phase) if hat_phase < 0.06 else 0.0
-        backbeat_phase = (time - eighth * 2.0) % (eighth * 4.0)
-        backbeat = _triangle(185.0, backbeat_phase) * math.exp(-34.0 * backbeat_phase) if backbeat_phase < 0.12 else 0.0
-        percussion = drums * (0.15 * kick + 0.035 * hat + 0.07 * backbeat)
-        return melody + bass + chord + percussion
+        if style == "open_fairway":
+            melody = _sequence_voice(time, beat / 2.0, motif, root, scale, 1, "pluck", 0.72, 0.26, section)
+            arpeggio = _sequence_voice(time, beat / 4.0, (0, 2, 4, 2, 1, 3, 5, 3), root, scale, 0, "pluck", 0.42, 0.075, bar)
+            bass = _sequence_voice(time, beat, (0, 2, 3, 4), root - 12, scale, 0, "reed", 0.7, 0.17, bar)
+            kick_local = time % beat
+            kick = _tone(72.0 - 18.0 * min(kick_local / 0.1, 1.0), kick_local) * math.exp(-31.0 * kick_local) * 0.075
+            clap_local = (time - beat) % (beat * 2.0)
+            clap = _triangle(210.0, clap_local) * math.exp(-38.0 * clap_local) * 0.03 if clap_local < 0.12 else 0.0
+            return bed + melody + arpeggio + bass + kick + clap
 
-    _write_wav("theme_%s.wav" % name, _render(duration, sample), 0.70)
+        if style == "seven_step_caravan":
+            eighth = beat / 2.0
+            melody = _sequence_voice(time, eighth, motif, root, scale, 1, "reed", 0.9, 0.24, section * 2)
+            drone = (_triangle(_midi(root - 12), time) * 0.12 + _tone(_midi(root - 5), time) * 0.06)
+            drone *= 0.72 + 0.28 * math.sin(math.pi * bar_local / bar_duration) ** 2
+            step = int(bar_local / eighth)
+            drum_local = bar_local % eighth
+            drum = 0.0
+            if step in (0, 3, 5):
+                drum = _tone(112.0 if step == 0 else 168.0, drum_local) * math.exp(-27.0 * drum_local) * (0.12 if step == 0 else 0.07)
+            pluck = _sequence_voice(time, beat, (0, -1, 3, 1), root - 12, scale, 0, "pluck", 0.48, 0.14, bar)
+            return bed + melody + drone + drum + pluck
+
+        if style == "leaf_ballad":
+            melody = _sequence_voice(time, beat / 2.0, motif, root, scale, 1, "mallet", 0.88, 0.25, section)
+            counter = _sequence_voice(max(0.0, time - beat), beat, (0, 2, -1, 4, 3, -1), root, scale, 0, "reed", 0.82, 0.09, bar)
+            bass_local = bar_local % beat
+            bass_note = _scale_note(root - 12, scale, chord_degree + (2 if int(bar_local / beat) == 2 else 0))
+            bass = _tone(_midi(bass_note), bass_local) * _note_envelope(bass_local, beat * 0.74, 0.02, 0.28) * 0.17
+            brush_local = bar_local % beat
+            brush = (_tone(1180.0, brush_local) + _tone(1530.0, brush_local, 0.4)) * math.exp(-58.0 * brush_local) * 0.012
+            return bed + melody + counter + bass + brush
+
+        if style == "crystal_air":
+            melody = _sequence_voice(time, beat / 2.0, motif, root, scale, 1, "bell", 0.98, 0.19, section)
+            echo = _sequence_voice(max(0.0, time - beat * 1.5), beat, (4, -1, 2, -1, 5), root, scale, 1, "bell", 0.96, 0.065, bar)
+            low_note = _scale_note(root - 12, scale, chord_degree)
+            low_air = (_tone(_midi(low_note), time) + 0.3 * _tone(_midi(low_note) * 2.0, time)) * 0.075
+            low_air *= 0.7 + 0.3 * _tone(1.0 / bar_duration, time)
+            return bed + melody + echo + low_air
+
+        if style == "bog_shuffle":
+            triplet = beat / 3.0
+            melody = _sequence_voice(time, triplet, motif, root, scale, 1, "reed", 0.82, 0.22, section * 3)
+            marimba = _sequence_voice(time, triplet * 2.0, (0, 3, 1, 4, 2, 1), root, scale, 0, "mallet", 0.5, 0.11, bar)
+            bass = _sequence_voice(max(0.0, time - triplet), beat, (0, 0, 3, 1, 4, 1), root - 12, scale, 0, "reed", 0.88, 0.18, bar)
+            bubble_local = (time - beat * 1.5) % (beat * 3.0)
+            bubble = _tone(440.0 - 160.0 * min(bubble_local / 0.18, 1.0), bubble_local) * math.exp(-22.0 * bubble_local) * 0.045 if bubble_local < 0.28 else 0.0
+            return bed + melody + marimba + bass + bubble
+
+        eighth = beat / 2.0
+        melody = _sequence_voice(time, eighth, motif, root, scale, 1, "mallet", 0.62, 0.22, section)
+        ostinato = _sequence_voice(time, beat / 4.0, (0, 0, 1, 0, 3, 0, 1, 4), root - 12, scale, 0, "reed", 0.62, 0.12, bar)
+        bass = _sequence_voice(time, beat, (0, 0, 4, 1), root - 12, scale, 0, "mallet", 0.74, 0.18, bar)
+        step = int(bar_local / eighth)
+        drum_local = bar_local % eighth
+        tom = 0.0
+        if step in (0, 2, 5, 7):
+            tom = _tone(84.0 if step in (0, 5) else 132.0, drum_local) * math.exp(-29.0 * drum_local) * (0.16 if step == 0 else 0.10)
+        pulse = _triangle(228.0, drum_local) * math.exp(-44.0 * drum_local) * 0.025
+        return bed + melody + ostinato + bass + tom + pulse
+
+    _write_wav("theme_%s.wav" % name, _render(duration, sample), 0.62)
 
 
 def generate_biome_ambience(name: str, seed: int) -> None:

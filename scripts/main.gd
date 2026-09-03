@@ -15,6 +15,16 @@ const ActiveCardCurseScript := preload("res://scripts/active_card_curse.gd")
 const ReleaseHUDScript := preload("res://scripts/release_hud.gd")
 const ShopPresentationScript := preload("res://scripts/shop_presentation.gd")
 const TransitionPresentationScript := preload("res://scripts/transition_presentation.gd")
+const UIStyleScript := preload("res://scripts/ui/ui_style.gd")
+const UIIconScript := preload("res://scripts/ui/ui_icon.gd")
+const UIBackdropScript := preload("res://scripts/ui/ui_backdrop.gd")
+const UIActionButtonScript := preload("res://scripts/ui/ui_action_button.gd")
+const UILogoScript := preload("res://scripts/ui/ui_logo.gd")
+const SettingsScreenScript := preload("res://scripts/ui/settings_screen.gd")
+const TitleAttractModeScript := preload("res://scripts/ui/title_attract_mode.gd")
+const GameSettingsScript := preload("res://scripts/game_settings.gd")
+const SeedCodecScript := preload("res://scripts/seed_codec.gd")
+const HoleRatingScript := preload("res://scripts/hole_rating.gd")
 const RELEASE_THEME := preload("res://assets/release_theme.tres")
 
 const STARTING_TOKENS := 2
@@ -25,6 +35,7 @@ const MAX_STROKES_OVER_PAR := 4
 const SAND_DAMP := 12.0
 const SAND_ENTRY_SPEED_SCALE := 0.35
 const DIRECTION_PUSH_FORCE := 950.0
+const OUT_OF_BOUNDS_RETURN_SECONDS := 3.0
 
 enum RunPhase {
 	MAIN_MENU,
@@ -57,10 +68,11 @@ class PowerMeter:
 	const BOTTOM_CAP_HEIGHT := 10.0
 	const FILL_INSET := 5.0
 	const FILL_STEPS := 36
-	const LOW_COLOR := Color(1.0, 0.9, 0.08, 0.95)
-	const HIGH_COLOR := Color(1.0, 0.08, 0.02, 0.98)
-	const TRACK_COLOR := Color(0.08, 0.075, 0.055, 0.72)
-	const OUTLINE_COLOR := Color(0.03, 0.025, 0.018, 0.95)
+	const LOW_COLOR := Color("edbf45")
+	const HIGH_COLOR := Color("ed596f")
+	const TRACK_COLOR := Color("152822")
+	const OUTLINE_COLOR := Color("f6f1df")
+	const TICK_COLOR := Color(0.42, 0.86, 0.76, 0.56)
 	const FILL_SPEED := 5.5
 
 	var power := 0.0
@@ -86,6 +98,11 @@ class PowerMeter:
 
 		draw_colored_polygon(_meter_polygon(top_y, bottom_y, center_x), OUTLINE_COLOR)
 		draw_colored_polygon(_meter_polygon(top_y + 2.0, bottom_y - 2.0, center_x, 2.0), TRACK_COLOR)
+		for tick_index in range(1, 5):
+			var amount := float(tick_index) / 5.0
+			var tick_y := lerpf(bottom_y - 12.0, top_y + 22.0, amount)
+			var half_width := _half_width_at_y(tick_y, top_y, bottom_y, 7.0)
+			draw_line(Vector2(center_x - half_width, tick_y), Vector2(center_x + half_width, tick_y), TICK_COLOR, 2.0, true)
 		_draw_fill(top_y, bottom_y, center_x)
 
 	func _draw_fill(top_y: float, bottom_y: float, center_x: float) -> void:
@@ -198,6 +215,7 @@ var transition_generation := 0
 var generation_fallback_count := 0
 var last_hole_reward := 0
 var last_hole_forced := false
+var last_hole_rating: Dictionary = {}
 var strokes := 0
 var total_strokes := 0
 var tokens := STARTING_TOKENS
@@ -212,6 +230,10 @@ var normal_ball_linear_damp := 0.0
 var active_sand_tiles := 0
 var active_direction_pushes: Array[Vector2] = []
 var hazard_resetting := false
+var out_of_bounds_active := false
+var out_of_bounds_remaining := OUT_OF_BOUNDS_RETURN_SECONDS
+var last_safe_shot_position := Vector2.ZERO
+var last_safe_shot_elevation := 0
 var score_label: Label
 var effects_status_label: Label
 var hole_label: Label
@@ -231,10 +253,19 @@ var menu_button: Button
 var main_menu_overlay: PanelContainer
 var main_menu_title_label: Label
 var main_menu_summary_label: Label
+var main_menu_logo: UILogo
+var title_attract_mode: TitleAttractMode
 var menu_resume_button: Button
 var menu_play_button: Button
 var menu_tutorial_button: Button
 var menu_skip_button: Button
+var menu_settings_button: Button
+var menu_quit_button: Button
+var menu_seed_input: LineEdit
+var menu_seed_button: Button
+var menu_seed_status_label: Label
+var settings_screen: SettingsScreen
+var game_settings: GameSettings
 var interstitial_overlay: PanelContainer
 var interstitial_title_label: Label
 var interstitial_body_label: Label
@@ -270,7 +301,11 @@ var run_stats := RunStatsScript.new()
 
 
 func _ready() -> void:
+	game_settings = GameSettingsScript.new()
+	game_settings.load_from()
+	game_settings.apply_runtime()
 	_create_world()
+	_apply_player_settings()
 	_reset_run_state()
 	_set_run_phase(RunPhase.MAIN_MENU)
 	_show_main_menu()
@@ -287,9 +322,10 @@ func _process(delta: float) -> void:
 		_update_status()
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
 	if not _is_hole_play_active() or hazard_resetting:
 		return
+	_update_out_of_bounds_recovery(delta)
 
 	for direction in active_direction_pushes:
 		ball.apply_central_force(direction * DIRECTION_PUSH_FORCE * direction_push_modifier)
@@ -316,6 +352,7 @@ func _create_world() -> void:
 	ball.ball_stopped.connect(feedback_director.play_stop_feedback)
 	ball.wall_impact.connect(_on_ball_wall_impact)
 	ball.tee_left.connect(_on_ball_left_tee)
+	ball.elevation_changed.connect(_on_ball_elevation_changed)
 	add_child(ball)
 	normal_ball_linear_damp = ball.linear_damp
 
@@ -331,11 +368,13 @@ func _create_world() -> void:
 	add_child(level_builder)
 
 	hud_canvas_layer = CanvasLayer.new()
+	hud_canvas_layer.name = "HUD"
 	add_child(hud_canvas_layer)
 	feedback_director.setup(ball, camera, hud_canvas_layer)
 	feedback_director.sound_requested.connect(audio_controller.play_feedback)
 	release_hud = ReleaseHUDScript.new()
 	release_hud.setup(hud_canvas_layer)
+	release_hud.seed_copy_requested.connect(_on_seed_copy_requested)
 
 	score_label = Label.new()
 	score_label.name = "HUDStatus"
@@ -380,6 +419,10 @@ func _create_world() -> void:
 	hud_canvas_layer.add_child(power_meter)
 
 	_create_main_menu_overlay()
+	settings_screen = SettingsScreenScript.new()
+	settings_screen.setup(hud_canvas_layer, game_settings)
+	settings_screen.close_requested.connect(_on_settings_closed)
+	settings_screen.settings_changed.connect(_on_settings_changed)
 	_create_interstitial_overlay()
 	transition_presentation = TransitionPresentationScript.new()
 	transition_presentation.setup(interstitial_overlay, interstitial_title_label, interstitial_body_label)
@@ -397,8 +440,6 @@ func _create_world() -> void:
 	tutorial_manager.skip_requested.connect(_on_tutorial_skip_requested)
 	add_child(tutorial_manager)
 	tutorial_manager.setup(self, hud_canvas_layer)
-	tutorial_manager.hint_panel.position = Vector2(650.0, 118.0)
-	tutorial_manager.skip_button.position = Vector2(1640.0, 166.0)
 	tutorial_manager.set_visible_enabled(false)
 	_apply_release_theme()
 	ball.set_input_enabled(false)
@@ -410,8 +451,10 @@ func _apply_release_theme() -> void:
 	score_label.theme = RELEASE_THEME
 	effects_status_label.theme = RELEASE_THEME
 	debug_hud.theme = RELEASE_THEME
+	release_hud.theme = RELEASE_THEME
 	menu_button.theme = RELEASE_THEME
 	main_menu_overlay.theme = RELEASE_THEME
+	settings_screen.theme = RELEASE_THEME
 	interstitial_overlay.theme = RELEASE_THEME
 	shop_manager.shop_overlay.theme = RELEASE_THEME
 	tutorial_manager.hint_panel.theme = RELEASE_THEME
@@ -421,6 +464,7 @@ func _apply_release_theme() -> void:
 func _start_tutorial() -> void:
 	_hide_main_menu()
 	_hide_interstitial()
+	audio_controller.play_tutorial_music()
 	tutorial_mode = true
 	_reset_run_state()
 	levels = tutorial_levels
@@ -464,6 +508,7 @@ func _reset_run_state(seed_override := 0) -> void:
 	generation_fallback_count = 0
 	last_hole_reward = 0
 	last_hole_forced = false
+	last_hole_rating.clear()
 	strokes = 0
 	total_strokes = 0
 	tokens = STARTING_TOKENS
@@ -547,6 +592,10 @@ func _load_level(next_index: int) -> void:
 	ball.configure_level(level)
 	var start_position: Vector2 = level_builder.level_point(level, "start", "start_cell")
 	ball.reset_to(start_position, level_builder.get_start_elevation(level), true)
+	level_builder.set_active_elevation(level_builder.get_start_elevation(level))
+	last_safe_shot_position = start_position
+	last_safe_shot_elevation = level_builder.get_start_elevation(level)
+	_cancel_out_of_bounds_recovery()
 	if level.has("forced_tokens"):
 		tokens = maxi(tokens, int(level.forced_tokens))
 	if tutorial_mode:
@@ -632,6 +681,23 @@ func _complete_current_hole(sink_ball: bool, forced: bool) -> void:
 	last_hole_reward = _token_reward_for_score(strokes, int(level.par))
 	last_hole_forced = forced
 	tokens += last_hole_reward
+	last_hole_rating = HoleRatingScript.rate(strokes, int(level.par), level_elapsed, forced)
+	run_stats.record_hole_result({
+		"hole_number": overall_hole_number,
+		"biome_index": biome_index,
+		"biome_name": String(level.get("biome_name", "Unknown")),
+		"difficulty_name": String(level.get("difficulty_name", "Normal")),
+		"strokes": strokes,
+		"par": int(level.par),
+		"time_seconds": level_elapsed,
+		"time": _format_time(level_elapsed),
+		"earned": last_hole_reward,
+		"wallet": tokens,
+		"forced": forced,
+		"stars": int(last_hole_rating.stars),
+		"golf_result": String(last_hole_rating.golf_result),
+		"performance": String(last_hole_rating.performance),
+	})
 	_advance_active_curses()
 	_show_hole_results()
 
@@ -667,10 +733,10 @@ func _on_reset_hazard_body_entered(body: Node2D, hazard_position: Vector2, hazar
 		tutorial_manager.notify_event("entered_water")
 	if hazard_type == &"water":
 		feedback_director.play_terrain_feedback(&"water", ball.global_position)
-	else:
+	elif hazard_type != &"falling_ice":
 		feedback_director.play_hazard_feedback(hazard_type, 1.0, ball.global_position)
 		audio_controller.play_hazard_triggered(hazard_type, 1.0)
-	run_stats.record_water_reset()
+	run_stats.record_hazard_reset(String(hazard_type))
 	_add_penalty_stroke()
 	hazard_resetting = true
 	var captured_transition := transition_generation
@@ -716,6 +782,11 @@ func _on_ball_left_tee(position: Vector2, elevation: int) -> void:
 	level_builder.on_ball_left_tee(position, elevation)
 
 
+func _on_ball_elevation_changed(_previous_elevation: int, elevation: int, _position: Vector2) -> void:
+	if level_builder:
+		level_builder.set_active_elevation(elevation)
+
+
 func _on_ball_wall_impact(strength: float, position: Vector2) -> void:
 	feedback_director.play_wall_impact(strength, position)
 	audio_controller.play_hazard_triggered(&"wall", clampf(strength, 0.0, 1.0))
@@ -736,6 +807,8 @@ func _on_hazard_triggered(hazard_type: StringName, intensity: float, position: V
 func _on_ball_shot_started(_position: Vector2, _direction: Vector2, _power: float) -> void:
 	if run_phase != RunPhase.HOLE_PLAY:
 		return
+	last_safe_shot_position = _position
+	last_safe_shot_elevation = int(ball.current_elevation)
 	strokes += 1
 	total_strokes += 1
 	run_stats.record_stroke()
@@ -779,6 +852,48 @@ func _clear_hazard_effects() -> void:
 	hazard_resetting = false
 	if ball:
 		ball.linear_damp = normal_ball_linear_damp
+	_cancel_out_of_bounds_recovery()
+
+
+func _update_out_of_bounds_recovery(delta: float) -> void:
+	if not ball or not level_builder or ball.sunk:
+		_cancel_out_of_bounds_recovery()
+		return
+	var is_valid: bool = level_builder.is_position_on_playable_surface(
+		ball.global_position,
+		int(ball.current_elevation)
+	)
+	if is_valid:
+		_cancel_out_of_bounds_recovery()
+		return
+	if not out_of_bounds_active:
+		out_of_bounds_active = true
+		out_of_bounds_remaining = OUT_OF_BOUNDS_RETURN_SECONDS
+	out_of_bounds_remaining = maxf(out_of_bounds_remaining - maxf(delta, 0.0), 0.0)
+	if release_hud:
+		release_hud.show_out_of_bounds(maxi(ceili(out_of_bounds_remaining), 1))
+	if out_of_bounds_remaining <= 0.0:
+		_return_ball_from_out_of_bounds()
+
+
+func _cancel_out_of_bounds_recovery() -> void:
+	out_of_bounds_active = false
+	out_of_bounds_remaining = OUT_OF_BOUNDS_RETURN_SECONDS
+	if release_hud:
+		release_hud.hide_out_of_bounds()
+
+
+func _return_ball_from_out_of_bounds() -> void:
+	if not out_of_bounds_active or not ball:
+		return
+	feedback_director.reset_feedback()
+	audio_controller.stop_transient_audio()
+	active_sand_tiles = 0
+	active_direction_pushes.clear()
+	ball.linear_damp = normal_ball_linear_damp
+	ball.reset_to(last_safe_shot_position, last_safe_shot_elevation, false)
+	_cancel_out_of_bounds_recovery()
+	_update_status()
 
 
 func _update_status() -> void:
@@ -845,6 +960,7 @@ func _update_status() -> void:
 			"par": int(level.par),
 			"time": _format_time(level_elapsed),
 			"coins": tokens,
+			"seed": run_seed,
 			"bonuses": owned_cards,
 			"curses": _active_curse_display_items(),
 		})
@@ -865,10 +981,15 @@ func _create_hud_label(parent: Control) -> Label:
 
 
 func _create_main_menu_overlay() -> void:
-	menu_button = Button.new()
-	menu_button.text = "Menu"
-	menu_button.position = Vector2(1810.0, 166.0)
-	menu_button.custom_minimum_size = Vector2(80.0, 38.0)
+	menu_button = UIActionButtonScript.new()
+	menu_button.name = "MenuButton"
+	menu_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	menu_button.custom_minimum_size = Vector2(136.0, 52.0)
+	menu_button.offset_left = -150.0
+	menu_button.offset_top = 122.0
+	menu_button.offset_right = -14.0
+	menu_button.offset_bottom = 174.0
+	menu_button.configure("MENU", &"menu", &"quiet")
 	menu_button.pressed.connect(_show_main_menu)
 	hud_canvas_layer.add_child(menu_button)
 
@@ -876,36 +997,104 @@ func _create_main_menu_overlay() -> void:
 	main_menu_overlay.name = "MainMenuScreen"
 	main_menu_overlay.visible = false
 	main_menu_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	main_menu_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud_canvas_layer.add_child(main_menu_overlay)
+	main_menu_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+	title_attract_mode = TitleAttractModeScript.new()
+	title_attract_mode.name = "TitleAttractMode"
+	main_menu_overlay.add_child(title_attract_mode)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 720)
-	margin.add_theme_constant_override("margin_top", 260)
-	margin.add_theme_constant_override("margin_right", 720)
-	margin.add_theme_constant_override("margin_bottom", 260)
+	margin.name = "SafeArea"
+	margin.add_theme_constant_override("margin_left", 74)
+	margin.add_theme_constant_override("margin_top", 54)
+	margin.add_theme_constant_override("margin_right", 74)
+	margin.add_theme_constant_override("margin_bottom", 54)
 	main_menu_overlay.add_child(margin)
 
-	var layout := VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 12)
+	var layout := HBoxContainer.new()
+	layout.name = "TitleLayout"
+	layout.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_theme_constant_override("separation", 48)
 	margin.add_child(layout)
 
-	main_menu_title_label = Label.new()
-	main_menu_title_label.text = "A Stroke Of Luck"
-	main_menu_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	main_menu_title_label.add_theme_font_size_override("font_size", 34)
-	layout.add_child(main_menu_title_label)
+	var brand_column := VBoxContainer.new()
+	brand_column.name = "BrandColumn"
+	brand_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand_column.size_flags_stretch_ratio = 1.35
+	brand_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	brand_column.add_theme_constant_override("separation", 8)
+	layout.add_child(brand_column)
 
-	main_menu_summary_label = Label.new()
-	main_menu_summary_label.text = "Six biomes. Eighteen holes. Every upgrade brings a curse.\nAim with mouse drag or arrow keys; shoot with release, Space, or Enter."
-	main_menu_summary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	main_menu_summary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	layout.add_child(main_menu_summary_label)
+	main_menu_logo = UILogoScript.new()
+	main_menu_logo.name = "Wordmark"
+	main_menu_logo.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	brand_column.add_child(main_menu_logo)
+	main_menu_title_label = main_menu_logo.title_label
 
-	menu_resume_button = _create_menu_button(layout, "Resume", _hide_main_menu)
-	menu_play_button = _create_menu_button(layout, "Play 18-Hole Run", _on_menu_play_pressed)
-	menu_tutorial_button = _create_menu_button(layout, "Restart Tutorial", _on_menu_restart_tutorial_pressed)
-	menu_skip_button = _create_menu_button(layout, "Skip Tutorial", _on_menu_skip_tutorial_pressed)
+	var action_panel := PanelContainer.new()
+	action_panel.name = "ActionPanel"
+	action_panel.custom_minimum_size = Vector2(410.0, 0.0)
+	action_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_panel.size_flags_stretch_ratio = 0.8
+	action_panel.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK, 0.9), Color(UIStyleScript.GOLD, 0.55), 22, 3, 14))
+	layout.add_child(action_panel)
+	var action_margin := MarginContainer.new()
+	action_margin.add_theme_constant_override("margin_left", 32)
+	action_margin.add_theme_constant_override("margin_top", 31)
+	action_margin.add_theme_constant_override("margin_right", 32)
+	action_margin.add_theme_constant_override("margin_bottom", 31)
+	action_panel.add_child(action_margin)
+	var action_layout := VBoxContainer.new()
+	action_layout.alignment = BoxContainer.ALIGNMENT_CENTER
+	action_layout.add_theme_constant_override("separation", 13)
+	action_margin.add_child(action_layout)
+
+	menu_resume_button = _create_menu_button(action_layout, "RESUME ROUND", _hide_main_menu, &"continue", &"primary")
+	menu_play_button = _create_menu_button(action_layout, "PLAY", _on_menu_play_pressed, &"hole", &"primary")
+
+	var seed_panel := PanelContainer.new()
+	seed_panel.name = "SeedEntry"
+	seed_panel.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK_DEEP, 0.72), Color(UIStyleScript.GOLD, 0.28), 12, 2, 2))
+	action_layout.add_child(seed_panel)
+	var seed_margin := MarginContainer.new()
+	seed_margin.add_theme_constant_override("margin_left", 10)
+	seed_margin.add_theme_constant_override("margin_top", 8)
+	seed_margin.add_theme_constant_override("margin_right", 10)
+	seed_margin.add_theme_constant_override("margin_bottom", 8)
+	seed_panel.add_child(seed_margin)
+	var seed_layout := VBoxContainer.new()
+	seed_layout.add_theme_constant_override("separation", 5)
+	seed_margin.add_child(seed_layout)
+	var seed_row := HBoxContainer.new()
+	seed_row.add_theme_constant_override("separation", 8)
+	seed_layout.add_child(seed_row)
+	menu_seed_input = LineEdit.new()
+	menu_seed_input.name = "SeedInput"
+	menu_seed_input.placeholder_text = "OPTIONAL SEED"
+	menu_seed_input.max_length = 10
+	menu_seed_input.custom_minimum_size = Vector2(220.0, 48.0)
+	menu_seed_input.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	menu_seed_input.add_theme_font_override("font", UIStyleScript.UI_BOLD_FONT)
+	menu_seed_input.add_theme_font_size_override("font_size", 17)
+	menu_seed_input.text_submitted.connect(func(_text: String) -> void: _on_menu_seed_pressed())
+	seed_row.add_child(menu_seed_input)
+	menu_seed_button = UIActionButtonScript.new()
+	menu_seed_button.custom_minimum_size = Vector2(132.0, 48.0)
+	menu_seed_button.configure("USE SEED", &"seed", &"secondary")
+	menu_seed_button.pressed.connect(_on_menu_seed_pressed)
+	seed_row.add_child(menu_seed_button)
+	menu_seed_status_label = Label.new()
+	menu_seed_status_label.name = "SeedStatus"
+	menu_seed_status_label.text = ""
+	menu_seed_status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	UIStyleScript.apply_ui(menu_seed_status_label, 12, UIStyleScript.PAPER_MUTED, true)
+	seed_layout.add_child(menu_seed_status_label)
+	main_menu_summary_label = menu_seed_status_label
+
+	menu_tutorial_button = _create_menu_button(action_layout, "TUTORIAL", _on_menu_restart_tutorial_pressed, &"tutorial", &"secondary")
+	menu_settings_button = _create_menu_button(action_layout, "SETTINGS", _on_menu_settings_pressed, &"control", &"secondary")
+	menu_quit_button = _create_menu_button(action_layout, "QUIT", _on_menu_quit_pressed, &"quit", &"danger")
 
 
 func _create_interstitial_overlay() -> void:
@@ -913,45 +1102,102 @@ func _create_interstitial_overlay() -> void:
 	interstitial_overlay.name = "InterstitialScreen"
 	interstitial_overlay.visible = false
 	interstitial_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	interstitial_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
 	hud_canvas_layer.add_child(interstitial_overlay)
+	interstitial_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 560)
-	margin.add_theme_constant_override("margin_top", 235)
-	margin.add_theme_constant_override("margin_right", 560)
-	margin.add_theme_constant_override("margin_bottom", 235)
+	margin.name = "SafeArea"
+	margin.add_theme_constant_override("margin_left", 108)
+	margin.add_theme_constant_override("margin_top", 84)
+	margin.add_theme_constant_override("margin_right", 108)
+	margin.add_theme_constant_override("margin_bottom", 84)
 	interstitial_overlay.add_child(margin)
 
-	var layout := VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 20)
+	var layout := HBoxContainer.new()
+	layout.name = "Layout"
+	layout.alignment = BoxContainer.ALIGNMENT_CENTER
+	layout.add_theme_constant_override("separation", 64)
 	margin.add_child(layout)
 
+	var hero_column := VBoxContainer.new()
+	hero_column.name = "HeroColumn"
+	hero_column.custom_minimum_size.x = 410.0
+	hero_column.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hero_column.size_flags_stretch_ratio = 0.86
+	hero_column.alignment = BoxContainer.ALIGNMENT_CENTER
+	hero_column.add_theme_constant_override("separation", 16)
+	layout.add_child(hero_column)
+	var eyebrow := Label.new()
+	eyebrow.name = "Eyebrow"
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	UIStyleScript.apply_ui(eyebrow, 14, UIStyleScript.GOLD, true)
+	hero_column.add_child(eyebrow)
+	var hero_icon_stage := PanelContainer.new()
+	hero_icon_stage.name = "HeroIconStage"
+	hero_icon_stage.custom_minimum_size = Vector2(174.0, 174.0)
+	hero_column.add_child(hero_icon_stage)
 	interstitial_title_label = Label.new()
-	interstitial_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	interstitial_title_label.add_theme_font_size_override("font_size", 38)
-	layout.add_child(interstitial_title_label)
+	interstitial_title_label.name = "Title"
+	interstitial_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	interstitial_title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	interstitial_title_label.custom_minimum_size.y = 116.0
+	UIStyleScript.apply_display(interstitial_title_label, 50, UIStyleScript.PAPER)
+	hero_column.add_child(interstitial_title_label)
+	var identity := Label.new()
+	identity.name = "Identity"
+	identity.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	identity.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	UIStyleScript.apply_ui(identity, 14, UIStyleScript.PAPER_MUTED, true)
+	hero_column.add_child(identity)
+
+	var detail_panel := PanelContainer.new()
+	detail_panel.name = "DetailPanel"
+	detail_panel.custom_minimum_size.x = 520.0
+	detail_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	detail_panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	detail_panel.size_flags_stretch_ratio = 1.14
+	detail_panel.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK, 0.92), Color(UIStyleScript.GOLD, 0.42), 20, 2, 12))
+	layout.add_child(detail_panel)
+	var detail_margin := MarginContainer.new()
+	detail_margin.name = "DetailMargin"
+	detail_margin.add_theme_constant_override("margin_left", 30)
+	detail_margin.add_theme_constant_override("margin_top", 28)
+	detail_margin.add_theme_constant_override("margin_right", 30)
+	detail_margin.add_theme_constant_override("margin_bottom", 28)
+	detail_panel.add_child(detail_margin)
+	var detail_layout := VBoxContainer.new()
+	detail_layout.name = "DetailLayout"
+	detail_layout.add_theme_constant_override("separation", 18)
+	detail_margin.add_child(detail_layout)
 
 	interstitial_body_label = Label.new()
-	interstitial_body_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	interstitial_body_label.name = "Body"
+	interstitial_body_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	interstitial_body_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	interstitial_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	interstitial_body_label.add_theme_font_size_override("font_size", 21)
-	interstitial_body_label.custom_minimum_size = Vector2(0.0, 250.0)
-	layout.add_child(interstitial_body_label)
+	interstitial_body_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	UIStyleScript.apply_ui(interstitial_body_label, 21, UIStyleScript.PAPER)
+	detail_layout.add_child(interstitial_body_label)
+	var visual_details := VBoxContainer.new()
+	visual_details.name = "VisualDetails"
+	visual_details.add_theme_constant_override("separation", 10)
+	detail_layout.add_child(visual_details)
+	detail_layout.move_child(visual_details, 0)
 
-	interstitial_continue_button = Button.new()
-	interstitial_continue_button.custom_minimum_size = Vector2(280.0, 50.0)
+	interstitial_continue_button = UIActionButtonScript.new()
+	interstitial_continue_button.custom_minimum_size = Vector2(320.0, 60.0)
+	interstitial_continue_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	interstitial_continue_button.pressed.connect(_on_interstitial_continue_pressed)
-	layout.add_child(interstitial_continue_button)
+	detail_layout.add_child(interstitial_continue_button)
+	interstitial_continue_button.configure("CONTINUE", &"continue", &"primary")
 
 
-func _create_menu_button(parent: Control, text: String, callback: Callable) -> Button:
-	var button := Button.new()
-	button.text = text
-	button.custom_minimum_size = Vector2(260.0, 44.0)
+func _create_menu_button(parent: Control, text: String, callback: Callable, icon_name: StringName, variant: StringName) -> Button:
+	var button := UIActionButtonScript.new()
+	button.custom_minimum_size = Vector2(350.0, 68.0)
 	button.pressed.connect(callback)
 	parent.add_child(button)
+	button.configure(text, icon_name, variant)
 	return button
 
 
@@ -959,9 +1205,11 @@ func _show_main_menu() -> void:
 	if not main_menu_overlay:
 		return
 	menu_resume_button.visible = level_root != null and run_phase == RunPhase.HOLE_PLAY
-	menu_skip_button.visible = tutorial_mode or not TutorialManagerScript.is_tutorial_complete()
+	menu_play_button.visible = true
 	main_menu_overlay.visible = true
 	menu_button.visible = false
+	if main_menu_logo:
+		main_menu_logo.play_entrance()
 	if run_phase == RunPhase.MAIN_MENU:
 		audio_controller.play_menu_music()
 	_update_gameplay_simulation_pause()
@@ -975,6 +1223,8 @@ func _show_main_menu() -> void:
 func _hide_main_menu() -> void:
 	if main_menu_overlay:
 		main_menu_overlay.visible = false
+	if settings_screen:
+		settings_screen.visible = false
 	menu_button.visible = run_phase == RunPhase.HOLE_PLAY
 	_update_gameplay_simulation_pause()
 	_refresh_ball_input()
@@ -985,8 +1235,58 @@ func _on_menu_play_pressed() -> void:
 	_start_normal_run()
 
 
+func _on_menu_seed_pressed() -> void:
+	var parsed := SeedCodecScript.parse_seed(menu_seed_input.text)
+	menu_seed_status_label.text = String(parsed.message)
+	UIStyleScript.apply_ui(
+		menu_seed_status_label,
+		12,
+		UIStyleScript.BONUS if bool(parsed.valid) else UIStyleScript.CURSE,
+		true
+	)
+	if not bool(parsed.valid):
+		return
+	TutorialManagerScript.mark_tutorial_complete()
+	_start_normal_run(int(parsed.value))
+
+
+func _on_seed_copy_requested(seed_value: int) -> void:
+	DisplayServer.clipboard_set(SeedCodecScript.format_seed(seed_value))
+	if release_hud:
+		release_hud.show_seed_copied()
+
+
 func _on_menu_restart_tutorial_pressed() -> void:
 	_start_tutorial()
+
+
+func _on_menu_settings_pressed() -> void:
+	if settings_screen:
+		settings_screen.open()
+
+
+func _on_settings_closed() -> void:
+	if main_menu_overlay and main_menu_overlay.visible and menu_settings_button:
+		menu_settings_button.grab_focus()
+
+
+func _on_settings_changed(_settings: GameSettings) -> void:
+	_apply_player_settings()
+
+
+func _apply_player_settings() -> void:
+	if not game_settings:
+		return
+	if ball:
+		ball.apply_player_settings(game_settings.trajectory_visible, game_settings.aim_sensitivity)
+	if feedback_director:
+		feedback_director.apply_player_settings(
+			game_settings.screen_shake_intensity,
+			game_settings.visual_effects_intensity,
+			game_settings.reduced_motion
+		)
+	if title_attract_mode:
+		title_attract_mode.set_reduced_motion(game_settings.reduced_motion)
 
 
 func _on_menu_skip_tutorial_pressed() -> void:
@@ -994,13 +1294,18 @@ func _on_menu_skip_tutorial_pressed() -> void:
 	_start_normal_run()
 
 
+func _on_menu_quit_pressed() -> void:
+	get_tree().quit()
+
+
 func _show_run_start() -> void:
 	_set_run_phase(RunPhase.RUN_START)
 	_show_interstitial(
-		"Run Intro",
-		"Seed: %d\n\nSix biomes, three holes each. Hole difficulty rises from introductory to normal to hardest inside every biome. Shops appear after biomes 1-5." % run_seed,
-		"Begin Course"
+		"TEE OFF",
+		"A fresh 18-hole course is ready.\n\nSIX BIOMES  •  THREE HOLES EACH\nShops open after every biome except the last.\n\nBuy power. Carry the curse.",
+		"BEGIN COURSE"
 	)
+	transition_presentation.show_run_start(run_seed)
 
 
 func _show_biome_intro() -> void:
@@ -1015,16 +1320,15 @@ func _show_biome_intro() -> void:
 	ball.visible = false
 	_set_run_phase(RunPhase.BIOME_INTRO)
 	_show_interstitial(
-		"Biome %d/%d: %s" % [biome_index + 1, BIOME_COUNT, profile.display_name],
-		"Holes %d-%d\nDecorations: %s\nAmbience: %s\n\nRun bonuses: %s\nActive curses: %s\n\nOne shared generator applies this biome's palette, hazard weights, difficulty data, and active hazard curses." % [
+		String(profile.display_name).to_upper(),
+		"HOLES %02d — %02d\n%s\n\nLOADOUT\nBONUS  •  %s\nCURSE   •  %s" % [
 			biome_index * HOLES_PER_BIOME + 1,
 			biome_index * HOLES_PER_BIOME + HOLES_PER_BIOME,
-			", ".join(profile.decoration_identifiers),
-			String(profile.ambience).replace("_", " "),
+			String(profile.ambience).replace("_", " ").to_upper(),
 			_cards_summary(),
 			_active_curses_summary()
 		],
-		"Play Hole %d" % overall_hole_number
+		"PLAY HOLE %02d" % overall_hole_number
 	)
 	transition_presentation.show_biome(profile, biome_index + 1, BIOME_COUNT)
 	feedback_director.play_progression_feedback(
@@ -1036,30 +1340,42 @@ func _show_biome_intro() -> void:
 func _show_hole_results() -> void:
 	var level: Dictionary = levels[level_index]
 	var score_to_par := strokes - int(level.par)
-	var completion_note := "Stroke ceiling reached — hole advanced safely." if last_hole_forced else "Cup completed."
 	ball.visible = false
 	_clear_hazard_effects()
 	_set_run_phase(RunPhase.HOLE_RESULTS)
 	audio_controller.play_hole_outcome(not last_hole_forced, &"par_plus_four" if last_hole_forced else &"cup")
 	_show_interstitial(
-		"Hole %d Results" % overall_hole_number,
-		"%s — %s hole %d/%d\n%s\n\nStrokes: %d   Par: %d   Score: %s\nHole time: %s   Coins earned: %d   Coins held: %d\nActive curses: %s%s" % [
-			String(level.get("biome_name", "Unknown")),
-			String(level.get("difficulty_name", "Normal")),
-			hole_index + 1,
-			HOLES_PER_BIOME,
-			completion_note,
-			strokes,
-			int(level.par),
-			_format_score_to_par(score_to_par),
-			_format_time(level_elapsed),
-			last_hole_reward,
-			tokens,
-			_active_curses_summary(),
-			"\nExpired: %s" % ", ".join(last_expired_curses) if not last_expired_curses.is_empty() else ""
-		],
-		"Continue"
+		String(last_hole_rating.get("golf_result", _score_result_heading(score_to_par, last_hole_forced))),
+		_hole_result_status_copy(),
+		"CONTINUE"
 	)
+	transition_presentation.show_hole_result(
+		score_to_par,
+		last_hole_forced,
+		String(level.get("biome_name", "Unknown")),
+		overall_hole_number,
+		TOTAL_HOLES,
+		{
+			"strokes": strokes,
+			"par": int(level.par),
+			"time": _format_time(level_elapsed),
+			"earned": last_hole_reward,
+			"wallet": tokens,
+			"rating": last_hole_rating,
+			"history": run_stats.history_snapshot(),
+			"current_hole": overall_hole_number,
+		}
+	)
+
+
+func _hole_result_status_copy() -> String:
+	var lines := PackedStringArray()
+	var active_curses := _active_curses_summary()
+	if active_curses != "None":
+		lines.append("ACTIVE CURSE  •  %s" % active_curses)
+	if not last_expired_curses.is_empty():
+		lines.append("CURSE CLEARED  •  %s" % ", ".join(last_expired_curses))
+	return "\n".join(lines)
 
 
 func _advance_after_hole_results() -> void:
@@ -1085,33 +1401,34 @@ func _show_run_results() -> void:
 	_set_run_phase(RunPhase.RUN_RESULTS)
 	audio_controller.play_results_music()
 	_show_interstitial(
-		"Run Results",
-		"All %d holes complete.\n\nTotal strokes: %d   Total par: %d   Score: %s\nPlay time: %s   Grade: %s\nCoins remaining: %d   Cards: %s\nSeed: %d   Generator fallbacks: %d" % [
-			TOTAL_HOLES,
-			total_strokes,
-			total_par,
-			_format_score_to_par(score_to_par),
-			_format_time(run_stats.total_run_time),
-			_letter_grade(score_to_par),
-			tokens,
+		"COURSE COMPLETE",
+		"SIX BIOMES  •  EIGHTEEN FLAGS\nThe course remembers every choice.\n\nBAG  •  %s\nACTIVE CURSES  •  %s" % [
 			_cards_summary(),
-			run_seed,
-			generation_fallback_count
+			_active_curses_summary()
 		],
-		"See Ending"
+		"SEE ENDING"
 	)
-	transition_presentation.show_final()
+	transition_presentation.show_run_results({
+		"grade": _letter_grade(score_to_par),
+		"score": _format_score_to_par(score_to_par),
+		"strokes": total_strokes,
+		"par": total_par,
+		"time": _format_time(run_stats.total_run_time),
+		"coins": tokens,
+		"seed": run_seed,
+		"cards": owned_card_definitions,
+	})
 	feedback_director.play_progression_feedback(&"final_completion", Color("e2b84b"))
 
 
 func _show_ending() -> void:
 	_set_run_phase(RunPhase.ENDING)
 	_show_interstitial(
-		"A Stroke of Luck",
-		"You crossed Meadow, Desert, Autumn, Snow, Swamp, and Volcanic terrain and finished all eighteen holes.\n\nThe course is complete — but a new seed is ready whenever you are.",
-		"New Run"
+		"ANOTHER ROUND?",
+		"Six biomes crossed. Eighteen flags down.\n\nYour strange little bag did its job.\nA fresh course is already being dealt.",
+		"NEW RUN"
 	)
-	transition_presentation.show_final()
+	transition_presentation.show_ending()
 	feedback_director.play_progression_feedback(&"ending_transition", Color("17221f"))
 
 
@@ -1134,7 +1451,11 @@ func _show_interstitial(title: String, body: String, button_text: String) -> voi
 		transition_presentation.show_generic()
 	interstitial_title_label.text = title
 	interstitial_body_label.text = body
-	interstitial_continue_button.text = button_text
+	var action_button := interstitial_continue_button as UIActionButton
+	if action_button:
+		action_button.configure(button_text, &"restart" if button_text.contains("NEW RUN") else &"continue", &"primary")
+	else:
+		interstitial_continue_button.text = button_text
 	interstitial_overlay.visible = true
 	interstitial_continue_button.grab_focus()
 
@@ -1197,6 +1518,20 @@ func _format_score_to_par(score_to_par: int) -> String:
 	return "%d" % score_to_par
 
 
+func _score_result_heading(score_to_par: int, forced: bool) -> String:
+	if forced:
+		return "HOLE CLOSED"
+	if score_to_par <= -2:
+		return "EAGLE"
+	if score_to_par == -1:
+		return "BIRDIE"
+	if score_to_par == 0:
+		return "PAR"
+	if score_to_par == 1:
+		return "BOGEY"
+	return "%+d OVER" % score_to_par
+
+
 func _letter_grade(score_to_par: int) -> String:
 	if score_to_par <= -6:
 		return "A"
@@ -1257,6 +1592,9 @@ func _show_shop(next_level_index: int) -> void:
 	for card_name in level.get("shop_cards", []):
 		forced_cards.append(String(card_name))
 	var explicit_cards: Array[CardDefinition] = []
+	var existing_card_ids: Array[StringName] = []
+	for owned_card in owned_card_definitions:
+		existing_card_ids.append(owned_card.id)
 	if tutorial_mode:
 		explicit_cards.assign(TutorialDatabase.get_tutorial_cards())
 	shop_manager.show_shop(
@@ -1267,7 +1605,8 @@ func _show_shop(next_level_index: int) -> void:
 		forced_cards,
 		_shop_destination(next_level_index),
 		explicit_cards,
-		int(level.get("minimum_shop_purchases", 0))
+		int(level.get("minimum_shop_purchases", 0)),
+		existing_card_ids
 	)
 	if tutorial_mode:
 		tutorial_manager.notify_event("shop_opened")

@@ -32,16 +32,20 @@ func test_release_hud_prioritizes_player_state_and_active_curses() -> void:
 
 	assert_true(hud.biome_label.text.contains("SNOW"))
 	assert_true(hud.hole_label.text.contains("11 / 18"))
-	assert_true(hud.strokes_label.text.contains("3 / PAR 4"))
+	assert_true(hud.seed_button.text.contains("SEED"))
+	assert_eq(hud.strokes_label.text, "03")
+	assert_eq(hud.par_label.text, "PAR 4")
 	assert_true(hud.timer_label.text.contains("0:42.5"))
-	assert_true(hud.coins_label.text.contains("7"))
+	assert_eq(hud.coins_label.text, "07")
 	assert_true(hud.bonus_label.text.contains("Power +25%"))
-	assert_true(hud.curse_label.text.contains("!! ACTIVE CURSES / PENALTIES"))
+	assert_true(hud.curse_label.text.contains("CURSE"))
 	assert_true(hud.curse_label.text.contains("Small cup"))
-	assert_true(hud.shot_label.text.contains("35%"))
-	assert_gt(hud.strokes_label.size.x, 100.0)
-	assert_gt(hud.timer_label.size.x, 100.0)
-	assert_gt(hud.coins_label.size.x, 100.0)
+	assert_true(hud.shot_label.text.contains("127 deg"))
+	assert_eq(hud.shot_power_label.text, "35%")
+	assert_eq(hud.biome_icon.icon_name, &"snow")
+	assert_gte(hud.identity_panel.custom_minimum_size.y, 92.0)
+	assert_gte(hud.score_panel.custom_minimum_size.y, 92.0)
+	assert_gte(hud.effects_panel.custom_minimum_size.y, 92.0)
 
 
 func test_shop_presentation_adds_benefit_curse_and_purchase_hierarchy() -> void:
@@ -55,11 +59,14 @@ func test_shop_presentation_adds_benefit_curse_and_purchase_hierarchy() -> void:
 	var presentation = ShopPresentationScript.new()
 	presentation.setup(shop)
 
-	assert_eq(shop.shop_title_label.text, "THE CLUBHOUSE SHOP")
+	assert_eq(shop.shop_title_label.text, "THE LUCKY CLUBHOUSE")
 	for button in shop.shop_card_buttons:
-		assert_not_null(button.get_node_or_null("Presentation/BenefitStrip"))
-		assert_not_null(button.get_node_or_null("Presentation/CurseStrip"))
-		assert_not_null(button.get_node_or_null("Presentation/PurchasedBadge"))
+		assert_true(button is UICard)
+		assert_not_null(button.get_node_or_null("CardContentMargin/CardLayout/VisualCenterpiece"))
+		assert_not_null(button.get_node_or_null("CardContentMargin/CardLayout/BenefitPanel"))
+		assert_not_null(button.get_node_or_null("CardContentMargin/CardLayout/CursePanel"))
+		assert_not_null(button.get_node_or_null("CardContentMargin/CardLayout/StacksPanel"))
+		assert_not_null(button.get_node_or_null("PurchasedBadge"))
 
 
 func test_biome_and_final_transitions_use_distinct_identity_treatments() -> void:
@@ -76,13 +83,15 @@ func test_biome_and_final_transitions_use_distinct_identity_treatments() -> void
 	presentation.show_biome(BiomeDatabase.get_profiles()[5], 6, 6)
 	await wait_process_frames(1)
 
-	assert_true(presentation.identity_label.text.contains("VOLCANIC"))
-	assert_true(presentation.identity_label.text.contains("6 / 6"))
+	assert_eq(presentation.eyebrow_label.text, "BIOME 06 / 06")
+	assert_true(presentation.identity_label.text.contains("THREE HOLES"))
+	assert_eq(presentation.hero_icon.icon_name, &"volcanic")
 	assert_ne(presentation.accent_band.get_parent(), overlay, "PanelContainer must not expand the accent band to full screen.")
 	assert_lte(presentation.accent_band.size.y, 10.0)
 	var biome_accent: Color = presentation.accent_band.color
 	presentation.show_final()
-	assert_eq(presentation.identity_label.text, "COURSE COMPLETE  ·  ALL SIX BIOMES")
+	assert_eq(presentation.eyebrow_label.text, "ALL SIX BIOMES CLEARED")
+	assert_eq(presentation.identity_label.text, "THE COURSE REMEMBERS EVERY CHOICE")
 	assert_ne(presentation.accent_band.color, biome_accent)
 
 

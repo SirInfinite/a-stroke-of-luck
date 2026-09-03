@@ -24,27 +24,20 @@ static func create_start_marker(tee_color: Color, outline_color: Color) -> Node2
 	return root
 
 
-static func create_green_patch(green_color: Color, outline_color: Color, cup_radius: float) -> Node2D:
+static func create_green_patch(green_color: Color, outline_color: Color, _cup_radius: float) -> Node2D:
 	var root := Node2D.new()
-	root.name = "PuttingGreen"
-	var scale_factor := cup_radius / 28.0
-	var green_shape := _organic_ellipse_polygon(Vector2(68.0, 49.0) * scale_factor, 24)
-	_add_polygon(root, green_shape, Color(SHADOW, 0.24), Vector2(3.0, 5.0), "GreenShadow")
-	_add_polygon(root, green_shape, green_color, Vector2.ZERO, "GreenSurface")
-	_add_line(root, _scaled_points(PackedVector2Array([
-		Vector2(-38.0, -25.0), Vector2(-8.0, -34.0), Vector2(23.0, -27.0),
-	]), scale_factor), Color(outline_color.lightened(0.35), 0.34), 2.0, "GreenEdgeHighlight")
-	for angle_index in range(8):
-		var angle := TAU * float(angle_index) / 8.0
-		var point := Vector2(cos(angle) * 49.0, sin(angle) * 33.0) * scale_factor
-		_add_ellipse(root, Vector2(2.3, 1.3), green_color.lightened(0.12), point, "GreenGrain%d" % angle_index)
+	root.name = "PuttingSurface"
+	_add_polygon(root, _rectangle_polygon(Vector2(66.0, 66.0)), green_color, Vector2.ZERO, "BiomePuttingTile")
+	_add_line(root, PackedVector2Array([Vector2(-31.0, -31.0), Vector2(31.0, -31.0)]), Color(outline_color, 0.34), 2.0, "PuttingTileTopEdge")
+	for grain_index in range(3):
+		var y := -18.0 + float(grain_index) * 17.0
+		_add_line(root, PackedVector2Array([Vector2(-23.0, y), Vector2(-7.0, y - 2.0), Vector2(10.0, y + 1.0)]), Color(green_color.lightened(0.12), 0.36), 2.0, "PuttingTileGrain%d" % grain_index)
 	return root
 
 
 static func create_flag(flag_color: Color, outline_color: Color) -> Node2D:
 	var root := Node2D.new()
 	root.name = "FlagAsset"
-	_add_ellipse(root, Vector2(11.0, 4.5), SHADOW, Vector2(4.0, -5.0), "FlagShadow")
 	_add_line(root, PackedVector2Array([Vector2(0.0, -8.0), Vector2(0.0, -82.0)]), outline_color, 6.0, "PoleOutline")
 	_add_line(root, PackedVector2Array([Vector2(0.0, -8.0), Vector2(0.0, -82.0)]), OFF_WHITE, 3.0, "Pole")
 	_add_polygon(root, PackedVector2Array([

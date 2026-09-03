@@ -11,10 +11,17 @@ func test_shop_has_four_unique_seeded_offers() -> void:
 
 	assert_eq(first_ids.size(), 4)
 	assert_eq(_unique_count(first_ids), 4)
-	for button in shop.shop_card_buttons:
-		assert_true(button.text.contains("BONUS — RUN"))
-		assert_true(button.text.contains("CURSE — NEXT 3 HOLES"))
-		assert_true(button.text.contains("STACKS"))
+	for button_index in range(shop.shop_card_buttons.size()):
+		var card_view := shop.shop_card_buttons[button_index] as UICard
+		assert_not_null(card_view)
+		assert_eq(card_view.card_id, shop.current_shop_cards[button_index].id)
+		assert_false(card_view.benefit_description.text.is_empty())
+		assert_false(card_view.curse_description.text.is_empty())
+		assert_true(card_view.stack_label.text.contains("STACKS"))
+		assert_true(card_view.stack_label.text.contains("x0"))
+		assert_not_null(card_view.stack_panel)
+	assert_eq(shop.shop_status_label.text, "PICK UP TO TWO")
+	assert_eq(shop.shop_curse_status_label.text, "")
 
 	shop.reset_for_new_run()
 	shop.show_shop(3, 20, 18, 424242)
@@ -44,12 +51,16 @@ func test_shop_accepts_at_most_two_purchases() -> void:
 	shop.show_shop(3, 99, 18, 999)
 
 	shop._on_shop_card_pressed(0)
+	assert_eq(shop.shop_status_label.text, "PICK UP TO ONE")
+	assert_eq(shop.shop_curse_status_label.text, "CURSE SELECTED")
 	shop._on_shop_card_pressed(1)
 	var tokens_after_two: int = shop.tokens
 	shop._on_shop_card_pressed(2)
 
 	assert_eq(shop.purchases_this_visit, 2)
 	assert_eq(shop.tokens, tokens_after_two)
+	assert_eq(shop.shop_status_label.text, "PICK UP TO ZERO")
+	assert_eq(shop.shop_curse_status_label.text, "CURSES SELECTED")
 	for button in shop.shop_card_buttons:
 		assert_true(button.disabled)
 	assert_false(shop.continue_button.disabled)
