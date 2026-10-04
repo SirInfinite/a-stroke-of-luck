@@ -156,3 +156,13 @@ Record observed playtests and verification here. Keep entries factual; do not co
 - Stop threshold appears especially important to very short shots.
 
 Historical observations recovered during consolidation from `feature/cl-1-shot-tuning`, commit `fd41ff7386523a04f3dc234ff1b04f7d793236a0`. They describe that earlier build; they are not observations of the consolidated game.
+
+## 2026-10-04 — Consolidation trial — Agent automated/rendered verification
+
+- **Environment:** Windows; Godot 4.6.2 stable; RTX 5070 Ti / D3D12 Forward+ for rendered review; WASAPI for audio lifecycle. Branch `integration/consolidated-20261004-000614`, accepted implementation `b0567da`.
+- **Scope:** Recovery and integration of accumulated production source/assets/tests, with current normal Main presentation, Solo/VS lifecycle, generation, UI and audio contracts preserved.
+- **Session:** Baseline and trial canonical verifier each passed 267/267 GUT tests. A 1,728-hole generation corpus had zero invalid/fallback/curse-shortfall outcomes. Native production review passed 1,467 checks with 55 captures at each of 1920×1080 and 1280×720. Dark and light layout reviews each passed 3,227 checks with 37 captures at 1280×720. Audio lifecycle passed 89 checks on WASAPI (recorded peak −8.27 dBFS). The VS smoke completed 18 real AI turns, five shops, shared courses, final results and rematch; player scores were fixtures.
+- **What worked:** Normal title/game creation, actual Solo shots, six biome courses, course/background movement and overview return, single tee/reset behavior, 4/5/6-card shops, settings/pause, tutorial restart/exit cleanup, VS presentation and New Run passed scripted checks. Agent inspected title, Meadow tee, Snow overview, Hard shop, tutorial, VS opponent and light appearance screenshots; approved logo, Jersey 10 and complete card silhouettes remained present.
+- **Findings:** No final automated or rendered failure remained. Archived vector generation needed its original palette separated from the newer runtime UI palette; the repaired check passes without changing approved artwork. One trial verifier was interrupted to avoid concurrent save-file interference, then rerun sequentially to a complete pass. All detailed evidence is in the private recovery root documented in `CONSOLIDATION_REPORT_2026-10-04.md`.
+- **Player response:** Not applicable; no human participated, and no listening-quality or real-input feel acceptance is inferred from scripted rendering/recording.
+- **Follow-up:** Use the consolidated checkout for human QUALITY_BAR/MVP_TEST_CHECKLIST review, complete Solo/VS runs, mouse/keyboard and camera comfort, and music/sound listening. No export, release or issue closure is authorized by these results.
