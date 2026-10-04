@@ -227,7 +227,7 @@ The following describes the preserved vector tooling and remaining small semanti
 
 The audit and human-review evidence belong in `ICON_BRAND_REVIEW.md`.
 
-The vector exporter retains its original six named ink values independently of
+The vector exporter retains its original seven named ink values independently of
 the later production pixel UI palette. This preserves the existing archived
 wordmarks, app icon and toggle/slider exports during reproduction. Runtime
 semantic glyph tint still belongs to `UIStyle`; the approved raster logo is

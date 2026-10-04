@@ -24,6 +24,7 @@ WHITE = "#ffffff"
 PALETTE = {
     'INK': '17201e', 'PAPER': 'f6f1df', 'GOLD': 'edbf45',
     'GOLD_DARK': 'a86f24', 'CURSE': 'e15468', 'CURSE_DARK': '4b1d2b',
+    'BONUS': '48c678',
 }
 INK, PAPER, GOLD, CORAL = (f'#{PALETTE[name]}' for name in ['INK', 'PAPER', 'GOLD', 'CURSE'])
 
