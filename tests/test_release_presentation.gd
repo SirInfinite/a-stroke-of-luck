@@ -32,7 +32,8 @@ func test_release_hud_prioritizes_player_state_and_active_curses() -> void:
 
 	assert_true(hud.biome_label.text.contains("SNOW"))
 	assert_true(hud.hole_label.text.contains("11 / 18"))
-	assert_true(hud.seed_button.text.contains("SEED"))
+	assert_eq(hud.seed_ticket.heading.text, "Seed")
+	assert_eq(hud.seed_ticket.value_label.text, "1", "Missing state seed uses the existing positive default")
 	assert_eq(hud.strokes_label.text, "03")
 	assert_eq(hud.par_label.text, "PAR 4")
 	assert_true(hud.timer_label.text.contains("0:42.5"))
@@ -46,6 +47,21 @@ func test_release_hud_prioritizes_player_state_and_active_curses() -> void:
 	assert_gte(hud.identity_panel.custom_minimum_size.y, 92.0)
 	assert_gte(hud.score_panel.custom_minimum_size.y, 92.0)
 	assert_gte(hud.effects_panel.custom_minimum_size.y, 92.0)
+	var empty_gear: Label = hud.equipment_rail.get_node("EmptyEquipment")
+	assert_gt(empty_gear.get_minimum_size().x, 100.0, "Empty bag copy must reserve real HBox width instead of disappearing.")
+	var inventory: Array[CardDefinition] = CardDatabase.get_cards()
+	var unique_count := inventory.size()
+	inventory.append(inventory[0])
+	hud.update_display({"owned_card_definitions": inventory})
+	await wait_process_frames(2)
+	assert_eq(hud.equipment_rail.get_child_count(), unique_count, "The rail groups repeated items into visible stack counts.")
+	var first_count: Label = hud.equipment_rail.get_child(0).get_node("Count")
+	assert_eq(first_count.text, "×2")
+	for slot: HBoxContainer in hud.equipment_rail.get_children():
+		var count: Label = slot.get_node("Count")
+		var required_width := count.get_theme_font("font").get_string_size(count.text, HORIZONTAL_ALIGNMENT_LEFT, -1, count.get_theme_font_size("font_size")).x
+		assert_gte(count.get_minimum_size().x, required_width, "Each count reserves enough width for its actual font glyphs.")
+		assert_gte(count.size.x, required_width, "Each stack count is readable in the laid-out rail.")
 
 
 func test_shop_presentation_adds_benefit_curse_and_purchase_hierarchy() -> void:
@@ -91,7 +107,7 @@ func test_biome_and_final_transitions_use_distinct_identity_treatments() -> void
 	var biome_accent: Color = presentation.accent_band.color
 	presentation.show_final()
 	assert_eq(presentation.eyebrow_label.text, "ALL SIX BIOMES CLEARED")
-	assert_eq(presentation.identity_label.text, "THE COURSE REMEMBERS EVERY CHOICE")
+	assert_eq(presentation.identity_label.text, "18 FLAGS DOWN. THAT ONE IS YOURS.")
 	assert_ne(presentation.accent_band.color, biome_accent)
 
 

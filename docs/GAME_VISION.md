@@ -19,7 +19,9 @@ One shot should be immediately understandable, but a whole run should produce me
 
 ## Desired Feel
 
-Playing should feel readable, responsive, playful, and lightly tense. The player should usually understand why a shot succeeded or failed. A strong shot should feel earned through aim and power judgment, not hidden randomness. Hazards should create anticipation without making the course illegible. Purchases should feel exciting and dangerous at the same time.
+The owner-approved direction is a handcrafted arcade pixel-art golf roguelike: chunky course construction, expressive physical obstacles, risky routes and precise shots. Play should feel chaotic, physical, surprising and hard but fair. Examine the course, choose a risk, set angle and power, watch the mechanism, commit, then recover or enjoy a skillful success. Execution receives the greatest emphasis, followed by planning; the approximate two-thirds/one-third preference is not a scoring formula. Failures should follow visible geometry and repeatable rules. Purchases remain exciting and dangerous at the same time.
+
+Bank corners, split paths, loops and recoverable dead ends are preferred structures. Each hole needs one recognizable challenge with setup, challenge, recovery and approach space. This direction is being tested in the nine-hole [gameplay approval sample](GAMEPLAY_DIRECTION_REVIEW.md); it is not approval to replace production generation. Keep the top-down perspective, smooth flat physics, square-like cells and occasional discrete raised/lower routes. The logo is approved; the revised art sample and the gameplay direction sample still require separate owner review.
 
 The pace alternates between calm spatial planning and brief, energetic feedback: line up, release, watch, react, then make a consequential shop choice. Humor and exaggeration are welcome, but feedback must stay concise enough for a 10–15 minute session.
 

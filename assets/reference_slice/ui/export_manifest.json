@@ -1,0 +1,353 @@
+[
+  {
+    "asset": "items\\overdrive_driver.png",
+    "source": "overdrive_driver.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      33,
+      45,
+      1221,
+      1215
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "sha256": "693326e9e9dbc33b07dacd8a7b3f7e0870f97fb851a4b290325ba61cfcd7fe46"
+  },
+  {
+    "asset": "items\\overdrive_driver_icon.png",
+    "source": "overdrive_driver.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      33,
+      45,
+      1221,
+      1215
+    ],
+    "size": [
+      32,
+      32
+    ],
+    "sha256": "fd1f2ad0f850b119eff8bbf3922e5ab694ecc66049022ab7e729282336f732d8"
+  },
+  {
+    "asset": "items\\sand_cleats.png",
+    "source": "sand_cleats.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      36,
+      182,
+      1234,
+      1119
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "sha256": "48fbeb59cfd23e4b925f800c554cd777025965ecc70339beee204dd2a8002e68"
+  },
+  {
+    "asset": "items\\sand_cleats_icon.png",
+    "source": "sand_cleats.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      36,
+      182,
+      1234,
+      1119
+    ],
+    "size": [
+      32,
+      32
+    ],
+    "sha256": "2b59c1af080d50bb7e02e7cee5947a8093c0c75b72c2d37bdd779919515b99e3"
+  },
+  {
+    "asset": "items\\coin_magnet.png",
+    "source": "coin_magnet.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      199,
+      182,
+      1060,
+      1078
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "sha256": "6b64cf666963e74234d2f3319c352eabd10238aed37eaebbb7c51f8c6bda8999"
+  },
+  {
+    "asset": "items\\coin_magnet_icon.png",
+    "source": "coin_magnet.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      199,
+      182,
+      1060,
+      1078
+    ],
+    "size": [
+      32,
+      32
+    ],
+    "sha256": "1e0ce0db7404f2e29b2cc26773cbc5ff12b3cfe426e2aa62580054214a8a6404"
+  },
+  {
+    "asset": "items\\rangefinder_lens.png",
+    "source": "rangefinder_lens.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      62,
+      113,
+      1212,
+      1125
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "sha256": "07a2d319851abfe42bf5ec25fb09e1ba542faa96099c230bdda672e414572fc8"
+  },
+  {
+    "asset": "items\\rangefinder_lens_icon.png",
+    "source": "rangefinder_lens.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      62,
+      113,
+      1212,
+      1125
+    ],
+    "size": [
+      32,
+      32
+    ],
+    "sha256": "70072a12ffd93f9ffdfe6cffc043bfdf8cf38a97aaf471bfa5a2f817b10a0d34"
+  },
+  {
+    "asset": "items\\heavy_core.png",
+    "source": "heavy_core.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      182,
+      181,
+      1077,
+      1071
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "sha256": "a3238c741423ea3a865d1f2217c9b5c461b3f71bcdd6cc8e0f8d4e0cbf739411"
+  },
+  {
+    "asset": "items\\heavy_core_icon.png",
+    "source": "heavy_core.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      182,
+      181,
+      1077,
+      1071
+    ],
+    "size": [
+      32,
+      32
+    ],
+    "sha256": "67dd22b8656223ff5ccc733d8b0c6494f0984eec4fc0467f4e7faf60ce6d84df"
+  },
+  {
+    "asset": "items\\lucky_putter.png",
+    "source": "lucky_putter.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      34,
+      34,
+      1221,
+      1222
+    ],
+    "size": [
+      128,
+      128
+    ],
+    "sha256": "4521cd261dadd6df872f04f69fec9b899098b578b9bf5efb882e328a83f4d290"
+  },
+  {
+    "asset": "items\\lucky_putter_icon.png",
+    "source": "lucky_putter.png",
+    "source_size": [
+      1254,
+      1254
+    ],
+    "crop": [
+      34,
+      34,
+      1221,
+      1222
+    ],
+    "size": [
+      32,
+      32
+    ],
+    "sha256": "2094cca9e00c60b5cf9b145aa42ef8eddd7959af9c34b83ca88e6998da87ca85"
+  },
+  {
+    "asset": "frames\\panel.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "e32838718f4bf702bde88812965fa68f9f300bff2a54b63b573371b34144e1fb"
+  },
+  {
+    "asset": "frames\\card.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "bbefdd7bde4ce469aea14aebc8bfcaa7a16d14b548c02a1a6cea28bd86593f4c"
+  },
+  {
+    "asset": "frames\\hover.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "0a2d26022d5de3fc28e91321909205d306d811ef3164c04b6bce24491fe0319f"
+  },
+  {
+    "asset": "frames\\pressed.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "ca4fc3201c32fa8f5826cbd2b1a6ec78c3fdd673a9dd503ca634bc030ff273cd"
+  },
+  {
+    "asset": "frames\\primary.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "1bdd0644d38bcb62ed34f209c5f84185af59f546d870513db6946d7b193879a7"
+  },
+  {
+    "asset": "frames\\disabled.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "4cbe47120a6af3188e288e62a0b98205301ad0da0bc629b2c76842f418fb7362"
+  },
+  {
+    "asset": "frames\\focus.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "8d1d22f72e2b4dc7e787af85040635ec308c91c5691dc2bb10373e070d7335c2"
+  },
+  {
+    "asset": "frames\\benefit.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "6721d9021177fe7cffba45aa60de7ee83800f7282790bbe14a743f991a7d8c87"
+  },
+  {
+    "asset": "frames\\curse.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "5f441229276bbf6dbf9b20ac670e33d0d7139723771b5a32649ebf0d5f7b1b16"
+  },
+  {
+    "asset": "frames\\light.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "22a60b7477d73e3b3e5a798ba0b96deefcea6e2ec6ced2544db071c4406ef16f"
+  },
+  {
+    "asset": "frames\\light_card.png",
+    "source": "authored stepped UI frame in export_ui_assets.py",
+    "size": [
+      40,
+      40
+    ],
+    "sha256": "48d2efee106e5a98272ba2f15ce5fc93cb06d0b3ce843a328135f6a4fc83cf70"
+  },
+  {
+    "asset": "icons/star.png",
+    "source": "authored semantic rating icon in export_ui_assets.py",
+    "size": [
+      32,
+      32
+    ],
+    "sha256": "3c20a2bde8d52c692c7cdd3b8b7f8de73694fa8d5bc6b6bd96de4a10f3833fb2"
+  },
+  {
+    "asset": "icons/coin.png",
+    "source": "coin_magnet.png",
+    "crop": [
+      792,
+      154,
+      978,
+      354
+    ],
+    "size": [
+      32,
+      32
+    ],
+    "sha256": "bc0d8385613a3c6b9074c0240becf5c143c8bffeed8b21a2012020b9822fdb27"
+  }
+]

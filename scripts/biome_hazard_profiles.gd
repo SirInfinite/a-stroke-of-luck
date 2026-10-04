@@ -74,6 +74,8 @@ static func moving_hazard_for(biome_id: StringName, hole_index: int) -> String:
 static func required_static_types(biome_id: StringName, hole_index: int) -> Array[String]:
 	var required: Array[String] = [reset_hazard_for(biome_id)]
 	var normalized_id := String(biome_id).to_lower()
+	if normalized_id == "desert":
+		required.append("sand")
 	if normalized_id == "snow":
 		required.append("ice")
 	if hole_index >= 1 and normalized_id in ["meadow", "desert", "autumn", "swamp", "volcanic"]:

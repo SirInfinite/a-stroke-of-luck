@@ -27,18 +27,95 @@ func test_ball_uses_shape_cast_continuous_collision_detection() -> void:
 	assert_eq(ball.continuous_cd, RigidBody2D.CCD_MODE_CAST_SHAPE)
 
 
-func test_bounce_pad_is_deterministic_bounded_and_never_zero() -> void:
+func test_bounce_pad_is_deterministic_strong_and_bounded() -> void:
 	var incoming := Vector2(640.0, -120.0)
-	var first: Vector2 = GameplayHazardScript.deterministic_bounce_velocity(incoming, 8147, 0, 0.76)
-	var repeated: Vector2 = GameplayHazardScript.deterministic_bounce_velocity(incoming, 8147, 0, 0.76)
-	var next_trigger: Vector2 = GameplayHazardScript.deterministic_bounce_velocity(incoming, 8147, 1, 0.76)
-	var from_rest: Vector2 = GameplayHazardScript.deterministic_bounce_velocity(Vector2.ZERO, 8147, 0, 0.76)
+	var first: Vector2 = GameplayHazardScript.deterministic_bounce_velocity(incoming, 8147, 0)
+	var repeated: Vector2 = GameplayHazardScript.deterministic_bounce_velocity(incoming, 8147, 0)
+	var next_trigger: Vector2 = GameplayHazardScript.deterministic_bounce_velocity(incoming, 8147, 1)
+	var from_rest: Vector2 = GameplayHazardScript.deterministic_bounce_velocity(Vector2.ZERO, 8147, 0)
 
 	assert_eq(first, repeated)
 	assert_ne(first.normalized(), next_trigger.normalized())
 	assert_gte(first.length(), GameplayHazardScript.MIN_BOUNCE_SPEED)
 	assert_lte(first.length(), GameplayHazardScript.MAX_BOUNCE_SPEED)
-	assert_gte(from_rest.length(), GameplayHazardScript.MIN_BOUNCE_SPEED)
+	assert_almost_eq(from_rest.length(), GameplayHazardScript.MIN_BOUNCE_SPEED, 0.001)
+
+
+func test_bounce_pad_low_normal_and_high_speed_crossings_trigger_once_and_exit_cleanly() -> void:
+	var incoming_speeds := [15.0, 800.0, 2400.0]
+	var expected_exit_speeds := [650.0, 920.0, 1450.0]
+	for case_index in range(incoming_speeds.size()):
+		var holder := Node2D.new()
+		add_child(holder)
+		var hazard = GameplayHazardScript.new()
+		hazard.configure({
+			"type": "bounce_pad",
+			"size": Vector2(78.0, 78.0),
+			"elevation": 0,
+			"seed": 8147 + case_index,
+		})
+		hazard.position = Vector2(400.0, 300.0)
+		holder.add_child(hazard)
+		var ball = BALL_SCENE.instantiate()
+		holder.add_child(ball)
+		ball.reset_to(Vector2(320.0, 300.0), 0, false)
+		ball.shot_in_progress = true
+		ball.linear_velocity = Vector2(float(incoming_speeds[case_index]), 0.0)
+		watch_signals(hazard)
+
+		var start := Vector2(320.0, 300.0)
+		var finish := Vector2(480.0, 300.0)
+		assert_gte(hazard.swept_intersection_fraction(ball, start, finish), 0.0)
+		assert_true(hazard.try_swept_bounce(ball, start, finish))
+		assert_eq(hazard._trigger_count, 1)
+		assert_signal_emit_count(hazard, "bounce_pad_triggered", 1)
+		assert_gte(ball.linear_velocity.length(), hazard.minimum_exit_speed)
+		assert_lte(ball.linear_velocity.length(), hazard.maximum_exit_speed)
+		assert_almost_eq(ball.linear_velocity.length(), float(expected_exit_speeds[case_index]), 0.001)
+		var required_exit_distance: float = hazard.bounce_radius + ball.get_collision_radius()
+		assert_gt(ball.global_position.distance_to(hazard.global_position), required_exit_distance)
+
+		assert_false(hazard.try_swept_bounce(ball, start, finish), "Cooldown must suppress a duplicate crossing trigger.")
+		assert_eq(hazard._trigger_count, 1)
+		assert_signal_emit_count(hazard, "bounce_pad_triggered", 1)
+		# Do not retain watched, freed Object keys between the three fixtures.
+		clear_signal_watcher()
+		holder.free()
+
+
+func test_ball_motion_sweep_catches_a_full_pad_tunnel_in_one_step() -> void:
+	var holder := Node2D.new()
+	add_child_autofree(holder)
+	var hazard = GameplayHazardScript.new()
+	hazard.configure({
+		"type": "bounce_pad",
+		"size": Vector2(78.0, 78.0),
+		"elevation": 0,
+		"seed": 99173,
+	})
+	hazard.position = Vector2(400.0, 300.0)
+	holder.add_child(hazard)
+	var ball = BALL_SCENE.instantiate()
+	holder.add_child(ball)
+	ball.reset_to(Vector2(340.0, 300.0), 0, false)
+	ball.shot_in_progress = true
+	ball.linear_velocity = Vector2(2400.0, 0.0)
+	watch_signals(hazard)
+
+	ball.global_position = Vector2(460.0, 300.0)
+	ball._physics_process(1.0 / 20.0)
+
+	assert_eq(hazard._trigger_count, 1)
+	assert_signal_emit_count(hazard, "bounce_pad_triggered", 1)
+	assert_gte(ball.linear_velocity.length(), GameplayHazardScript.MIN_BOUNCE_SPEED)
+	assert_lte(ball.linear_velocity.length(), GameplayHazardScript.MAX_BOUNCE_SPEED)
+	assert_gt(
+		ball.global_position.distance_to(hazard.global_position),
+		hazard.bounce_radius + ball.get_collision_radius()
+	)
+	ball._physics_process(1.0 / 60.0)
+	assert_eq(hazard._trigger_count, 1)
+	assert_signal_emit_count(hazard, "bounce_pad_triggered", 1)
 
 
 func test_ice_reduces_friction_and_restores_normal_grass_damping() -> void:

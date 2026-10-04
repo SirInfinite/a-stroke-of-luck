@@ -1,0 +1,14 @@
+{
+  "scene_path": "tests/audio_lifecycle_review.tscn",
+  "viewport_size": {"width": 1920, "height": 1080},
+  "settle_frames": 4,
+  "steps": [
+    {"type": "wait_until", "node_path": ".", "property": "review_complete", "expected": true, "timeout_seconds": 55.0},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "review_complete", "expected": true},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "failures", "expected": []}
+  ],
+  "log_assertions": [
+    {"contains": "[AUDIO LIFECYCLE]", "min_count": 1, "max_count": 1},
+    {"regex": "SCRIPT ERROR|ERROR:", "min_count": 0, "max_count": 0}
+  ]
+}

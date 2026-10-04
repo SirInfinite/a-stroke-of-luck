@@ -1,0 +1,42 @@
+{
+  "scene_path": "tests/visual_overhaul_review.tscn",
+  "viewport_size": {
+    "width": 1280,
+    "height": 720
+  },
+  "settle_frames": 2,
+  "steps": [
+    {
+      "type": "wait_until",
+      "node_path": ".",
+      "property": "review_complete",
+      "expected": true,
+      "timeout_seconds": 60
+    },
+    {
+      "type": "assert",
+      "node_path": ".",
+      "property": "layout_failures",
+      "expected": 0
+    },
+    {
+      "type": "assert",
+      "node_path": ".",
+      "property": "capture_count",
+      "operator": "greater_or_equal",
+      "expected": 30
+    },
+    {
+      "type": "screenshot",
+      "path": "user://visual_overhaul_20260906/after/1280x720/18_final_frame.png"
+    }
+  ],
+  "log_assertions": [
+    {
+      "label": "No engine errors",
+      "regex": "SCRIPT ERROR|ERROR:|PARSE ERROR|VISUAL LAYOUT FAIL",
+      "min_count": 0,
+      "max_count": 0
+    }
+  ]
+}

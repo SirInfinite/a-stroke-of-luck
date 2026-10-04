@@ -1,0 +1,46 @@
+[
+  {
+    "title": "Peppers Funk",
+    "artist": "Jason Shaw / Audionautix",
+    "source_sha256": "a748f85991093e20775559d1a5c8455686ef57e9e1acec1411ab98c505e2743f",
+    "export_sha256": "13fcbd24f574af5dd32ef7a01118e7da6145b4439064e922c023e51e88b029a9",
+    "excerpt_seconds": 30,
+    "mix": {
+      "input_i": "-8.49",
+      "input_tp": "0.99",
+      "input_lra": "1.20",
+      "input_thresh": "-18.52",
+      "output_i": "-17.97",
+      "output_tp": "-8.29",
+      "output_lra": "1.00",
+      "output_thresh": "-27.98",
+      "normalization_type": "dynamic",
+      "target_offset": "-0.03"
+    },
+    "license": "CC BY 4.0",
+    "sample_rate": 48000,
+    "subjective_listening": "Unavailable; owner approval required"
+  },
+  {
+    "title": "Rocker Chicks",
+    "artist": "Jason Shaw / Audionautix",
+    "source_sha256": "1f5d7118cbac49e4f61aec46b455f0d19d8771dbc582d93284b5170361bc4dfb",
+    "export_sha256": "847be1fe187e464e49b0571c6337d7928f327cc5368cba43f168d47d26c43154",
+    "excerpt_seconds": 45,
+    "mix": {
+      "input_i": "-9.98",
+      "input_tp": "1.43",
+      "input_lra": "2.80",
+      "input_thresh": "-20.23",
+      "output_i": "-17.50",
+      "output_tp": "-5.73",
+      "output_lra": "1.60",
+      "output_thresh": "-27.61",
+      "normalization_type": "dynamic",
+      "target_offset": "-0.50"
+    },
+    "license": "CC BY 4.0",
+    "sample_rate": 48000,
+    "subjective_listening": "Unavailable; owner approval required"
+  }
+]

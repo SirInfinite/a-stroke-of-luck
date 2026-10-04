@@ -1,0 +1,86 @@
+{
+  "creator": "OpenAI imagegen, directed and exported by Codex, 2026-09-24",
+  "source": "assets/world/source/material_rims.png",
+  "reference_role": "Visual construction only; no reference pixels in exports",
+  "brief": "Six original continuous material bands: grass, sandstone, autumn earth, snow, wet moss, ember basalt. Bright lip, crafted middle, dark recess. Hard pixel clusters; no framed individual tiles.",
+  "exports": [
+    {
+      "file": "assets\\world\\terrain\\meadow_rim.png",
+      "crop": [
+        32,
+        55,
+        1223,
+        197
+      ],
+      "size": [
+        192,
+        12
+      ]
+    },
+    {
+      "file": "assets\\world\\terrain\\desert_rim.png",
+      "crop": [
+        32,
+        230,
+        1223,
+        380
+      ],
+      "size": [
+        192,
+        12
+      ]
+    },
+    {
+      "file": "assets\\world\\terrain\\autumn_rim.png",
+      "crop": [
+        32,
+        424,
+        1223,
+        580
+      ],
+      "size": [
+        192,
+        12
+      ]
+    },
+    {
+      "file": "assets\\world\\terrain\\snow_rim.png",
+      "crop": [
+        32,
+        624,
+        1223,
+        776
+      ],
+      "size": [
+        192,
+        12
+      ]
+    },
+    {
+      "file": "assets\\world\\terrain\\swamp_rim.png",
+      "crop": [
+        32,
+        820,
+        1223,
+        979
+      ],
+      "size": [
+        192,
+        12
+      ]
+    },
+    {
+      "file": "assets\\world\\terrain\\volcanic_rim.png",
+      "crop": [
+        32,
+        1023,
+        1223,
+        1182
+      ],
+      "size": [
+        192,
+        12
+      ]
+    }
+  ]
+}

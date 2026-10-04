@@ -18,6 +18,10 @@ A player-facing feature is finished only when it is correct, understandable, sat
 - Shop text states both benefit and penalty before purchase and agrees with actual behavior.
 - HUD and results use consistent terms, values, icon language, and hierarchy; repeated text does not substitute for a readable visual symbol where one is established.
 - Hole history never exposes future data, result stars visibly prioritize stroke efficiency, seed copy/input feedback is plain-language, and every settings control demonstrably changes its advertised system.
+- Generated challenges routinely influence the tee-to-cup decision space instead of collecting at irrelevant edges; ordinary hazard clusters look connected and intentional, preserve recovery room, and never overlap another occupied surface.
+- Generation quality is more than validity: recognizable route ideas, useful banks, readable approaches, optional alternatives and setup/challenge/recovery rhythm must survive representative human play. Heuristic scores and proximity percentages are not approval of difficulty or fun.
+- Generator changes require deterministic replay, independent malformed-contract/occupancy/recovery tests, a corpus spanning all 18 positions, three difficulties and representative effect states, and rendered before/after inspection. Report real candidate rejections, fallback rate, quality/relevance metrics, motif/cluster/elevation/branch/moving distributions and bounded generation cost.
+- Tutorial-only copy and highlights are absent after completion, skip, menu exit, reset, and every later normal run.
 
 ### Good Game Feel
 
@@ -52,13 +56,15 @@ A player-facing feature is finished only when it is correct, understandable, sat
 
 | Feature | Required evidence |
 |---|---|
-| Shot/physics | Tested at low, medium, and high power and preview distance; terrain entry/exit; menu pause/resume while moving; reset while moving; no duplicate or refunded stroke. |
-| Card/economy | Affordability, deduction, disclosed effects, stacking, duration/expiry, and HUD/results reporting. |
-| Hole/hazard | Validator-builder contract pass, quality-scored reachable main route, exclusive placement occupancy, escapable branches/dead ends, boundary/OOB containment, elevation transitions/crossings, readable static/moving telegraphs, and tested reset behavior. |
-| UI/screen | Mouse and keyboard usability, all button/settings/history states, long text/value cases, transition in/out, 1920×1080 reference captures, 1600×900 plus 1280×720 fit checks, and no clear-color exposure at tested large/ultrawide sizes. |
-| Audio/music | All eight distinct theme streams load, one exclusive music/ambience state, physical semantic cues, failure/success separation, no duplicate/stuck voices, provenance, and full-run listening on speakers/headphones. |
-| Tutorial | Fresh save, completed save, skip/restart, required event, blocker, and return to normal run. |
+| Shot/physics | Actual low/medium/high/modifier forecast-versus-stop comparisons; legitimate maximum/boosted straight, diagonal and corner wall containment; terrain entry/exit; pause/reset while moving; no duplicate stroke; automatic OOB refunds exactly its accepted shot once while ordinary hazards/manual reset remain charged. |
+| Card/economy | Easy/Normal/Hard offer and purchase limits, affordability, deduction, scaled disclosure/effect agreement, stacking, duration/expiry, clamps, and HUD/results reporting. |
+| Hole/hazard | Validator-builder contract pass, quality-scored reachable main route, measured route relevance, connected cluster variety, exclusive placement occupancy, escapable branches/dead ends, boundary/OOB containment, sparse one-to-two-tile elevation crossings, readable static/moving telegraphs, bounce-pad sweep coverage at low/normal/maximum legitimate speed with one bounded separated trigger, and tested reset behavior. |
+| UI/screen | Mouse and keyboard usability, title Run Setup, all 4/5/6-card shop layouts, all button/settings/history states, longest copy/value cases, transition in/out, 1920×1080 reference captures, 1600×900 plus 1280×720 fit checks, and no clear-color exposure at 2560×1440/ultrawide sizes. |
+| Audio/music | Eight independently scored, loadable themes; verified provenance and preserved supplied/sand hashes; substantive loops with measured seams/headroom; real-driver bounded crossfades/cleanup; strength/speed-based cues; failure/success separation; persistent Master/Music/SFX controls; no generic purchase duplicate; full-run human listening on speakers/headphones. Signal/PCM checks do not approve musical quality. |
+| Tutorial | Fresh save, completed save, skip/restart/menu/reset cleanup, required hazard interaction, progressive HUD, multiline copy, zero leaked overlays, return to Main Menu and a subsequent explicitly started normal run. |
 | Run progression | Full 18-hole/six-biome run, correct local and overall indices, five biome shops, results timing, timer pause, ending, and clean new-run reset. |
+
+The final human-fix pass additionally requires separate Easy/Normal/Hard and early/mid/late corpus aggregates, rare fallbacks, full-tile falling-ice collision/art, live pendulum art/collision agreement, all four gameplay rarities, persisted Dark/Light readability, authoritative two-shot/final-shot warnings, and success/failure/purchase audio exclusivity. Automation cannot approve the high-speed wall fix or generation difficulty feel; representative human retesting remains mandatory.
 
 ## Release Gate
 

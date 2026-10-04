@@ -1,0 +1,1149 @@
+{
+  "density": 48,
+  "tee_seat_pixel": [
+    5.5,
+    3
+  ],
+  "exports": [
+    {
+      "file": "terrain/meadow_fairway_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "9d3b6a756ed1b97269b581bb6cea72bbae9892b448a9aeb8641abdddf360fb3d"
+    },
+    {
+      "file": "terrain/meadow_fairway_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "cc4b59e944ae7e38ade92947c77e7119d96958a83a1180f2c72258cdb3a05a84"
+    },
+    {
+      "file": "terrain/meadow_fairway_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "d6283634c35188c8b2fda74241cdf869daa084080ce9d496f0a5f7512b865fba"
+    },
+    {
+      "file": "terrain/meadow_fairway_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "1d4d64482a7b9b7694928e91d0a8929a43034a01c4e30a7ddc6a7c04d5ff6abf"
+    },
+    {
+      "file": "terrain/meadow_green_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "c5b93008bba374d2a7255f0264eb68b765d329f9cedb24ba04e281a59971bccb"
+    },
+    {
+      "file": "terrain/meadow_green_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "a9a818460ddd7c15c1bd9cf26fc60e39ef9874a9e650ac4adc454ea4fb13fa43"
+    },
+    {
+      "file": "terrain/meadow_green_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "e468901cc4e4de6f08ab4c0b1d2042d5f9f91e1884176b82db0dd73e320291a1"
+    },
+    {
+      "file": "terrain/meadow_green_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "39fb873770f19d8a0bfb59cbbbc80710f4b2004ca3a88b33d9a773588adc233f"
+    },
+    {
+      "file": "terrain/meadow_wall.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\wall_meadow.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "c2735b67a07007765a36d9e9113335117805ca1f237650f08cfbe34b34259bcd"
+    },
+    {
+      "file": "terrain/desert_fairway_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "f6d41b4c68d94474b5b7a2b879136450b80d5ce5d4e965a523232b0fe77106fb"
+    },
+    {
+      "file": "terrain/desert_fairway_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "64b007c902b3d57ba9d34681cdf793ea4d4741b7cd4b6bfc6c43b57808641b3d"
+    },
+    {
+      "file": "terrain/desert_fairway_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "df2841eb07e84c6e8fb3fa8b862d305f4bb6767b36c70553921ff94a5e1d8be6"
+    },
+    {
+      "file": "terrain/desert_fairway_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "322e3c16e8d6188f01033e23daa8f17254e96172340f5b7af58e1bbcfb1e8107"
+    },
+    {
+      "file": "terrain/desert_green_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "44c670ae28f779ad1b8d1fce293c773647118e843f21e8e7265525f03b80084f"
+    },
+    {
+      "file": "terrain/desert_green_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "a57d6b57ab242e652c0a5d8bbd9f5ab2fe86525a2f2b13a2786b467a9b319fa6"
+    },
+    {
+      "file": "terrain/desert_green_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "3954f9dd95ad3513f0411856dfb67e053a0046b5f4211794848163d67070bee2"
+    },
+    {
+      "file": "terrain/desert_green_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "4976887920047ceab74888b9fe03cca333b07bc97d826e4f1bc4113c11c8cfc2"
+    },
+    {
+      "file": "terrain/desert_wall.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\wall_meadow.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "bade005be3b3a054d03481540e27bd6725150bf2e6b1e4d4e2b3966cede403dd"
+    },
+    {
+      "file": "terrain/autumn_fairway_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "96f8bfccda9e1ffdefa0b2b2c457984feee01e91da3e89b9a345b56a37397484"
+    },
+    {
+      "file": "terrain/autumn_fairway_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "7d48f4a4dbdf22831905699366d81bd75368d10e1514d790ff4c24fedc439df2"
+    },
+    {
+      "file": "terrain/autumn_fairway_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "9f76214a4a2d335895d739181994beaa5cc2b5fcc6c4d35d2b63fa2569be00be"
+    },
+    {
+      "file": "terrain/autumn_fairway_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "700a237933432b17adb108a99a4763c5967fee299c09e94144b907f187403535"
+    },
+    {
+      "file": "terrain/autumn_green_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "01739efc02a9355b2f5017d2c5156b6d7d8af49e00a3f5634454dba465150ca8"
+    },
+    {
+      "file": "terrain/autumn_green_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "9d3df0164e5e2c2dfb68b954a73b893a8fa049bc2c7d9852434447863427a048"
+    },
+    {
+      "file": "terrain/autumn_green_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "ffd243348ea46970e63f64acb9e236c304f511ebb9a9a3df83a9be1d79b82705"
+    },
+    {
+      "file": "terrain/autumn_green_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "2ed6b86e9b61ba471b752f5acf43c1b43300accdb74563ece93c75064b55b08f"
+    },
+    {
+      "file": "terrain/autumn_wall.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\wall_meadow.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "45e17db09c5b53eaecee125d91afa4220ed46870867ac8c5b679317706b47eab"
+    },
+    {
+      "file": "terrain/snow_fairway_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "2f105c553c75ee9074ea2bcc2977e373a7544972bbe6f73e1509db94d97685bb"
+    },
+    {
+      "file": "terrain/snow_fairway_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "c6237fcd01786b4fffe2145c9583cad7d7e5c9c5881f0a915e6df883004c976a"
+    },
+    {
+      "file": "terrain/snow_fairway_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "6cfe1a3cf33bdb3f6bfb7c7fdab893eb3375fbb850b7e2aca74260202d8218da"
+    },
+    {
+      "file": "terrain/snow_fairway_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "a25f40c9624cd3e2160a102a80920360962c07edfebd90fb423b0991c6f42f2a"
+    },
+    {
+      "file": "terrain/snow_green_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "61e61ed915d9e12ec20a60e41337d00434c9c04ba8df46474b5ae405c9b5beab"
+    },
+    {
+      "file": "terrain/snow_green_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "50569666e23bff9f54f1b598b30ad8fea9352f02fdf5464190b1facbb5718d3d"
+    },
+    {
+      "file": "terrain/snow_green_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "c87619f0345bf06be2816f6f8859ed82720b5d45da128e590d32dcbdba7090c8"
+    },
+    {
+      "file": "terrain/snow_green_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "8bf217663af2b22c5f1d5dc8abbaeca6564dcca81e09fd5f2e25f22d476a6072"
+    },
+    {
+      "file": "terrain/snow_wall.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\wall_meadow.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "21b77ff6640daafef1fde5b229cfafe145aa00e30f52a752c2d5a6538e4844db"
+    },
+    {
+      "file": "terrain/swamp_fairway_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "4227c589f255cbf1b26cb934f3f253b45b730e43511e2d43b3f4c7ac6a5785a1"
+    },
+    {
+      "file": "terrain/swamp_fairway_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "9a9b4e7673797ace9f4f3373341ea44c865057c707256b84e1a62923c74e7f52"
+    },
+    {
+      "file": "terrain/swamp_fairway_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "68ae3047914041c3427df7df4148cea4e5e9c765e7232c734546b583256afcb6"
+    },
+    {
+      "file": "terrain/swamp_fairway_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\fairway_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "db09f062d19ae71666aa39e4bbb41ec5754d016e4b6a091f4e45faf36ad3c002"
+    },
+    {
+      "file": "terrain/swamp_green_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "eaf57864c563c9280f45ca1a68ff42e949de871a630302e1a1f3e3606ccf973c"
+    },
+    {
+      "file": "terrain/swamp_green_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "e4af7ac16404951b98b6eeb066539ce2883cc9e473e80aec218bf6c8b95f1b7a"
+    },
+    {
+      "file": "terrain/swamp_green_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "48277569689d1fc75a7fbc7252a0222a366c9b7f570a07f96ae6b7d8a67cfe98"
+    },
+    {
+      "file": "terrain/swamp_green_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\green_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "8f662a53e057c82c3342f167b0f81e11afe352e9b7a4a27f760fdb1e804ddf4c"
+    },
+    {
+      "file": "terrain/swamp_wall.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\wall_meadow.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "3abe9d7be037208b0d528747370abdace7eea1ed028a52773cabfb0b5b241605"
+    },
+    {
+      "file": "terrain/volcanic_fairway_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\basalt_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "02411e1046399de215f947f3c4327b8d96532232a5e1746f260da7946ac25595"
+    },
+    {
+      "file": "terrain/volcanic_fairway_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\basalt_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "5a4af0a8c69495cc8d21d0fafd74e836d09766317c088613ee9e1d49b3a2688c"
+    },
+    {
+      "file": "terrain/volcanic_fairway_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\basalt_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "6e658ea7f627729f9cd35a69b1efd8abaef7e8558e2c516f27d80d3221f8a9fa"
+    },
+    {
+      "file": "terrain/volcanic_fairway_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\basalt_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "6e658ea7f627729f9cd35a69b1efd8abaef7e8558e2c516f27d80d3221f8a9fa"
+    },
+    {
+      "file": "terrain/volcanic_green_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\basalt_green_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "861ceac0229c39637f8304d67d7f951a0afedf592867057c93a50ee5632c3587"
+    },
+    {
+      "file": "terrain/volcanic_green_a_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\basalt_green_a_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "d100700677d400bd20024ecf91ffb2d4d2d92635dd7b6e69005317f798d7dc24"
+    },
+    {
+      "file": "terrain/volcanic_green_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\basalt_green_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "65eb42fa8b9023b9ed06ab1bf552d32cec49bae7f5a8b46793fa4d34caa2fbe3"
+    },
+    {
+      "file": "terrain/volcanic_green_b_quiet.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\basalt_green_b_quiet.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "65eb42fa8b9023b9ed06ab1bf552d32cec49bae7f5a8b46793fa4d34caa2fbe3"
+    },
+    {
+      "file": "terrain/volcanic_wall.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\wall_volcanic.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "13ec425051e88f849635fbd328a09dc5633288eb840116d9c0405d9097a5a2ca"
+    },
+    {
+      "file": "terrain/water_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\water_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "337f28a2e7c16476da544970c1f5bc6cc521353c1891530c8ba200d9bc353849"
+    },
+    {
+      "file": "terrain/water_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\water_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "c00b59a8b0f227e3bd76c0a09320cb0d785f029ee328828223b87e81e9fbaf9b"
+    },
+    {
+      "file": "terrain/sand_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\sand_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "55d8658c86dc0328d417b5d1924b29e4767643a20b2c19edca830305f0be5674"
+    },
+    {
+      "file": "terrain/sand_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\sand_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "d93712ee9b7cf0e6d980379c3abb7da5381f508912ee3f7f9e861eb675009887"
+    },
+    {
+      "file": "terrain/lava_a.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\lava_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "4184ad9a33e63bd6a55999d3ac507711f90c60f2165b2f242f8b2d84f0bcbcab"
+    },
+    {
+      "file": "terrain/lava_b.png",
+      "source": "assets\\reference_slice\\world\\d48\\terrain\\lava_b.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "619b061b911f0eb45949849bb883947a0505c0b3baf2493893353fcc36683de9"
+    },
+    {
+      "file": "objects/pendulum.png",
+      "source": "assets\\reference_slice\\world\\d48\\props\\pendulum.png",
+      "crop": null,
+      "size": [
+        44,
+        43
+      ],
+      "sha256": "0d1c81cc5bfcda71eb470a16db19ef3331276c2012f7cb06360837755b75d981"
+    },
+    {
+      "file": "objects/bearing.png",
+      "source": "assets\\reference_slice\\world\\d48\\props\\bearing.png",
+      "crop": null,
+      "size": [
+        28,
+        24
+      ],
+      "sha256": "8e5ed677923d119e81a8f8ad62762cc7298be94eb08a381b6850211c35760e81"
+    },
+    {
+      "file": "objects/chain.png",
+      "source": "assets\\reference_slice\\world\\d48\\props\\chain.png",
+      "crop": null,
+      "size": [
+        8,
+        13
+      ],
+      "sha256": "557ed85d67a3c402063795c5a948a88c6c50517b5f5ed23239998b303152e59d"
+    },
+    {
+      "file": "objects/willow.png",
+      "source": "assets\\reference_slice\\world\\d48\\props\\willow.png",
+      "crop": null,
+      "size": [
+        97,
+        112
+      ],
+      "sha256": "a8cb3cd0b51790c3d8fc47639b56dcacbb73715c072332354a589677e5d35a3f"
+    },
+    {
+      "file": "objects/basalt_columns.png",
+      "source": "assets\\reference_slice\\world\\d48\\props\\basalt_columns.png",
+      "crop": null,
+      "size": [
+        94,
+        112
+      ],
+      "sha256": "0f0f0963fbe23a21da237faeda47dba49ebfc4c4c9bd6d6da7c2ade8b760e785"
+    },
+    {
+      "file": "objects/pad.png",
+      "source": "assets\\reference_slice\\world\\d48\\props\\pad.png",
+      "crop": null,
+      "size": [
+        34,
+        34
+      ],
+      "sha256": "356820b2364799c5a2043a07fb7006d4f530aab0cc1bacd360a83943a0bc3ecd"
+    },
+    {
+      "file": "objects/ball.png",
+      "source": "assets\\reference_slice\\world\\d48\\props\\ball.png",
+      "crop": null,
+      "size": [
+        12,
+        12
+      ],
+      "sha256": "05680ecc0af31c352a8ef5f2003bb9d2678e36b69baf0025682e304e6daedd28"
+    },
+    {
+      "file": "objects/coin.png",
+      "source": "assets\\reference_slice\\world\\d48\\props\\coin.png",
+      "crop": null,
+      "size": [
+        14,
+        16
+      ],
+      "sha256": "962e6459f5402ac6ef382a2754409cb4e5750d5dd5d1794594e48407e029b28b"
+    },
+    {
+      "file": "objects/tee.png",
+      "source": "assets\\pixel_correction\\props\\tee.png",
+      "crop": [
+        0,
+        0,
+        21,
+        32
+      ],
+      "size": [
+        11,
+        16
+      ],
+      "sha256": "ebe5bc2d534c4666d4cceb46ca939db58f8bd296b628e49da0583a9970919726"
+    },
+    {
+      "file": "objects/flag_a.png",
+      "source": "assets\\pixel_correction\\props\\flag_a.png",
+      "crop": [
+        0,
+        0,
+        33,
+        35
+      ],
+      "size": [
+        33,
+        35
+      ],
+      "sha256": "480bc8ad1ae53bcfe31a4b50625ecc24b12eb58a1f87198e12f398aa93e9ed69"
+    },
+    {
+      "file": "objects/flag_b.png",
+      "source": "assets\\pixel_correction\\props\\flag_b.png",
+      "crop": [
+        0,
+        0,
+        28,
+        35
+      ],
+      "size": [
+        28,
+        35
+      ],
+      "sha256": "424847addbac843b8e553149a6b053f81f8362864fea94601d16809afae35d16"
+    },
+    {
+      "file": "objects/cactus.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        15,
+        35,
+        365,
+        612
+      ],
+      "size": [
+        49,
+        90
+      ],
+      "sha256": "1417f1417d6b27f165393148c3d4dbc00d5d54afc2f47d403fc27b33c838f9dc"
+    },
+    {
+      "file": "objects/maple.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        373,
+        35,
+        795,
+        612
+      ],
+      "size": [
+        77,
+        100
+      ],
+      "sha256": "4d79d8b540a80058593f9963e614f2aa95d16ab9c41f7b099cf55a47807db2d1"
+    },
+    {
+      "file": "objects/spruce.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        803,
+        30,
+        1169,
+        612
+      ],
+      "size": [
+        69,
+        100
+      ],
+      "sha256": "0d62d818ad5f6d271c9174a7e137558a2b1a3fff5533bf022c593e3409bc62d8"
+    },
+    {
+      "file": "objects/cypress.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        1180,
+        35,
+        1532,
+        612
+      ],
+      "size": [
+        63,
+        100
+      ],
+      "sha256": "e4909c5018ec7b2a07a6bf168bd25f7808ad3e52917f9f35e0c29caadc1bdf0f"
+    },
+    {
+      "file": "objects/ice_block.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        38,
+        635,
+        338,
+        941
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "2a37ce2cdf6f115508246b4467bcef4135d513e3c52d354016c0ac1c8cf64083"
+    },
+    {
+      "file": "objects/fire_rod.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        372,
+        730,
+        837,
+        868
+      ],
+      "size": [
+        144,
+        35
+      ],
+      "sha256": "ed130fd1187a841b82e20cd8a1aa88260bcc3d3b34aa8a9787bcb633bfefa86b"
+    },
+    {
+      "file": "objects/direction.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        880,
+        663,
+        1128,
+        920
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "be8b7e4ef90f3f5c311b02109aace7bf96cf73558457cc40445a98b68008a582"
+    },
+    {
+      "file": "objects/flowers.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        1210,
+        689,
+        1489,
+        934
+      ],
+      "size": [
+        42,
+        39
+      ],
+      "sha256": "45640ada0125d8d0b6ef582bccbd4fdbc9755b9cea8e9dfc53baeaf248692e7c"
+    },
+    {
+      "file": "objects/direction_arrow.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        880,
+        663,
+        1128,
+        920
+      ],
+      "size": [
+        30,
+        30
+      ],
+      "sha256": "6fea23d8bf3f365d9621387aa1c91137bc61cdd384a4f7b3dc672cf3951ea7cd"
+    },
+    {
+      "file": "objects/direction_plate.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        880,
+        663,
+        1128,
+        920
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "4fedad4fcf48714a65502d3b8b64d7cb6c3075278e249df553fb48057f0cfc81"
+    },
+    {
+      "file": "terrain/rough.png",
+      "source": "assets/reference_slice/world/d48/terrain/fairway_a.png",
+      "crop": null,
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "4b0d12226618d2d72e3035cbc536f4d64e83b09af11ec0a634872904bac0d0bf"
+    },
+    {
+      "file": "terrain/ice_a.png",
+      "source": "assets/world/source/biome_objects.png",
+      "crop": [
+        70,
+        675,
+        300,
+        905
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "b31f130db1edaf02cd577eeefbdf98952bda57797ca3465f7b99d4725293bd4b"
+    },
+    {
+      "file": "backgrounds/meadow.png",
+      "source": "assets\\world\\source\\meadow_reconstruction.png",
+      "crop": null,
+      "size": [
+        768,
+        432
+      ],
+      "sha256": "d2ed6b0a7c276df37047e6d7276ab64e8f9d9d4e2fe433d50a3a6b679d668559"
+    },
+    {
+      "file": "backgrounds/meadow_distance.png",
+      "source": "assets\\world\\source\\meadow_reconstruction.png",
+      "crop": null,
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "d28b7d5e924da65fc6102773bc05d9d6dc554bb7a6d39a19b15ea1c71b75d228"
+    },
+    {
+      "file": "backgrounds/meadow_middle.png",
+      "source": "assets\\world\\source\\meadow_reconstruction.png",
+      "crop": null,
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "c0d7b9a74a4d488d6d10ecb7c9663c0bb391764b04b4ebfc37de4d478fa9203b"
+    },
+    {
+      "file": "backgrounds/desert.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        0,
+        0,
+        836,
+        470
+      ],
+      "size": [
+        768,
+        432
+      ],
+      "sha256": "a454aa5dbb6f9f3dbdb5011d4ac411a921f28ebb9abc6103e44bf6a4d40daa6b"
+    },
+    {
+      "file": "backgrounds/desert_distance.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        0,
+        0,
+        836,
+        470
+      ],
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "fa3a996abe73fb4cfdf5a2158053d62c34532049fc2e168ac367b9b3ce960dc8"
+    },
+    {
+      "file": "backgrounds/desert_middle.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        0,
+        0,
+        836,
+        470
+      ],
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "aaedafa127d98cfbf4f6f40e6f4706af2baf8113c293d3cf724fddb70af6772a"
+    },
+    {
+      "file": "backgrounds/autumn.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        836,
+        0,
+        1672,
+        470
+      ],
+      "size": [
+        768,
+        432
+      ],
+      "sha256": "356fe23475beb0f9e72e68bc0847a1fbca9fcd1624ff2f3f7959b449796dfb92"
+    },
+    {
+      "file": "backgrounds/autumn_distance.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        836,
+        0,
+        1672,
+        470
+      ],
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "596b7045798413791fc528f303ededa674c84883f9f04280377ccbb1a92c2400"
+    },
+    {
+      "file": "backgrounds/autumn_middle.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        836,
+        0,
+        1672,
+        470
+      ],
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "569b26d20c13a42d8cf9eb634320686a3f03f1af371e24fda83371828f1d7ca4"
+    },
+    {
+      "file": "backgrounds/snow.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        0,
+        470,
+        836,
+        941
+      ],
+      "size": [
+        768,
+        432
+      ],
+      "sha256": "9189da20f0ca5a13cdb5e45477547bb5b919bb229a3729d0551a3d489115c014"
+    },
+    {
+      "file": "backgrounds/snow_distance.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        0,
+        470,
+        836,
+        941
+      ],
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "c524283f040d33493a343985c9821f1a8be063a021a7c64d67839debd9f209a5"
+    },
+    {
+      "file": "backgrounds/snow_middle.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        0,
+        470,
+        836,
+        941
+      ],
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "fd7d80a172b7427c55be529ef205aed42c5f38579d3930bf3781adfa5110a1f2"
+    },
+    {
+      "file": "backgrounds/swamp.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        836,
+        470,
+        1672,
+        941
+      ],
+      "size": [
+        768,
+        432
+      ],
+      "sha256": "4a679cc2e370c75653fa82a19c52f89ee9681b5e4268c4543515902332b55285"
+    },
+    {
+      "file": "backgrounds/swamp_distance.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        836,
+        470,
+        1672,
+        941
+      ],
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "4b0a022490878b9e67c3658d8479211f70d9d7da55775d06904d271d9cb67838"
+    },
+    {
+      "file": "backgrounds/swamp_middle.png",
+      "source": "assets/world/source/biome_panoramas.png",
+      "crop": [
+        836,
+        470,
+        1672,
+        941
+      ],
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "28db1dd8d6fe36d8adaf77ebaad8cbfc07ecd141dbdba8cee0496d65f25e7665"
+    },
+    {
+      "file": "backgrounds/volcanic.png",
+      "source": "assets\\reference_slice\\world\\backgrounds\\volcanic.png",
+      "crop": null,
+      "size": [
+        768,
+        432
+      ],
+      "sha256": "efaf71488180e4216a85db741a509ffe5cd27e59f79f825e0b8ebaf80a328d0a"
+    },
+    {
+      "file": "backgrounds/volcanic_distance.png",
+      "source": "assets\\reference_slice\\world\\backgrounds\\volcanic.png",
+      "crop": null,
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "2c0c7410d0af83ecafd0861bb8f8f8bb4b159c8e06a9000c9e4011ac3fd6817b"
+    },
+    {
+      "file": "backgrounds/volcanic_middle.png",
+      "source": "assets\\reference_slice\\world\\backgrounds\\volcanic.png",
+      "crop": null,
+      "size": [
+        1536,
+        432
+      ],
+      "sha256": "5b355fe61500ab73cd3721637c37c09cd9e1c07941e4e9a309c4720dc1e54673"
+    }
+  ]
+}

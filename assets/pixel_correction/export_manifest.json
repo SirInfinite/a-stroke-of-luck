@@ -1,0 +1,440 @@
+{
+	"exports": [
+		{
+			"crop": [
+				0,
+				0,
+				444,
+				444
+			],
+			"file": "terrain/fairway_a.png",
+			"sha256": "f03de84eb6e33bbb63e0d38a8b82679330ed1ae3c33770da4f3dc35593ca7b55",
+			"size": [
+				32,
+				32
+			],
+			"source": "terrain_flat.png"
+		},
+		{
+			"crop": [
+				444,
+				0,
+				443,
+				444
+			],
+			"file": "terrain/fairway_b.png",
+			"sha256": "87a8307647f175faebe83a7c4d9874cfad02af808767db3abd33470f8a88a0af",
+			"size": [
+				32,
+				32
+			],
+			"source": "terrain_flat.png"
+		},
+		{
+			"crop": [
+				887,
+				0,
+				444,
+				444
+			],
+			"file": "terrain/green_a.png",
+			"sha256": "9ea2b8309909fc1e75c1a342e322d26ab14124a499dfea90e619c80582eb670c",
+			"size": [
+				32,
+				32
+			],
+			"source": "terrain_flat.png"
+		},
+		{
+			"crop": [
+				1331,
+				0,
+				443,
+				444
+			],
+			"file": "terrain/green_b.png",
+			"sha256": "a529696c0c2c1a06d03ddf5e8536e3845653ca04ae0c0e048ac5de243dbb632b",
+			"size": [
+				32,
+				32
+			],
+			"source": "terrain_flat.png"
+		},
+		{
+			"crop": [
+				0,
+				444,
+				444,
+				443
+			],
+			"file": "terrain/water_a.png",
+			"sha256": "ef51a8b68c0727cc6d399388ced6cb44a71db1feb4401580bba4957306fe44c7",
+			"size": [
+				32,
+				32
+			],
+			"source": "terrain_flat.png"
+		},
+		{
+			"crop": [
+				444,
+				444,
+				443,
+				443
+			],
+			"file": "terrain/water_b.png",
+			"sha256": "4ff96089f35f231f01816a5b232668ae902abf177349e484274d9c4d9297199c",
+			"size": [
+				32,
+				32
+			],
+			"source": "terrain_flat.png"
+		},
+		{
+			"crop": [
+				887,
+				444,
+				444,
+				443
+			],
+			"file": "terrain/sand_a.png",
+			"sha256": "5bdc25f84ddbff59c9915fb3ba99ab46bc539eeb870d8f890bcc4c7489b4c316",
+			"size": [
+				32,
+				32
+			],
+			"source": "terrain_flat.png"
+		},
+		{
+			"crop": [
+				1331,
+				444,
+				443,
+				443
+			],
+			"file": "terrain/sand_b.png",
+			"sha256": "6bd1a64b452c89ccf49bccb7d7e8718f885c84caa742bbc6ab1ae761c04c7700",
+			"size": [
+				32,
+				32
+			],
+			"source": "terrain_flat.png"
+		},
+		{
+			"crop": [
+				0,
+				0,
+				314,
+				344
+			],
+			"file": "props/pendulum.png",
+			"sha256": "b28c816444f2e20dc43c0027bb9fd6b29ce63829ec13d6c5dbf82cdadc50e74a",
+			"size": [
+				42,
+				48
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				314,
+				0,
+				313,
+				344
+			],
+			"file": "props/chain.png",
+			"sha256": "f17bbd7a0aca390a7571fbf21da0d3a196e2f01bf464cda09f252ec4607f7a22",
+			"size": [
+				16,
+				48
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				627,
+				0,
+				314,
+				344
+			],
+			"file": "props/pivot.png",
+			"sha256": "068eed7a8fe9170c1b563e989964f89dc3717c99c1b96b746b95c851536be830",
+			"size": [
+				48,
+				47
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				941,
+				0,
+				313,
+				344
+			],
+			"file": "props/ball.png",
+			"sha256": "6bbda9e701ff4a68c885db017775e748ea02cf99c9823c8a9113e472aa5defab",
+			"size": [
+				48,
+				48
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				0,
+				344,
+				314,
+				296
+			],
+			"file": "props/flag_a.png",
+			"sha256": "112766c9e7be952c94900b9c1c1749cf626943fa731c3acc6043bf63c8794bbd",
+			"size": [
+				33,
+				48
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				314,
+				344,
+				313,
+				296
+			],
+			"file": "props/flag_b.png",
+			"sha256": "8e850126918fd212df514ff9e94561548b8ff9c963500356b0454044efd68260",
+			"size": [
+				28,
+				48
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				627,
+				344,
+				314,
+				296
+			],
+			"file": "props/tee.png",
+			"sha256": "c2d13f9b6e038993251b556c5a1b16738ce2527fb1cfaceef9be3ee0405e94fe",
+			"size": [
+				48,
+				32
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				941,
+				344,
+				313,
+				296
+			],
+			"file": "props/pad.png",
+			"sha256": "3d76dbd0b0545a9fe3da4b176ef59871db841137580fe687f1cd626c74347bef",
+			"size": [
+				48,
+				47
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				0,
+				640,
+				314,
+				302
+			],
+			"file": "props/coin.png",
+			"sha256": "d6375db9546659b63481a779ea1cbc51f6d7817f1dc1503166bd133a052beae0",
+			"size": [
+				41,
+				48
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				314,
+				640,
+				313,
+				302
+			],
+			"file": "props/bag.png",
+			"sha256": "6e0f6f69acf15291d9179a186e4ca7a92a38cfb1da3b733fade68f923f71eca2",
+			"size": [
+				34,
+				48
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				627,
+				640,
+				314,
+				302
+			],
+			"file": "props/strike.png",
+			"sha256": "5868bec3bb485afe9a574d75036b7a7e97acb70a74f0c72d3a77889040de5770",
+			"size": [
+				44,
+				48
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				941,
+				640,
+				313,
+				302
+			],
+			"file": "props/dust.png",
+			"sha256": "0f574f8157e91f56624dea5fb8764abc03055b12714fa3901d3593388e79930f",
+			"size": [
+				48,
+				40
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				0,
+				942,
+				314,
+				312
+			],
+			"file": "props/willow.png",
+			"sha256": "f9d733d9c3ed81b2e1bbb78389122ca0481ed852cc91c05af2aae0ff5059c88f",
+			"size": [
+				48,
+				48
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				314,
+				942,
+				313,
+				312
+			],
+			"file": "props/flowers.png",
+			"sha256": "67dbc4c8345caa37cbb1265455de85b264fe9d39ef21c4f0f35a20b08cd04f30",
+			"size": [
+				48,
+				45
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				627,
+				942,
+				314,
+				312
+			],
+			"file": "props/lotus.png",
+			"sha256": "4a48a704fdf72a6f8e139a3ee008b7eca5fab85508e9ed8d28cf1b1e481ff120",
+			"size": [
+				48,
+				40
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				941,
+				942,
+				313,
+				312
+			],
+			"file": "props/sign.png",
+			"sha256": "94d54e6dd7a92e057b848d68533a192bee553708b563ab9726a86a8a213804ee",
+			"size": [
+				42,
+				48
+			],
+			"source": "objects.png"
+		},
+		{
+			"crop": [
+				0,
+				0,
+				627,
+				627
+			],
+			"file": "cards/overdrive_driver.png",
+			"sha256": "598611f6be91175e3c0fb21139b8c7ae7024c0e2e6b73dd3c0064f8be0812de0",
+			"size": [
+				62,
+				64
+			],
+			"source": "cards_cutout.png"
+		},
+		{
+			"crop": [
+				627,
+				0,
+				627,
+				627
+			],
+			"file": "cards/sand_cleats.png",
+			"sha256": "1ace1f52e838f6ec7df59815c7f0debb32ba27676c3986e12182ac92d14586b8",
+			"size": [
+				64,
+				58
+			],
+			"source": "cards_cutout.png"
+		},
+		{
+			"crop": [
+				0,
+				627,
+				627,
+				627
+			],
+			"file": "cards/coin_magnet.png",
+			"sha256": "d3f512cfb7b9539b26fe6903520b7ede8946cfdf31ff87fa7fb1098bfab96e8d",
+			"size": [
+				64,
+				62
+			],
+			"source": "cards_cutout.png"
+		},
+		{
+			"crop": [
+				627,
+				627,
+				627,
+				627
+			],
+			"file": "cards/rangefinder_lens.png",
+			"sha256": "d41df4840fd375187dcdb883216cbbff5c6c226dc0cdafb406708e9b0252018b",
+			"size": [
+				64,
+				56
+			],
+			"source": "cards_cutout.png"
+		},
+		{
+			"crop": [
+				0,
+				0,
+				1672,
+				941
+			],
+			"file": "ui/background.png",
+			"sha256": "124ff92d6c1c3e1e554bfe73d5db84b2c0eba3a7f48f33910057df20ea612813",
+			"size": [
+				480,
+				270
+			],
+			"source": "background.png"
+		}
+	],
+	"method": "Original generated source colors; measured crop, material alpha normalization, sprite alpha bounds and nearest-neighbor export. No logo processing."
+}

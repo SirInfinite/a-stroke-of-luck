@@ -1,0 +1,4 @@
+# Local recordings, reference screenshots and diagnostics are review evidence.
+# Keep proprietary reference captures and large movies out of source commits.
+*
+!.gitignore

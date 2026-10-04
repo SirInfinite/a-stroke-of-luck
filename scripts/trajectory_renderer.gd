@@ -69,6 +69,6 @@ func _draw() -> void:
 		var direction := (prediction_points[-1] - prediction_points[-2]).normalized()
 		if not direction.is_zero_approx():
 			var side := direction.orthogonal() * 5.0
-			var tip := target + direction * 10.0
+			var tip := target
 			var arrow := PackedVector2Array([tip, target - direction * 5.0 - side, target - direction * 5.0 + side])
 			draw_colored_polygon(arrow, primary_color)

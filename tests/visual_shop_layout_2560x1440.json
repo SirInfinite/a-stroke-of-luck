@@ -1,0 +1,14 @@
+{
+  "scene_path": "tests/visual_shop_layout_showcase.tscn",
+  "viewport_size": {"width": 2560, "height": 1440},
+  "settle_frames": 8,
+  "steps": [
+    {"type": "key", "keycode": 4194305, "pressed": true},
+    {"type": "key", "keycode": 4194305, "pressed": false},
+    {"type": "key", "keycode": 4194305, "pressed": true},
+    {"type": "key", "keycode": 4194305, "pressed": false},
+    {"type": "wait_seconds", "seconds": 0.55},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "layout_index", "expected": 2},
+    {"type": "screenshot", "path": "user://shop_layout_2560_hard_6.png"}
+  ]
+}

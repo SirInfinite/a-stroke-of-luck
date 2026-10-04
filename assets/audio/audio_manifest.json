@@ -1,0 +1,454 @@
+{
+  "score_revision": 2,
+  "sample_rate": 44100,
+  "source_samples": [
+    {
+      "file": "AltRecorder_Stac_C4_rr1_Main.wav",
+      "sha256": "34c08414dc6f02eb37f97fbbaf9be1a92c27643ccf51ba20c8eabe8cd1357625",
+      "git_blob": "db96e84032789b062e96c08a7e616885beacce72"
+    },
+    {
+      "file": "AltRecorder_Stac_C5_rr1_Main.wav",
+      "sha256": "7f52cfd817d81285539eed7b1cb25121373dd2794707f987cecb8cef90bda0df",
+      "git_blob": "9947788164422a4b89f966f09783abb7cb6d8b32"
+    },
+    {
+      "file": "EWHarp_Normal_C2_v2_RR1.wav",
+      "sha256": "086c0b5fcc3e41bee173e53620d38f21a7dee4f59dfd75d8c8bbdf409ecbc5ee",
+      "git_blob": "086a2c7ffc1097a4809cdc3ec100075d2530a231"
+    },
+    {
+      "file": "EWHarp_Normal_C3_v2_RR1.wav",
+      "sha256": "bfc5a2cae93793ac46bfe50c1b71d1e64e29eba34e71164c47c29e67488abd96",
+      "git_blob": "3ac7ac020fc58cf16430fc249e5776d9c4a71702"
+    },
+    {
+      "file": "EWHarp_Normal_C4_v2_RR1.wav",
+      "sha256": "79774644727f61bd535e4b49f7eae0c31b0cac4d2714d33d8f6cd84e5db081d3",
+      "git_blob": "7118eaa188436970e23b28019b5b6e7fe6a1b5ef"
+    },
+    {
+      "file": "Strumstick_Finger_Str1_Main_D2_vl2_rr1.wav",
+      "sha256": "28488d220f9ef0868906dee44d45d5c60529757dd2b972f719542ecdcb84fbfa",
+      "git_blob": "d9f4387ff90c1f38cc38c9be86657a836ff52977"
+    },
+    {
+      "file": "Strumstick_Finger_Str3_Main_A3_vl2_rr1.wav",
+      "sha256": "7099bf15310393098b5171b1442c8da130894c255c558061efbbb0cdf3c8703e",
+      "git_blob": "048e6015df8f564b94e6d98f66ea4f89b308e963"
+    },
+    {
+      "file": "Strumstick_Finger_Str3_Main_D4_vl2_rr1.wav",
+      "sha256": "1bc9669c702913751350d23b5cf176d72bf450447f07b355064aed4dfb0aa9b5",
+      "git_blob": "c9ede39d1cd5db1bad20e0213ea80de6b64355ce"
+    },
+    {
+      "file": "GPiano_sus_C2_v2_rr1_Player.wav",
+      "sha256": "00838dbdbcb0dffd02529c38fa84bc514931634b485fc2ad6ecc62fe98d27a62",
+      "git_blob": "3e64901412fe7935e3a1152b0b7a2d93645e53ef"
+    },
+    {
+      "file": "GPiano_sus_C3_v2_rr1_Player.wav",
+      "sha256": "fce33012fe900309abafd1a4d6d254d142b0cbf33834c7a72c2fd1ada4e746e1",
+      "git_blob": "2449d26c97873705e234ad85b94e0c651018d4a5"
+    },
+    {
+      "file": "GPiano_sus_C4_v2_rr1_Player.wav",
+      "sha256": "69845de40a38ed6501746520f9f385ae56200a4372faed48178e64a32a75e58c",
+      "git_blob": "09dfd90293a537066bd825dac73f823bf46d0aa9"
+    },
+    {
+      "file": "Cajon_hit1_mp_rr1.wav",
+      "sha256": "4103c4a847a8cc8860b9449ef26619b56825e972f1bfa0427bdd3f5e36ca81aa",
+      "git_blob": "8006037147713e4013b7e56eebc134ac0620ffb4"
+    },
+    {
+      "file": "Cajon_hit1_mp_rr2.wav",
+      "sha256": "f28fcadf95557619fe9f8a1b8ad1af511fbccba67608960c7b2a78040f03f01e",
+      "git_blob": "479b7867e122f074dd230aaaf8a32a78d0145591"
+    },
+    {
+      "file": "Claves1_Hit_v2_rr1_Mid.wav",
+      "sha256": "bcabe27330761309eb4b4f6207e6e3b4be59815df86449ac05bfb9b81f19efc9",
+      "git_blob": "4b5fd3123833f205db154e4aeed85fc5b627b9f9"
+    },
+    {
+      "file": "Marimba_hit_Outrigger_C4_med_01.wav",
+      "sha256": "3e88c006eef05e8f7891f8f6027042006199a4ec3b53a0ad7308f9782a52d4df",
+      "git_blob": "85c657dd0a8f58808efad5e9184d5b9124285512"
+    },
+    {
+      "file": "Marimba_hit_Outrigger_F3_med_01.wav",
+      "sha256": "a493b31ac2e588ed961c522a66b790acc584b59a08918bd7193d6e6fa8df4756",
+      "git_blob": "2c74c56eba169268ec3e74bc2de31fb282716a58"
+    },
+    {
+      "file": "Marimba_hit_Outrigger_G2_med_01.wav",
+      "sha256": "e9c2d33b9f50f0689b349dc9aee20a5b621961cf8294abb5ac4ba5a4674bd7c2",
+      "git_blob": "f27193e84ff36d8c16ddc4a59bc89acc79d426ae"
+    },
+    {
+      "file": "Mid_ShakerDouble_Down_rr1.wav",
+      "sha256": "0df7c271e1dba4de7304f7df81886390dd9ae698bfdd6df570026af4f2223574",
+      "git_blob": "f99341479f355a909f0cee16880e8a60d6bf925b"
+    },
+    {
+      "file": "Mid_ShakerDouble_Up_rr1.wav",
+      "sha256": "69a10776db0b838bc6555be2dbdb41e1521bb28bba2e89963d1bf779bfb5b61f",
+      "git_blob": "5a815875b3459e384b65884fa863d2fe578e6ecb"
+    },
+    {
+      "file": "Vibes_soft_F2_v1_rr1_Main.wav",
+      "sha256": "df5cfcc72af80fac2191300d09922474c4ac25c5cbc43ff387953d607f7c1320",
+      "git_blob": "859f9625a662560facae4de31e8af82f78469492"
+    },
+    {
+      "file": "Vibes_soft_F4_v1_rr1_Main.wav",
+      "sha256": "95b7d6eeb71d77cce607c0c52b0a6dfd23d0eeedc2eb393fb9a6c5a5768f4aa5",
+      "git_blob": "0e230262665e212a99cab1a11cfdad30b9977492"
+    },
+    {
+      "file": "Vibes_soft_G3_v1_rr1_Main.wav",
+      "sha256": "9b479e4c84fb1caafba8c1c106a8922cea20bba81c37d65f93afae339626767f",
+      "git_blob": "36a655b6f107c87cd5e7ed06aa1805449600576a"
+    },
+    {
+      "file": "wood_click_f_rr1.wav",
+      "sha256": "86b690a393ad62d65dc6832948adb0cc164fe22f544a8065809f000c65d615fc",
+      "git_blob": "ee846604e1c6850582d6aad3d4cd9983e1c73d49"
+    },
+    {
+      "file": "wood_click_f_rr2.wav",
+      "sha256": "661e25cc1233a9d3d85bde188762d23fbbd69ac6af68af5c8db8fdd36fe25608",
+      "git_blob": "25739527f54e1a2f1bea670cdf3eece04f414946"
+    },
+    {
+      "file": "BDrumNew_hit_v2_rr1_Sum.wav",
+      "sha256": "56827fe9b55f282a0db851e242bc24660d339a0e358b182966aea047240c1136",
+      "git_blob": "90e36064984ad741962e2f033e286bc16758b46c"
+    }
+  ],
+  "assets": [
+    {
+      "file": "golf_strike.wav",
+      "seconds": 0.14,
+      "peak_dbfs": -3.1,
+      "rms_dbfs": -19.18,
+      "loop_seam_step": null,
+      "sha256": "fa64591dced7caae5d788018986997e193e218e1fedcb409de2c338cf96afc8f"
+    },
+    {
+      "file": "wall_impact.wav",
+      "seconds": 0.19,
+      "peak_dbfs": -3.1,
+      "rms_dbfs": -20.36,
+      "loop_seam_step": null,
+      "sha256": "f2171516d65ab5fdd6a96352fa3758d8c034e2189a5a86f01843ffec414a2eda"
+    },
+    {
+      "file": "ui_hover.wav",
+      "seconds": 0.04499,
+      "peak_dbfs": -3.1,
+      "rms_dbfs": -17.69,
+      "loop_seam_step": null,
+      "sha256": "49683a976b889faf46ac18c8145473d51a1130c02cdfbeb1d0a30928d169bc26"
+    },
+    {
+      "file": "ui_click.wav",
+      "seconds": 0.07501,
+      "peak_dbfs": -3.1,
+      "rms_dbfs": -16.7,
+      "loop_seam_step": null,
+      "sha256": "29736c21ba02904408211ba4ea3e56c7a4c187181c097d271d723fa6ce4578eb"
+    },
+    {
+      "file": "ui_back.wav",
+      "seconds": 0.09501,
+      "peak_dbfs": -3.1,
+      "rms_dbfs": -17.62,
+      "loop_seam_step": null,
+      "sha256": "370e31ee96a4089f0c1a823491250873aac915375f2b73775a2ca10fa0081f1a"
+    },
+    {
+      "file": "card_stack.wav",
+      "seconds": 0.14,
+      "peak_dbfs": -3.1,
+      "rms_dbfs": -20.8,
+      "loop_seam_step": null,
+      "sha256": "2bb1fd0141bfd088b767ecf36c9d16bbbfca22cc73efac4afbafe92ba280b2ed"
+    },
+    {
+      "file": "water.wav",
+      "seconds": 0.72,
+      "peak_dbfs": -3.74,
+      "rms_dbfs": -22.15,
+      "loop_seam_step": null,
+      "sha256": "4bdb9234b8e089d02e5915be6abd562fcd490f844b98222b285d4f7a2494b718"
+    },
+    {
+      "file": "lava.wav",
+      "seconds": 0.85,
+      "peak_dbfs": -3.74,
+      "rms_dbfs": -23.14,
+      "loop_seam_step": null,
+      "sha256": "42806de82f7d0e5b8291d655ca6a6174d94eae05d769b50228dcf3eca9fcb5a3"
+    },
+    {
+      "file": "ice_impact.wav",
+      "seconds": 0.38,
+      "peak_dbfs": -3.74,
+      "rms_dbfs": -20.95,
+      "loop_seam_step": null,
+      "sha256": "5c2e33a2e824a606f29333d68e082d76912083bcdc9d2df965411eef35bd4279"
+    },
+    {
+      "file": "cup_sink.wav",
+      "seconds": 0.5,
+      "peak_dbfs": -3.74,
+      "rms_dbfs": -24.52,
+      "loop_seam_step": null,
+      "sha256": "d2782239a9b810ff4105c3361d6e171fe0fad25d6986892278f629856e6bb20d"
+    },
+    {
+      "file": "purchase.wav",
+      "seconds": 0.6,
+      "peak_dbfs": -3.1,
+      "rms_dbfs": -14.3,
+      "loop_seam_step": null,
+      "sha256": "0b35a74adeb11d21d117e198019a4ad4e356c6f1edd0611f4d34910b0d58f778"
+    },
+    {
+      "file": "curse.wav",
+      "seconds": 0.48,
+      "peak_dbfs": -6.38,
+      "rms_dbfs": -19.25,
+      "loop_seam_step": null,
+      "sha256": "e01020a3215329d9b996d19b2aaa31255facb6ed85043cee90f684f647d9c9a1"
+    },
+    {
+      "file": "ui_error.wav",
+      "seconds": 0.18,
+      "peak_dbfs": -6.02,
+      "rms_dbfs": -21.97,
+      "loop_seam_step": null,
+      "sha256": "11fed13320b4aa884889eb139e0204ffb693ab9dd02754afcbafc6a624b7272b"
+    },
+    {
+      "file": "hole_completion.wav",
+      "seconds": 0.9,
+      "peak_dbfs": -3.74,
+      "rms_dbfs": -13.76,
+      "loop_seam_step": null,
+      "sha256": "9e115ca46ea60771141aa83313163a12eef2edbd93e21a4ba63134e6f94679e3"
+    },
+    {
+      "file": "biome_transition.wav",
+      "seconds": 1.3,
+      "peak_dbfs": -3.74,
+      "rms_dbfs": -15.63,
+      "loop_seam_step": null,
+      "sha256": "8d94585e5b4f8cb5829a4590e299f347d533d5ac73b0fc3fe02f038c58d9313f"
+    },
+    {
+      "file": "final_run_completion.wav",
+      "seconds": 2.8,
+      "peak_dbfs": -3.74,
+      "rms_dbfs": -20.17,
+      "loop_seam_step": null,
+      "sha256": "7be536d4d1123750a1c93defb2a4e116244cee25f746178b085587c67b15c086"
+    },
+    {
+      "file": "high_speed_swoosh.wav",
+      "seconds": 4.0,
+      "peak_dbfs": -7.54,
+      "rms_dbfs": -20.38,
+      "loop_seam_step": 0.063551,
+      "sha256": "d584277105a592eaca0a9b7fdcdbf6fa3c29d1c060317ad33793a022e3bc725e"
+    },
+    {
+      "file": "theme_menu.wav",
+      "seconds": 68.57143,
+      "peak_dbfs": -5.78,
+      "rms_dbfs": -19.17,
+      "loop_seam_step": 0.001198,
+      "sha256": "2cfa57568a4b7e551264e4ef51e3aa36c67b7f80e9b6365ebc6ab63061eeeea6",
+      "title": "House Rules",
+      "bpm": 112,
+      "beats_per_bar": 4,
+      "bars": 32,
+      "form": "ABACABCA",
+      "identity": "A winking clubhouse shuffle: brushed wood, piano sixths, vibraphone call-and-response.",
+      "origin": "Original project score; VCSL CC0 instrument recordings",
+      "score_sha256": "833058e0c0c9f9edbbe3b2ac2a6c724c9d48e16b3c594e9ea46d1d4d46efdd93"
+    },
+    {
+      "file": "theme_tutorial.wav",
+      "seconds": 43.63637,
+      "peak_dbfs": -4.44,
+      "rms_dbfs": -23.12,
+      "loop_seam_step": 0.0,
+      "sha256": "151f3db5f669ca5fbf27923c9234df6a641f1565a19575c95a80590f464c70cd",
+      "title": "First Putt",
+      "bpm": 88,
+      "beats_per_bar": 4,
+      "bars": 16,
+      "form": "ABAC",
+      "identity": "Unhurried four-bar questions, soft marimba and open harp voicings; room for instructions.",
+      "origin": "Original project score; VCSL CC0 instrument recordings",
+      "score_sha256": "4d1c3ebb62acd7a776e1ca46e88d67070d3c2c15e980e4f004e3c08e3373f525"
+    },
+    {
+      "file": "theme_meadow.wav",
+      "seconds": 54.33961,
+      "peak_dbfs": -4.44,
+      "rms_dbfs": -19.3,
+      "loop_seam_step": 0.001983,
+      "sha256": "c830e09c09e1a17ab985c7ac8a21d93413deb9b3a3830f26de3f926d4a784c08",
+      "title": "Clover Club",
+      "bpm": 106,
+      "beats_per_bar": 4,
+      "bars": 24,
+      "form": "ABACBA",
+      "identity": "Skipping wooden flute over picked harp and light cajon, with a sunny answering phrase.",
+      "origin": "Original project score; VCSL CC0 instrument recordings",
+      "score_sha256": "8f0e142559c4f897c05b076f0cbf9cf1d05df02008882d59290969c2622ed288"
+    },
+    {
+      "file": "theme_desert.wav",
+      "seconds": 52.5,
+      "peak_dbfs": -4.44,
+      "rms_dbfs": -19.76,
+      "loop_seam_step": 0.000577,
+      "sha256": "44b6ca47cb02223572cc3d8916a1ee96bce750418cc09affc028227b4acb9231",
+      "title": "Dry Bank",
+      "bpm": 96,
+      "beats_per_bar": 3.5,
+      "bars": 24,
+      "form": "ABACBA",
+      "identity": "A dry 3+2+2 pulse, plucked strumstick and low wooden percussion with spacious modal phrases.",
+      "origin": "Original project score; VCSL CC0 instrument recordings",
+      "score_sha256": "68d68a1237a8c1c334f2c9569f54a368ce276f7a45c8d6da32c78a1ec6377f03"
+    },
+    {
+      "file": "theme_autumn.wav",
+      "seconds": 51.42857,
+      "peak_dbfs": -4.44,
+      "rms_dbfs": -20.32,
+      "loop_seam_step": 0.000104,
+      "sha256": "6acec11b292ac428c4de074d8566f74aa0deb972c49d80a6b54bf74e1552ba55",
+      "title": "Last Light",
+      "bpm": 84,
+      "beats_per_bar": 3,
+      "bars": 24,
+      "form": "ABACBA",
+      "identity": "A warm piano waltz with falling phrases, suspended harmony and soft vibraphone answers.",
+      "origin": "Original project score; VCSL CC0 instrument recordings",
+      "score_sha256": "75c79349d4f07f3e19ab0c50e0c4f6c6baa77dc4fa94a61333a35320b8ad1666"
+    },
+    {
+      "file": "theme_snow.wav",
+      "seconds": 63.15789,
+      "peak_dbfs": -4.44,
+      "rms_dbfs": -19.69,
+      "loop_seam_step": 0.000419,
+      "sha256": "57f8f5bb8ee9ff86eff68af73176c2024a38073a48ddc8f21824c31b2086a989",
+      "title": "Glass Green",
+      "bpm": 76,
+      "beats_per_bar": 5,
+      "bars": 16,
+      "form": "ABCA",
+      "identity": "Spare five-beat bell phrases, open fifths and long acoustic tails; no driving drum loop.",
+      "origin": "Original project score; VCSL CC0 instrument recordings",
+      "score_sha256": "1dee0b072fc1de2bdab4b318fea189e91b4099f896a6b33f4d51cace815aeb9d"
+    },
+    {
+      "file": "theme_swamp.wav",
+      "seconds": 58.77551,
+      "peak_dbfs": -4.44,
+      "rms_dbfs": -21.17,
+      "loop_seam_step": 0.002826,
+      "sha256": "a3a303f3bf373b744b33170466486f197c9ccde3f9d6a8798cfb6dcaed6f359a",
+      "title": "Crooked Reeds",
+      "bpm": 98,
+      "beats_per_bar": 4,
+      "bars": 24,
+      "form": "ABCABA",
+      "identity": "An offbeat wooden groove: low marimba, clipped piano ninths and lopsided little replies.",
+      "origin": "Original project score; VCSL CC0 instrument recordings",
+      "score_sha256": "124a5c9479853cd383ec3e84fa50a877deb41b8c6e79db775565a7368b072f33"
+    },
+    {
+      "file": "theme_volcanic.wav",
+      "seconds": 58.18181,
+      "peak_dbfs": -4.44,
+      "rms_dbfs": -19.59,
+      "loop_seam_step": 0.001003,
+      "sha256": "a532a8397bfc9f441b13bbb5b4cbc485bf11f3c02981916ee7c80609415e47bb",
+      "title": "Double or Cinders",
+      "bpm": 132,
+      "beats_per_bar": 4,
+      "bars": 32,
+      "form": "ABACBCAB",
+      "identity": "Driving low piano and timpani-like drum weight, syncopated mallets, a tense contrasting middle.",
+      "origin": "Original project score; VCSL CC0 instrument recordings",
+      "score_sha256": "3bf88add17dc0b568f6a13da0ae6124d527e8501c46fdfc631b6e48235ab650a"
+    },
+    {
+      "file": "ambience_meadow.wav",
+      "seconds": 32.0,
+      "peak_dbfs": -7.96,
+      "rms_dbfs": -23.76,
+      "loop_seam_step": 0.012754,
+      "sha256": "29376a092d8aa342a3b27cd7382faa21cb7a171918a4c7551b61884ba3f39eac"
+    },
+    {
+      "file": "ambience_desert.wav",
+      "seconds": 34.0,
+      "peak_dbfs": -7.96,
+      "rms_dbfs": -22.63,
+      "loop_seam_step": 0.002563,
+      "sha256": "2457af4721cdcd0ebf476e54b55ea52a22b5e56ec2e909023ecdebe7097a613d"
+    },
+    {
+      "file": "ambience_autumn.wav",
+      "seconds": 36.0,
+      "peak_dbfs": -7.96,
+      "rms_dbfs": -24.45,
+      "loop_seam_step": 0.004724,
+      "sha256": "edb2a2acc81b333c076e795e4ea939a709c898f780e22a31dbac20001ffd8549"
+    },
+    {
+      "file": "ambience_snow.wav",
+      "seconds": 38.0,
+      "peak_dbfs": -7.96,
+      "rms_dbfs": -23.44,
+      "loop_seam_step": 0.000364,
+      "sha256": "524db3b5c5d5d8a03ebf5215fabdbdb9c9b3b9e0a3272e099c84d8db9bf422c5"
+    },
+    {
+      "file": "ambience_swamp.wav",
+      "seconds": 40.0,
+      "peak_dbfs": -7.96,
+      "rms_dbfs": -23.36,
+      "loop_seam_step": 0.013911,
+      "sha256": "8193a32d17c6fc1697e09a488d3e944a949b79a999f22b983cf59a12e58092e7"
+    },
+    {
+      "file": "ambience_volcanic.wav",
+      "seconds": 42.0,
+      "peak_dbfs": -7.96,
+      "rms_dbfs": -21.99,
+      "loop_seam_step": 0.002807,
+      "sha256": "b68a0c4e429732f869bfae91f9555440b0453b510b997f67bb32fee8a1b1a340"
+    }
+  ],
+  "protected": {
+    "terrain_impact.wav": "2e371ca8e048dd0ebca67bad303a77a4426ee67e933032484bd568427ad66de4",
+    "boost_pad_slow.wav": "2ebf220b4d1b9cedd3e2a42af1739e105c14f1877e1bddb80145124a61f38cc1",
+    "boost_pad_med.wav": "2915a27ba866acbad3ed8ccfc2488a6ae5cece5aea1f06bb584e33fc3d25e996",
+    "boost_pad_fast.wav": "c872e472f03c01380daab3686fce0ff8d5047819bcc9fe1d0b396b7fc8876b12",
+    "fail_sound_1.wav": "7a41c6a80596db9ae26e44dae5498905bedab6a77889eca963ac2a14aa50da1b",
+    "fail_sound_2.wav": "f5d2ac2b046e7f9277dde0dcd55e341e7177d0c792bf5740f94fd80ba46e8292"
+  },
+  "subjective_listening": "NOT PERFORMED - human approval required"
+}

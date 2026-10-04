@@ -16,7 +16,7 @@ func test_shot_feedback_starts_trail_impulse_and_sound_hook() -> void:
 	assert_eq(director.trail.points.size(), 1)
 	assert_gt(setup.camera.offset.length(), 0.0)
 	assert_gt(director.transient_root.get_child_count(), 0)
-	assert_signal_emitted_with_parameters(director, "sound_requested", [&"golf_strike", 0.8])
+	assert_false(director.has_signal("sound_requested"), "Visual feedback must not choose audio.")
 
 
 func test_terrain_feedback_reuses_palette_specific_effects_and_audio_cues() -> void:
@@ -35,10 +35,10 @@ func test_terrain_feedback_reuses_palette_specific_effects_and_audio_cues() -> v
 
 	director.play_terrain_feedback(&"sand", Vector2.ZERO)
 	assert_eq(director.last_feedback_kind, &"sand")
-	assert_signal_emitted_with_parameters(director, "sound_requested", [&"terrain_impact", director.terrain_burst_intensity])
+	assert_false(director.has_signal("sound_requested"), "Visual feedback must not choose audio.")
 	director.play_terrain_feedback(&"water", Vector2.ZERO)
 	assert_eq(director.last_feedback_kind, &"water")
-	assert_signal_emitted_with_parameters(director, "sound_requested", [&"water", director.terrain_burst_intensity])
+	assert_false(director.has_signal("sound_requested"), "Visual feedback must not choose audio.")
 	assert_gt(director.transient_root.get_child_count(), 0)
 
 
@@ -50,11 +50,11 @@ func test_cup_and_progression_feedback_cover_final_completion() -> void:
 	director.play_cup_feedback(Vector2(200.0, 100.0), true)
 	assert_eq(director.last_feedback_kind, &"final_cup")
 	assert_true(director.screen_flash.visible)
-	assert_signal_emitted_with_parameters(director, "sound_requested", [&"cup_sink", 1.0])
+	assert_false(director.has_signal("sound_requested"), "Visual feedback must not choose audio.")
 
 	director.play_progression_feedback(&"final_completion", Color.WHITE)
 	assert_eq(director.last_feedback_kind, &"final_completion")
-	assert_signal_emitted_with_parameters(director, "sound_requested", [&"final_run_completion", 1.0])
+	assert_false(director.has_signal("sound_requested"), "Visual feedback must not choose audio.")
 	director.play_progression_feedback(&"ending_transition", Color("17221f"))
 	assert_eq(director.last_feedback_kind, &"ending_transition")
 

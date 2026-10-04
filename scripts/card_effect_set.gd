@@ -71,6 +71,29 @@ func add_from(other: CardEffectSet) -> void:
 	cup_radius_scale_delta += other.cup_radius_scale_delta
 
 
+func add_scaled_from(other: CardEffectSet, multiplier: float) -> void:
+	var bounded_multiplier := clampf(multiplier, 1.0, 1.75)
+	shot_power_delta += other.shot_power_delta * bounded_multiplier
+	roll_damping_delta += other.roll_damping_delta * bounded_multiplier
+	trajectory_dot_delta += roundi(float(other.trajectory_dot_delta) * bounded_multiplier)
+	power_control_delta += other.power_control_delta * bounded_multiplier
+	terrain_mitigation_delta += other.terrain_mitigation_delta * bounded_multiplier
+	direction_mitigation_delta += other.direction_mitigation_delta * bounded_multiplier
+	coin_reward_delta += roundi(float(other.coin_reward_delta) * bounded_multiplier)
+	birdie_reward_delta += roundi(float(other.birdie_reward_delta) * bounded_multiplier)
+	hazard_count_delta += roundi(float(other.hazard_count_delta) * bounded_multiplier)
+	if other.hazard_count_delta != 0 and not other.hazard_type.is_empty():
+		hazard_type = other.hazard_type
+	cup_radius_scale_delta += other.cup_radius_scale_delta * bounded_multiplier
+
+
+func scaled(multiplier: float) -> CardEffectSet:
+	var result := CardEffectSet.new()
+	result.add_scaled_from(self, multiplier)
+	result.clamp_for_release()
+	return result
+
+
 func clamp_for_release() -> void:
 	shot_power_delta = clampf(shot_power_delta, -0.65, 1.5)
 	roll_damping_delta = clampf(roll_damping_delta, -0.65, 1.5)

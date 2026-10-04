@@ -63,6 +63,10 @@ func get_presentation_data() -> Dictionary:
 	}
 
 
+func reset_for_competitor() -> void:
+	_tracked_bodies.clear()
+
+
 static func elevation_for_progress(progress: float, low_elevation: int, high_elevation: int) -> int:
 	return low_elevation if progress < 0.5 else high_elevation
 

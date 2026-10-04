@@ -1,68 +1,83 @@
 class_name HoleHistorySelector
-extends PanelContainer
+extends UIValueTicket
 
 signal selection_changed(entry: Dictionary)
-
-const UIStyleScript := preload("res://scripts/ui/ui_style.gd")
 var history: Array[Dictionary] = []
 var current_hole := 1
 var hole_total := 18
 var selected_hole := 1
 var expanded := false
-
 var toggle_button: Button
-var reel: VBoxContainer
-var row_buttons: Array[Button] = []
-var _reel_tween: Tween
+var previous_label: Label
+var next_label: Label
 
 
 func _init() -> void:
+	super()
 	name = "HoleHistorySelector"
-	custom_minimum_size = Vector2(330.0, 58.0)
-	size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	focus_mode = Control.FOCUS_ALL
-	mouse_filter = Control.MOUSE_FILTER_STOP
-	clip_contents = true
-	add_theme_stylebox_override(
-		"panel",
-		UIStyleScript.panel_style(Color(UIStyleScript.INK_DEEP, 0.93), Color(UIStyleScript.PAPER, 0.24), 14, 2, 5)
-	)
-	_build()
+	heading.text = "Hole"
+	custom_minimum_size = Vector2(330, 118)
+	value_button.custom_minimum_size.y = 110
+	toggle_button = value_button
+	UIStyle.apply_display(value_label, 30, UIStyle.PAPER)
+	previous_label = _preview(-1)
+	next_label = _preview(1)
+	value_button.mouse_entered.connect(set_expanded.bind(true))
+	value_button.mouse_exited.connect(set_expanded.bind(false))
+	value_button.focus_entered.connect(set_expanded.bind(true))
+	value_button.focus_exited.connect(set_expanded.bind(false))
+	value_button.pressed.connect(func() -> void: set_expanded(not expanded))
+	value_button.gui_input.connect(_gui_input)
+	value_button.tooltip_text = "Scroll to review played holes. Arrow keys also work."
+	_refresh(false)
+
+
+func _preview(direction: int) -> Label:
+	var label := Label.new()
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	UIStyle.apply_display(label, 21, UIStyle.PAPER_MUTED)
+	value_button.add_child(label)
+	label.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE if direction < 0 else Control.PRESET_BOTTOM_WIDE)
+	label.offset_top = 5 if direction < 0 else -32
+	label.offset_bottom = 32 if direction < 0 else -5
+	label.modulate.a = 0.42
+	return label
 
 
 func set_history(new_history: Array, new_current_hole: int, new_hole_total: int) -> void:
 	history.clear()
-	for entry_value in new_history:
-		if entry_value is Dictionary:
-			history.append((entry_value as Dictionary).duplicate(true))
+	for value in new_history:
+		if value is Dictionary:
+			history.append(value.duplicate(true))
 	history.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return _hole_number(a) < _hole_number(b))
 	current_hole = maxi(new_current_hole, 1)
 	hole_total = maxi(new_hole_total, current_hole)
 	selected_hole = current_hole if can_select_hole(current_hole) else _last_played_hole()
 	expanded = false
-	_refresh()
+	_refresh(false)
 
 
-func can_select_hole(hole_number: int) -> bool:
-	if hole_number <= 0 or hole_number > current_hole:
-		return false
-	return not entry_for_hole(hole_number).is_empty()
+func can_select_hole(number: int) -> bool:
+	return number > 0 and number <= current_hole and not entry_for_hole(number).is_empty()
 
 
-func entry_for_hole(hole_number: int) -> Dictionary:
+func entry_for_hole(number: int) -> Dictionary:
 	for entry in history:
-		if _hole_number(entry) == hole_number:
+		if _hole_number(entry) == number:
 			return entry.duplicate(true)
 	return {}
 
 
-func select_hole(hole_number: int, emit_change := true) -> bool:
-	if not can_select_hole(hole_number):
+func select_hole(number: int, emit_change := true) -> bool:
+	if not can_select_hole(number):
 		return false
-	if selected_hole == hole_number:
+	if selected_hole == number:
 		return true
-	selected_hole = hole_number
-	_refresh_reel(true)
+	var direction := signi(number - selected_hole)
+	selected_hole = number
+	_refresh(true, direction)
 	if emit_change:
 		selection_changed.emit(entry_for_hole(selected_hole))
 	return true
@@ -70,141 +85,49 @@ func select_hole(hole_number: int, emit_change := true) -> bool:
 
 func set_expanded(value: bool) -> void:
 	expanded = value
-	_refresh()
-	if expanded:
-		grab_focus()
-
-
-func _build() -> void:
-	var margin := MarginContainer.new()
-	margin.name = "Margin"
-	margin.add_theme_constant_override("margin_left", 10)
-	margin.add_theme_constant_override("margin_top", 7)
-	margin.add_theme_constant_override("margin_right", 10)
-	margin.add_theme_constant_override("margin_bottom", 7)
-	add_child(margin)
-	var layout := VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 5)
-	margin.add_child(layout)
-
-	toggle_button = Button.new()
-	toggle_button.name = "HistoryToggle"
-	toggle_button.custom_minimum_size.y = 44.0
-	toggle_button.focus_mode = Control.FOCUS_ALL
-	toggle_button.add_theme_font_override("font", UIStyleScript.DISPLAY_SEMIBOLD_FONT)
-	toggle_button.add_theme_font_size_override("font_size", 22)
-	toggle_button.add_theme_color_override("font_color", UIStyleScript.PAPER)
-	toggle_button.add_theme_color_override("font_hover_color", UIStyleScript.GOLD)
-	toggle_button.add_theme_stylebox_override("normal", UIStyleScript.panel_style(Color("090d0c", 0.72), Color(UIStyleScript.PAPER, 0.14), 9, 1, 0))
-	toggle_button.add_theme_stylebox_override("hover", UIStyleScript.panel_style(Color(UIStyleScript.INK_SOFT, 0.94), UIStyleScript.GOLD, 9, 2, 0))
-	toggle_button.add_theme_stylebox_override("focus", UIStyleScript.panel_style(Color(UIStyleScript.INK_SOFT, 0.94), UIStyleScript.FOCUS, 9, 3, 0))
-	toggle_button.pressed.connect(func() -> void: set_expanded(not expanded))
-	layout.add_child(toggle_button)
-
-	reel = VBoxContainer.new()
-	reel.name = "NumberReel"
-	reel.add_theme_constant_override("separation", 2)
-	reel.visible = false
-	layout.add_child(reel)
-	for row_index in range(5):
-		var button := Button.new()
-		button.name = "ReelRow%d" % row_index
-		button.custom_minimum_size.y = 32.0 if row_index != 2 else 42.0
-		button.focus_mode = Control.FOCUS_NONE
-		button.add_theme_font_override("font", UIStyleScript.DISPLAY_SEMIBOLD_FONT)
-		button.add_theme_font_size_override("font_size", 17 if row_index != 2 else 24)
-		button.add_theme_stylebox_override("normal", StyleBoxEmpty.new())
-		button.add_theme_stylebox_override("hover", UIStyleScript.panel_style(Color(UIStyleScript.INK_SOFT, 0.8), Color(UIStyleScript.GOLD, 0.5), 7, 1, 0))
-		button.pressed.connect(_on_reel_row_pressed.bind(row_index))
-		reel.add_child(button)
-		row_buttons.append(button)
+	_refresh_previews()
 
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed:
-		if event.button_index == MOUSE_BUTTON_WHEEL_UP:
+		if event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
 			set_expanded(true)
-			_step_selection(-1)
-			accept_event()
-		elif event.button_index == MOUSE_BUTTON_WHEEL_DOWN:
+			_step_selection(-1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1)
+			get_viewport().set_input_as_handled()
+	elif event is InputEventKey and event.pressed:
+		if event.is_action(&"ui_up") or event.is_action(&"ui_down"):
 			set_expanded(true)
-			_step_selection(1)
-			accept_event()
-
-
-func _unhandled_key_input(event: InputEvent) -> void:
-	if not has_focus() or not event.pressed or event.echo:
-		return
-	if event.is_action(&"ui_accept"):
-		set_expanded(not expanded)
-		get_viewport().set_input_as_handled()
-	elif event.is_action(&"ui_up"):
-		set_expanded(true)
-		_step_selection(-1)
-		get_viewport().set_input_as_handled()
-	elif event.is_action(&"ui_down"):
-		set_expanded(true)
-		_step_selection(1)
-		get_viewport().set_input_as_handled()
-	elif event.is_action(&"ui_cancel") and expanded:
-		set_expanded(false)
-		get_viewport().set_input_as_handled()
+			_step_selection(-1 if event.is_action(&"ui_up") else 1)
+			get_viewport().set_input_as_handled()
 
 
 func _step_selection(direction: int) -> void:
 	var target := selected_hole + direction
-	while target >= 1 and target <= hole_total:
+	while target >= 1 and target <= current_hole:
 		if can_select_hole(target):
 			select_hole(target)
-			return
-		if direction > 0 and target > current_hole:
 			return
 		target += direction
 
 
-func _on_reel_row_pressed(row_index: int) -> void:
-	var target := selected_hole + row_index - 2
-	select_hole(target)
+func _refresh(animate: bool, direction := 0) -> void:
+	show_value("%02d/%02d" % [selected_hole, hole_total], UIStyle.PAPER, animate, direction)
+	_refresh_previews()
 
 
-func _refresh() -> void:
-	custom_minimum_size.y = 232.0 if expanded else 58.0
-	reel.visible = expanded
-	toggle_button.text = "HOLE  %02d / %02d    %s" % [selected_hole, hole_total, "▲" if expanded else "▼"]
-	_refresh_reel(false)
-
-
-func _refresh_reel(animate: bool) -> void:
-	for row_index in range(row_buttons.size()):
-		var button := row_buttons[row_index]
-		var offset := row_index - 2
-		var target_hole := selected_hole + offset
-		var valid_number := target_hole >= 1 and target_hole <= hole_total
-		var selectable := valid_number and can_select_hole(target_hole)
-		button.disabled = not selectable
-		if not valid_number:
-			button.text = ""
-		elif target_hole > current_hole:
-			button.text = "%02d     LOCKED" % target_hole
-		elif selectable:
-			button.text = "›    %02d    ‹" % target_hole if offset == 0 else "%02d" % target_hole
-		else:
-			button.text = "%02d     —" % target_hole
-		button.add_theme_color_override("font_color", UIStyleScript.GOLD if offset == 0 else UIStyleScript.PAPER_MUTED)
-		button.add_theme_color_override("font_disabled_color", Color(UIStyleScript.PAPER_MUTED, 0.32))
-	toggle_button.text = "HOLE  %02d / %02d    %s" % [selected_hole, hole_total, "▲" if expanded else "▼"]
-	if animate and reel and expanded:
-		if _reel_tween:
-			_reel_tween.kill()
-		reel.modulate = Color(1.0, 1.0, 1.0, 0.45)
-		_reel_tween = create_tween()
-		_reel_tween.tween_property(reel, "modulate", Color.WHITE, 0.12).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+func _refresh_previews() -> void:
+	for pair in [[previous_label, -1], [next_label, 1]]:
+		var label: Label = pair[0]
+		var target := selected_hole + int(pair[1])
+		label.text = "%02d/%02d" % [target, hole_total] if can_select_hole(target) else ""
+		label.visible = expanded and not label.text.is_empty()
 
 
 func _last_played_hole() -> int:
 	var result := 1
 	for entry in history:
-		result = maxi(result, _hole_number(entry))
+		if _hole_number(entry) <= current_hole:
+			result = maxi(result, _hole_number(entry))
 	return result
 
 

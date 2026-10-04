@@ -1,0 +1,74 @@
+{
+  "date": "2026-09-24",
+  "method": "Built-in image_gen; original project images only",
+  "notes": "First-generation reference inputs are the exact recovered source crops retained under originals/. Revision edit targets are retained under history/.",
+  "prompts": [
+    {
+      "id": "heavy_core",
+      "revision": 1,
+      "inputs": [
+        "sand_cleats.png",
+        "rangefinder_lens.png"
+      ],
+      "output": "originals/heavy_core.png",
+      "generation_file": "exec-c1af0dfd-a3a3-4c94-a404-0f7ef1beb84e.png",
+      "prompt": "Use case: stylized-concept. Create ONE original inventory sprite for the golf card HEAVY CORE. The two input images are style references only: match their chunky cheerful cartoon pixel-art shapes, thick stepped very dark navy outline, broad saturated shade groups, cream glints, and about 64 logical pixels of object detail. Subject: a substantial weighted golf ball, a slate-blue steel sphere with a few readable golf-ball dimples and a small wedge-shaped cutaway on the upper right exposing its golden dense inner core. The cutaway must look intentionally cut into the sphere; retain a solid heavy round silhouette. Navy shadow, medium steel blue, pale cream upper-left highlights, warm gold inside, 4 to 6 colors per material. Three-quarter object view like the provided cleat/lens. Give it personality and weight with a slightly exaggerated squat shape. Square image, entire complete silhouette visible, centered at about 82% canvas width and height with clear transparent gutters at EVERY edge. Real transparent background (alpha), no painted background, no ground, no frame, no text, no numbers, no badges, no extra objects, no photograph, no realistic rendering, no tiny texture or dithering, no blur. Keep hard blocky pixel clusters and the same coarse visual density as the two provided cartoon sprites."
+    },
+    {
+      "id": "power_club",
+      "revision": 1,
+      "inputs": [
+        "overdrive_driver.png",
+        "sand_cleats.png"
+      ],
+      "output": "history/power_club_v1.png",
+      "generation_file": "exec-dc56b07a-7239-474c-8c61-62b9e1e785e1.png",
+      "prompt": "Use case: stylized-concept. Create ONE original inventory sprite for the golf card POWER CLUB, a simple powerful golf iron. Input images are style references only: match their chunky cheerful cartoon pixel art, thick stepped very dark navy outline, flat saturated shade groups, cream glints, about 64 logical pixels of object detail. Subject: a stout golf iron with a broad angular red-coral iron head in the lower-left quadrant, ivory grooved striking face clearly visible, a short sturdy golden shaft leading diagonally upward right, and a dark teal wrapped grip completely visible at upper right. Put two small gold forward chevrons near the striking face for its extra-power meaning. Make it clearly a real golf iron with a bent hosel and chunky wedge head, NOT a hammer, axe or tennis racket. This item should be visually distinct from the reference's orange round OVERDRIVE driver: coral wedge geometry, no lightning bolt. Entire club must fit as one strong compact diagonal silhouette. Square image, entire object and every shaft/handle end intact, centered around 80–84% of canvas with a generous transparent gutter on EVERY edge. Actual transparent background alpha. No backdrop, no floor, no labels, no text, no frame, no realistic rendering, no fine texture/dithering, no soft blur. Upper-left light, controlled hard-edged pixel clusters at the same cartoon density as the references."
+    },
+    {
+      "id": "lucky_putter",
+      "revision": 1,
+      "inputs": [
+        "overdrive_driver.png",
+        "sand_cleats.png"
+      ],
+      "output": "history/lucky_putter_v1.png",
+      "generation_file": "exec-aa434aed-886d-48fb-9d82-885829144bbb.png",
+      "prompt": "Use case: stylized-concept. Create ONE original inventory sprite for the golf card LUCKY PUTTER. Input images are style references only: match their chunky cheerful cartoon pixel art, very dark navy stepped outline, saturated simple shade groups, ivory glints, about 64 logical pixels of object detail. Subject: a compact emerald-green golf putter with a wide short rectangular mallet head at lower left, cream metal striking face and a small gold four-leaf-clover emblem on its broad upper surface. Its short sturdy silver shaft runs diagonally up to the upper right and ends in a fully visible dark green wrapped grip with a gold end cap. A small cream dimpled golf ball sits beside the putter head with a single tiny warm-gold sparkle. Make the mallet golf putter visibly distinct from the orange round driver and coral iron. Clear L-shaped putting head and shaft geometry. Chunky recognizable object first, limited material highlights, no fine texture, no realism. Entire object must fit within a square canvas, centered at 82% extent, generous true transparent gutters at EVERY edge so no head, grip, ball or sparkle gets cut off. Real transparent alpha background; no ground, no frame, no scenery, no text, no numbers, no card-shaped badge, no photorealism, no blur. Upper-left light and hard clean pixel clusters, same expressive sprite family as the two examples."
+    },
+    {
+      "id": "gust_guard",
+      "revision": 1,
+      "inputs": [
+        "rangefinder_lens.png",
+        "sand_cleats.png"
+      ],
+      "output": "originals/gust_guard.png",
+      "generation_file": "exec-78bf9bb2-6c6e-483e-9a1c-9e9b702b02fc.png",
+      "prompt": "Use case: stylized-concept. Create ONE original inventory sprite for the golf card GUST GUARD. Input images are style references only: match their chunky cheerful cartoon pixel-art construction, very dark navy stepped outline, broad saturated shade groups, cream glints, around 64 logical pixels of object detail. Subject: a sturdy open turquoise-and-teal golf umbrella shown at a three-quarter angle, with large strongly constructed canopy ribs, a gold brass shaft and rounded J handle, shielding a small cream dimpled golf ball tucked below the left canopy. Three short pale-cyan wind streaks strike and curl away from its left edge. The umbrella is the protective object: clear recognizable silhouette and compact cheerful proportions, not a generic shield medallion. Canopy occupies upper 55% of square; complete shaft/handle and ball visible in lower section, canopy tilted slightly against the wind. Turquoise top, teal shadow, navy outline, selective pale cream upper-left highlight, gold shaft. Entire composition centered at 82% of canvas extent with clear real transparent gutters at EVERY edge. Real transparent alpha background, no ground or pedestal, no scene, no labels, no text, no badge/frame, no photographic detail, no tiny texture/dithering, no blur. Keep hard blocky pixel clusters and the expressive coarse sprite density of the reference objects."
+    },
+    {
+      "id": "power_club",
+      "revision": 2,
+      "inputs": [
+        "history/power_club_v1.png",
+        "originals/overdrive_driver.png"
+      ],
+      "output": "originals/power_club.png",
+      "generation_file": "exec-b6965be7-5de2-4350-91b9-9c3b47aa900b.png",
+      "prompt": "Use case: precise-object-edit. Image1 is the edit target, the original red-coral POWER CLUB cartoon pixel sprite. Image2 is a visual-density reference only. Improve Image1's object composition so the iron head remains bold and recognizable at 32 pixels. Keep its exact coral iron design, ivory grooved face, golden shaft, teal wrapped grip, pair of gold chevrons, palette, stepped navy outline and pixel art style. Change only these proportions: shorten the exposed golden shaft by about half; shorten the long teal grip by about a third; enlarge the iron head about 25% relative to the grip. Recompose the complete club into a compact diagonal silhouette with the head at lower left and grip end upper right. This is a purposefully exaggerated cartoon equipment icon like Image2, not a realistic long-shaft club. Keep the entire golf club including grip end and chevrons intact, with no cut-off parts and a uniform transparent gutter around all edges. Square canvas, dominant object fills about 82–86% of its square, alpha-transparent background. No text, no backdrop, no frame, no extra items. Preserve hard blocky pixel clusters and upper-left cream glints. Do not just shrink the old composition or add empty margins: actually shorten its shaft and enlarge its head."
+    },
+    {
+      "id": "lucky_putter",
+      "revision": 2,
+      "inputs": [
+        "history/lucky_putter_v1.png",
+        "originals/overdrive_driver.png"
+      ],
+      "output": "originals/lucky_putter.png",
+      "generation_file": "exec-75a9033a-222d-43b5-9910-bf947775e5db.png",
+      "prompt": "Use case: precise-object-edit. Image1 is the edit target: green LUCKY PUTTER cartoon pixel sprite. Image2 is a visual-density reference only. Improve Image1's object composition so its putting head is bold and recognizable at 32 pixels. Preserve exactly the emerald-green mallet head, ivory grooved face, gold four-leaf-clover emblem, silver shaft, green wrapped grip and gold cap, small cream golf ball and one gold sparkle, saturated palette, stepped navy outlines and simple cartoon pixel style. Change only proportions: shorten the exposed silver shaft by about HALF and the green grip by a third; enlarge the green mallet head by about30% relative to the grip. Keep the putting head broad and rectangular, not an iron or driver head. Arrange the complete club in a compact diagonal with head lower left and grip end upper right, and keep the entire ball visible near its lower-right side. It should be deliberately cartoon-proportioned and chunky like Image2 rather than realistically long. Center entire composition on a square transparent canvas, fill about82–86% extent, leave a clear transparent gutter on all sides, complete ends and silhouette intact. No backdrop, no floor, no frame, no text or numbers, no realism, no extra objects. Do not merely shrink the old art or pad a long shaft: actually change the source proportions as requested, retain hard pixel clusters and warm upper-left highlights."
+    }
+  ]
+}
+

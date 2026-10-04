@@ -1,0 +1,16 @@
+{
+  "scene_path": "scenes/main.tscn",
+  "viewport_size": {"width": 2560, "height": 1440},
+  "settle_frames": 8,
+  "steps": [
+    {"type": "key", "keycode": 4194322, "pressed": true},
+    {"type": "key", "keycode": 4194322, "pressed": false},
+    {"type": "key", "keycode": 4194322, "pressed": true},
+    {"type": "key", "keycode": 4194322, "pressed": false},
+    {"type": "key", "keycode": 4194309, "pressed": true},
+    {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_seconds", "seconds": 0.35},
+    {"type": "assert", "assertion": "visible", "node_path": "HUD/SettingsScreen"},
+    {"type": "screenshot", "path": "user://release_settings_2560.png"}
+  ]
+}
