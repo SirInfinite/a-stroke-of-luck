@@ -9,7 +9,6 @@ The game loads imported SVG textures, never raw source files at runtime.
 from __future__ import annotations
 
 import argparse
-import re
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -19,10 +18,13 @@ from fontTools.ttLib import TTFont
 
 ROOT = Path(__file__).resolve().parents[1]
 WHITE = "#ffffff"
-# Read the game's approved semantic palette rather than inventing export-only ink.
-PALETTE = dict(re.findall(r'^const (\w+) := Color\("([0-9a-fA-F]{6})"\)',
-                         (ROOT / 'scripts/ui/ui_style.gd').read_text(encoding='utf-8'),
-                         flags=re.MULTILINE))
+# These colored vector exports predate the production pixel palette. Preserve
+# their authored ink so rebuilding semantic glyphs cannot recolor archived brand
+# art, the app icon or native toggle assets when UIStyle changes.
+PALETTE = {
+    'INK': '17201e', 'PAPER': 'f6f1df', 'GOLD': 'edbf45',
+    'GOLD_DARK': 'a86f24', 'CURSE': 'e15468', 'CURSE_DARK': '4b1d2b',
+}
 INK, PAPER, GOLD, CORAL = (f'#{PALETTE[name]}' for name in ['INK', 'PAPER', 'GOLD', 'CURSE'])
 
 
