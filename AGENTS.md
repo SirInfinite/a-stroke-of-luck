@@ -26,7 +26,7 @@ Read the relevant authoritative files before changing a system. When design and 
 
 ## Repository operating policy
 
-- The project uses Godot 4.6.2 and typed GDScript where practical. Confirm current technical details in `project.godot` and `docs/ARCHITECTURE.md`.
+- The project uses Godot 4.7.2 stable, with the Godot 4.7 / Forward Plus feature declaration in `project.godot`, and typed GDScript where practical. The current game version is `0.1.0-alpha`. Confirm current technical details in `project.godot` and `docs/ARCHITECTURE.md`.
 - Inspect relevant scripts, scenes, resources, data, tests, and documentation before editing.
 - Do not change gameplay unless the task explicitly authorizes it. Keep unrelated refactors and speculative systems out of scoped work.
 - Update the owning document when approved work changes rules, architecture, terminology, data contracts, presentation conventions, or quality expectations.
@@ -55,6 +55,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .codex/skills/godot-verify/s
 ```
 
 The verifier accepts `-ProjectPath` and `-GodotPath`, imports and briefly launches the project, runs vendored GUT tests when available, checks Git whitespace, and inventories the working tree. Its output separates automated results, diff review, and manual playtesting.
+
+Check the executable's `--version` before verification. If `godot4` or `godot` resolves to an older engine, pass `-GodotPath` pointing to the Godot 4.7.2 console executable. Historical 4.6.2 verification remains evidence for that engine only; do not downgrade the current project metadata to match an older launcher.
 
 After the runner finishes, inspect the complete staged and unstaged diff plus every relevant untracked file. Apply `docs/QUALITY_BAR.md` and the relevant `docs/MVP_TEST_CHECKLIST.md` scenarios to player-facing changes. Documentation and tooling-only changes may require no manual playtest. Record meaningful interactive sessions in `docs/PLAYTEST_LOG.md` and report all untested risks explicitly.
 

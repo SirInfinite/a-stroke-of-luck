@@ -1,6 +1,6 @@
 # Current Architecture
 
-This describes the repository as it exists now, not the intended finished design. The project is a Godot 4.6.2 application with one runtime-composed main scene and vendored GUT coverage for run state, generation, cards, and statistics.
+This describes the repository as it exists now, not the intended finished design. The project uses Godot 4.7.2 stable (`project.godot` declares the Godot 4.7 / Forward Plus feature family), with one runtime-composed main scene and vendored GUT coverage for run state, generation, cards, and statistics. The game version remains `0.1.0-alpha`. Earlier consolidation verification used Godot 4.6.2; those historical results do not establish verification on 4.7.2.
 
 ## Runtime Shape
 
