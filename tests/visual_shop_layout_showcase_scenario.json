@@ -1,0 +1,20 @@
+{
+  "scene_path": "tests/visual_shop_layout_showcase.tscn",
+  "viewport_size": {"width": 1920, "height": 1080},
+  "settle_frames": 8,
+  "steps": [
+    {"type": "wait_seconds", "seconds": 0.55},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "layout_index", "expected": 0},
+    {"type": "screenshot", "path": "user://shop_layout_1920_easy_4.png"},
+    {"type": "key", "keycode": 4194305, "pressed": true},
+    {"type": "key", "keycode": 4194305, "pressed": false},
+    {"type": "wait_seconds", "seconds": 0.55},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "layout_index", "expected": 1},
+    {"type": "screenshot", "path": "user://shop_layout_1920_normal_5.png"},
+    {"type": "key", "keycode": 4194305, "pressed": true},
+    {"type": "key", "keycode": 4194305, "pressed": false},
+    {"type": "wait_seconds", "seconds": 0.55},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "layout_index", "expected": 2},
+    {"type": "screenshot", "path": "user://shop_layout_1920_hard_6.png"}
+  ]
+}

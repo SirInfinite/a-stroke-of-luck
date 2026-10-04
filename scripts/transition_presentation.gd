@@ -5,6 +5,7 @@ const UIStyleScript := preload("res://scripts/ui/ui_style.gd")
 const UIIconScript := preload("res://scripts/ui/ui_icon.gd")
 const UIBackdropScript := preload("res://scripts/ui/ui_backdrop.gd")
 const HoleHistorySelectorScript := preload("res://scripts/ui/hole_history_selector.gd")
+const CoursePostcardScript := preload("res://scripts/ui/course_postcard.gd")
 
 var overlay: PanelContainer
 var title_label: Label
@@ -25,6 +26,7 @@ var detail_margin: MarginContainer
 var history_selector: HoleHistorySelector
 var _intro_tween: Tween
 var _history_tween: Tween
+var _hole_result_active := false
 
 
 func setup(new_overlay: PanelContainer, new_title: Label, new_body: Label) -> void:
@@ -45,6 +47,7 @@ func setup(new_overlay: PanelContainer, new_title: Label, new_body: Label) -> vo
 	backdrop.name = "Backdrop"
 	backdrop.configure(&"biome", UIStyleScript.FOCUS, UIStyleScript.INK_DEEP)
 	chrome.add_child(backdrop)
+	backdrop.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 
 	accent_band = ColorRect.new()
 	accent_band.name = "BiomeAccentBand"
@@ -66,7 +69,7 @@ func show_run_start(seed_value: int) -> void:
 		UIStyleScript.GOLD,
 		&"seed",
 		"YOUR COURSE IS DEALT",
-		"6 BIOMES  •  18 HOLES  •  ONE CLEAN RUN",
+		"18 HOLES. MAKE THEM COUNT.",
 		&"results"
 	)
 	_add_icon_stat(&"seed", "SEED", str(seed_value), UIStyleScript.GOLD)
@@ -83,11 +86,12 @@ func show_biome(profile: Variant, biome_number: int, biome_total: int = 6) -> vo
 		accent,
 		UIStyleScript.biome_icon(String(profile.display_name)),
 		"BIOME %02d / %02d" % [biome_number, biome_total],
-		"THREE HOLES  •  READ THE LAND  •  PICK YOUR TROUBLE",
+		"THREE HOLES  /  A CHANGE OF SCENERY",
 		&"biome",
 		base
 	)
 	_add_biome_motif(String(profile.display_name), accent)
+	backdrop.biome_id = profile.id
 	_play_intro(accent)
 
 
@@ -117,6 +121,9 @@ func show_hole_result(
 		&"results"
 	)
 	title_label.text = String(result_entry.golf_result)
+	_hole_result_active = true
+	backdrop.biome_id = UIStyleScript.biome_icon(biome_name)
+	_apply_responsive_layout()
 	if history_selector:
 		history_selector.visible = true
 		var history: Array = data.get("history", [result_entry])
@@ -130,9 +137,9 @@ func show_hole_result(
 func show_run_results(data: Dictionary = {}) -> void:
 	_set_treatment(
 		UIStyleScript.GOLD,
-		&"score_good",
+		&"trophy",
 		"ALL SIX BIOMES CLEARED",
-		"THE COURSE REMEMBERS EVERY CHOICE",
+		"18 FLAGS DOWN. THAT ONE IS YOURS.",
 		&"results"
 	)
 	_add_stat_strip([
@@ -153,9 +160,9 @@ func show_run_results(data: Dictionary = {}) -> void:
 func show_ending() -> void:
 	_set_treatment(
 		UIStyleScript.GOLD,
-		&"hole",
+		&"trophy",
 		"A STROKE OF LUCK",
-		"18 FLAGS DOWN  •  ANOTHER SEED AWAITS",
+		"GOOD GOLF. QUESTIONABLE DECISIONS.",
 		&"results"
 	)
 	_add_biome_progress()
@@ -183,10 +190,18 @@ func reset_presentation() -> void:
 	if _intro_tween:
 		_intro_tween.kill()
 		_intro_tween = null
-	for item in [title_label, hero_icon_stage, detail_panel]:
+	if _history_tween:
+		_history_tween.kill()
+		_history_tween = null
+	for item in [title_label, hero_icon_stage, detail_panel, eyebrow_label, visual_details]:
 		if item:
 			item.modulate = Color.WHITE
 			item.scale = Vector2.ONE
+	if visual_details:
+		for item in visual_details.get_children():
+			if item is Control: item.modulate = Color.WHITE
+	if eyebrow_label:
+		eyebrow_label.position.y = 0.0
 
 
 func _resolve_production_nodes() -> void:
@@ -221,24 +236,25 @@ func _resolve_production_nodes() -> void:
 		hero_icon_stage.visible = false
 		chrome.add_child(hero_icon_stage)
 	if hero_column:
+		hero_column.set_meta(&"keep_ui_ink", true)
 		history_selector = HoleHistorySelectorScript.new()
 		history_selector.visible = false
 		history_selector.selection_changed.connect(_on_history_selection_changed)
 		hero_column.add_child(history_selector)
-		hero_column.move_child(history_selector, mini(2, hero_column.get_child_count() - 1))
+		hero_column.move_child(title_label, 1)
 
 	hero_icon = hero_icon_stage.get_node_or_null("Icon") as UIIcon
 	if not hero_icon:
 		var center := CenterContainer.new()
 		center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		hero_icon_stage.add_child(center)
-		hero_icon = UIIconScript.new()
+		hero_icon = CoursePostcardScript.new()
 		hero_icon.name = "Icon"
-		hero_icon.custom_minimum_size = Vector2(104.0, 104.0)
+		hero_icon.custom_minimum_size = Vector2(208.0, 208.0)
 		center.add_child(hero_icon)
 
-	UIStyleScript.apply_ui(eyebrow_label, 14, UIStyleScript.GOLD, true)
-	UIStyleScript.apply_ui(identity_label, 14, UIStyleScript.PAPER_MUTED, true)
+	UIStyleScript.apply_ui(eyebrow_label, 20, UIStyleScript.GOLD, true)
+	UIStyleScript.apply_ui(identity_label, 20, UIStyleScript.PAPER_MUTED, true)
 	UIStyleScript.apply_display(title_label, 50, UIStyleScript.PAPER)
 	UIStyleScript.apply_ui(body_label, 21, UIStyleScript.PAPER)
 	body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -252,20 +268,26 @@ func _set_treatment(
 	backdrop_mode: StringName,
 	base := UIStyleScript.INK_DEEP
 ) -> void:
+	_hole_result_active = false
 	_clear_visual_details()
 	if history_selector:
 		history_selector.visible = false
 	accent_band.color = accent
 	backdrop.configure(backdrop_mode, accent, base)
-	overlay.add_theme_stylebox_override("panel", UIStyleScript.panel_style(base, Color(accent, 0.72), 18, 3, 0))
+	overlay.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	overlay.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 	eyebrow_label.text = eyebrow
 	identity_label.text = identity
 	UIStyleScript.apply_display(title_label, 50, UIStyleScript.PAPER)
 	UIStyleScript.apply_ui(body_label, 21, UIStyleScript.PAPER)
 	hero_icon.configure(icon_name, UIStyleScript.PAPER, accent)
-	hero_icon_stage.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK, 0.78), Color(accent, 0.78), 22, 3, 12))
+	hero_icon_stage.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+	hero_icon_stage.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	hero_icon.custom_minimum_size = Vector2(432, 248) if CoursePostcardScript.LAND.has(icon_name) else Vector2(112, 112)
 	if detail_panel:
-		detail_panel.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK, 0.92), Color(accent, 0.42), 20, 2, 12))
+		detail_panel.add_theme_stylebox_override("panel", UIStyleScript.pixel_frame("panel",6))
+		detail_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		body_label.custom_minimum_size.y = 70.0
 	_apply_responsive_layout()
 
 
@@ -299,8 +321,9 @@ func _add_star_banner(stars: int, performance: String, accent: Color) -> void:
 	if not visual_details:
 		return
 	var panel := PanelContainer.new()
+	panel.name = "StarRating"
 	panel.custom_minimum_size.y = 72.0 if _is_compact() else 86.0
-	panel.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK_DEEP, 0.88), Color(accent, 0.72), 13, 2, 4))
+	panel.add_theme_stylebox_override("panel", UIStyleScript.pixel_frame("card",6))
 	visual_details.add_child(panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 14)
@@ -314,8 +337,9 @@ func _add_star_banner(stars: int, performance: String, accent: Color) -> void:
 	margin.add_child(row)
 	for star_index in range(5):
 		var star := UIIconScript.new()
-		star.custom_minimum_size = Vector2.ONE * (36.0 if _is_compact() else 43.0)
-		star.configure(&"star", Color(UIStyleScript.PAPER_MUTED, 0.26), accent if star_index < stars else Color(UIStyleScript.PAPER_MUTED, 0.22))
+		star.name = "RatingStar%d" % (star_index + 1)
+		star.custom_minimum_size = Vector2.ONE * (42.0 if _is_compact() else 55.0)
+		star.configure(&"star", accent if star_index < stars else Color(UIStyleScript.PAPER_MUTED, 0.5))
 		star.modulate = Color.WHITE if star_index < stars else Color(1.0, 1.0, 1.0, 0.36)
 		row.add_child(star)
 	var label := Label.new()
@@ -323,7 +347,7 @@ func _add_star_banner(stars: int, performance: String, accent: Color) -> void:
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	UIStyleScript.apply_ui(label, 14 if _is_compact() else 16, accent, true)
+	UIStyleScript.apply_ui(label, 18 if _is_compact() else 20, accent, true)
 	row.add_child(label)
 
 
@@ -337,11 +361,14 @@ func _on_history_selection_changed(entry: Dictionary) -> void:
 	eyebrow_label.text = "%s  •  HOLE %02d / %02d" % [biome_name.to_upper(), hole_number, history_selector.hole_total]
 	identity_label.text = "%s  •  %d-STAR PERFORMANCE" % [String(entry.get("performance", "ROUND COMPLETE")), stars]
 	title_label.text = String(entry.get("golf_result", "HOLE COMPLETE"))
+	backdrop.biome_id = UIStyleScript.biome_icon(biome_name)
 	hero_icon.configure(&"star", UIStyleScript.PAPER, accent)
 	accent_band.color = accent
 	_render_hole_result(entry)
 	if _history_tween:
 		_history_tween.kill()
+	if not UIStyleScript.motion_enabled(overlay):
+		return
 	eyebrow_label.position.y = 12.0
 	eyebrow_label.modulate = Color(1.0, 1.0, 1.0, 0.18)
 	_history_tween = create_tween().set_parallel(true)
@@ -369,7 +396,7 @@ func _add_icon_stat(icon_name: StringName, heading: String, value: String, accen
 		return
 	var panel := PanelContainer.new()
 	panel.custom_minimum_size.y = 72.0
-	panel.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK_DEEP, 0.84), Color(accent, 0.62), 12, 2, 3))
+	panel.add_theme_stylebox_override("panel", UIStyleScript.pixel_frame("card", 4))
 	visual_details.add_child(panel)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 14)
@@ -401,13 +428,15 @@ func _add_biome_motif(biome_name: String, accent: Color) -> void:
 	if not visual_details:
 		return
 	var motif := HBoxContainer.new()
+	motif.name = "BiomeMotif"
 	motif.alignment = BoxContainer.ALIGNMENT_CENTER
 	motif.add_theme_constant_override("separation", 12)
 	visual_details.add_child(motif)
 	for icon_name in [UIStyleScript.biome_icon(biome_name), &"hole", &"card"]:
 		var icon := UIIconScript.new()
 		icon.custom_minimum_size = Vector2(56.0, 56.0)
-		icon.configure(icon_name, UIStyleScript.PAPER, accent)
+		var ink := UIStyleScript.biome_accent(biome_name) if icon_name == UIStyleScript.biome_icon(biome_name) else UIStyleScript.PAPER
+		icon.configure(icon_name, ink, accent)
 		motif.add_child(icon)
 
 
@@ -415,8 +444,8 @@ func _add_biome_progress() -> void:
 	if not visual_details:
 		return
 	var heading := Label.new()
-	heading.text = "COURSE ROUTE"
-	UIStyleScript.apply_ui(heading, 12, UIStyleScript.PAPER_MUTED, true)
+	heading.text = "SIX BIOMES, SIGNED OFF"
+	UIStyleScript.apply_ui(heading, 16, UIStyleScript.PAPER_MUTED, true)
 	visual_details.add_child(heading)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -424,9 +453,10 @@ func _add_biome_progress() -> void:
 	visual_details.add_child(row)
 	for biome_name in ["Meadow", "Desert", "Autumn", "Snow", "Swamp", "Volcanic"]:
 		var stage := PanelContainer.new()
-		stage.custom_minimum_size = Vector2.ONE * (44.0 if _is_compact() else 54.0)
+		stage.custom_minimum_size = Vector2.ONE * (54.0 if _is_compact() else 66.0)
+		stage.tooltip_text = biome_name + " • completed"
 		var accent := UIStyleScript.biome_accent(biome_name)
-		stage.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK_DEEP, 0.86), Color(accent, 0.7), 12, 2, 2))
+		stage.add_theme_stylebox_override("panel", UIStyleScript.pixel_frame("card", 4))
 		row.add_child(stage)
 		var center := CenterContainer.new()
 		stage.add_child(center)
@@ -441,24 +471,31 @@ func _add_card_collection(cards: Variant) -> void:
 		return
 	var heading := Label.new()
 	heading.text = "BAG BUILT THIS RUN"
-	UIStyleScript.apply_ui(heading, 12, UIStyleScript.PAPER_MUTED, true)
+	UIStyleScript.apply_ui(heading, 16, UIStyleScript.PAPER_MUTED, true)
 	visual_details.add_child(heading)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 7)
+	var row := HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 8)
+	row.add_theme_constant_override("v_separation", 8)
 	visual_details.add_child(row)
-	for card_index in range(mini(cards.size(), 6)):
-		var card = cards[card_index]
+	var counts := {}
+	for card in cards:
+		counts[card.id] = int(counts.get(card.id, 0)) + 1
+	var seen: Array[StringName] = []
+	for card in cards:
+		if card.id in seen:
+			continue
+		seen.append(card.id)
+		var chip := HBoxContainer.new()
+		row.add_child(chip)
 		var icon := UIIconScript.new()
-		icon.custom_minimum_size = Vector2.ONE * (34.0 if _is_compact() else 42.0)
+		icon.custom_minimum_size = Vector2.ONE * 28.0
 		icon.tooltip_text = String(card.name)
 		icon.configure(UIStyleScript.card_icon(card.id), UIStyleScript.PAPER, UIStyleScript.card_accent(card.id))
-		row.add_child(icon)
-	if cards.size() > 6:
-		var more := Label.new()
-		more.text = "+%d" % (cards.size() - 6)
-		more.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		UIStyleScript.apply_display(more, 24, UIStyleScript.GOLD)
-		row.add_child(more)
+		chip.add_child(icon)
+		var name_tag := Label.new()
+		name_tag.text = "%s ×%d" % [card.name, int(counts[card.id])]
+		UIStyleScript.apply_ui(name_tag, 18, UIStyleScript.PAPER, true)
+		chip.add_child(name_tag)
 
 
 func _add_stat_strip(items: Array) -> void:
@@ -471,9 +508,9 @@ func _add_stat_strip(items: Array) -> void:
 		var item := item_value as Dictionary
 		var accent: Color = item.get("accent", UIStyleScript.PAPER)
 		var panel := PanelContainer.new()
-		panel.custom_minimum_size = Vector2(138.0, 78.0 if _is_compact() else 98.0)
+		panel.custom_minimum_size = Vector2(138.0, 122.0)
 		panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		panel.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK_DEEP, 0.82), Color(accent, 0.5), 11, 2, 3))
+		panel.add_theme_stylebox_override("panel", UIStyleScript.pixel_frame("card",6))
 		row.add_child(panel)
 		var margin := MarginContainer.new()
 		margin.add_theme_constant_override("margin_left", 10)
@@ -486,7 +523,8 @@ func _add_stat_strip(items: Array) -> void:
 		margin.add_child(content)
 		var icon := UIIconScript.new()
 		icon.custom_minimum_size = Vector2.ONE * (33.0 if _is_compact() else 41.0)
-		icon.configure(item.get("icon", &"hole"), UIStyleScript.PAPER, accent)
+		icon.configure(item.get("icon", &"hole"), UIStyleScript.PAPER_INK, accent.darkened(0.2))
+		icon.visible = false
 		content.add_child(icon)
 		var copy := VBoxContainer.new()
 		copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -496,12 +534,14 @@ func _add_stat_strip(items: Array) -> void:
 		var heading := Label.new()
 		heading.text = str(item.get("label", "STAT"))
 		heading.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		UIStyleScript.apply_ui(heading, 11 if _is_compact() else 12, UIStyleScript.PAPER_MUTED, true)
+		UIStyleScript.apply_ui(heading, 18, UIStyleScript.PAPER_MUTED, true)
 		copy.add_child(heading)
 		var value := Label.new()
 		value.text = str(item.get("value", "—"))
-		value.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		UIStyleScript.apply_display(value, 23 if _is_compact() else 28, accent)
+		var role := String(item.get("label", ""))
+		value.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+		var value_size := 32 if role in ["SEED", "STROKES / PAR", "TOTAL TIME"] else 74 if role in ["STROKES", "REWARD", "TO PAR"] else 54
+		UIStyleScript.apply_display(value, value_size, UIStyleScript.GOLD if role in ["REWARD", "WALLET", "COINS"] else UIStyleScript.PAPER)
 		copy.add_child(value)
 
 
@@ -523,7 +563,7 @@ func _apply_responsive_layout() -> void:
 	if history_selector:
 		history_selector.custom_minimum_size.x = 286.0 if compact else 330.0
 	if hero_icon_stage:
-		hero_icon_stage.custom_minimum_size = Vector2.ONE * (140.0 if compact else 174.0)
+		hero_icon_stage.custom_minimum_size = Vector2.ONE * 112.0
 	if detail_panel:
 		detail_panel.custom_minimum_size.x = 480.0 if compact else 520.0
 	if detail_margin:
@@ -533,8 +573,8 @@ func _apply_responsive_layout() -> void:
 		detail_margin.add_theme_constant_override("margin_top", vertical_detail)
 		detail_margin.add_theme_constant_override("margin_right", horizontal_detail)
 		detail_margin.add_theme_constant_override("margin_bottom", vertical_detail)
-	UIStyleScript.apply_display(title_label, 42 if compact else 50, UIStyleScript.PAPER)
-	UIStyleScript.apply_ui(body_label, 18 if compact else 21, UIStyleScript.PAPER)
+	UIStyleScript.apply_display(title_label, 100 if _hole_result_active else 76, UIStyleScript.PAPER)
+	UIStyleScript.apply_ui(body_label, 22 if compact else 25, UIStyleScript.PAPER)
 
 
 func _is_compact() -> bool:
@@ -544,18 +584,32 @@ func _is_compact() -> bool:
 func _play_intro(accent: Color) -> void:
 	if _intro_tween:
 		_intro_tween.kill()
+	if not UIStyleScript.motion_enabled(overlay):
+		reset_presentation()
+		return
 	var animated_items: Array[Control] = []
 	for item in [hero_icon_stage, title_label, detail_panel]:
 		if item:
 			animated_items.append(item)
 	for item in animated_items:
 		item.pivot_offset = item.size * 0.5
-		item.modulate = Color(accent.lightened(0.12), 0.0)
+		# Keep custom-drawn art in the render path while its new layout settles.
+		item.modulate = Color(accent.lightened(0.12), 0.01)
 		item.scale = Vector2(0.97, 0.97)
 	_intro_tween = create_tween().set_parallel(true)
-	for item in animated_items:
-		_intro_tween.tween_property(item, "modulate", Color.WHITE, 0.22).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-		_intro_tween.tween_property(item, "scale", Vector2.ONE, 0.31).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	for index in animated_items.size():
+		var item := animated_items[index]
+		# Present already-resolved information in readable beats. This tween
+		# never awards currency, advances the hole or changes a result.
+		var delay := index * 0.14
+		_intro_tween.tween_property(item, "modulate", Color.WHITE, 0.18).set_delay(delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		_intro_tween.tween_property(item, "scale", Vector2.ONE, 0.22).set_delay(delay).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	if _hole_result_active and visual_details:
+		for index in visual_details.get_child_count():
+			var row := visual_details.get_child(index) as Control
+			row.modulate.a = 0.25
+			_intro_tween.tween_property(row, "modulate:a", 1.0, 0.18).set_delay(0.18 + index * 0.15)
+	_intro_tween.finished.connect(hero_icon.queue_redraw, CONNECT_ONE_SHOT)
 
 
 func _format_signed(value: int) -> String:

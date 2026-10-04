@@ -16,5 +16,13 @@ static func parse_seed(raw_text: String) -> Dictionary:
 	return {"valid": true, "value": parsed, "message": "SEED READY"}
 
 
+static func parse_optional_seed(raw_text: String) -> Dictionary:
+	if raw_text.strip_edges().is_empty():
+		return {"valid": true, "value": 0, "random": true, "message": "RANDOM SEED READY"}
+	var parsed := parse_seed(raw_text)
+	parsed["random"] = false
+	return parsed
+
+
 static func format_seed(seed_value: int) -> String:
 	return str(clampi(seed_value, 1, MAX_SEED))

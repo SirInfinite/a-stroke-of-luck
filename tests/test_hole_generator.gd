@@ -4,6 +4,7 @@ const BiomeDatabase := preload("res://scripts/biome_database.gd")
 const HoleGenerator := preload("res://scripts/hole_generator.gd")
 const LevelValidator := preload("res://scripts/level_validator.gd")
 const BiomeHazardProfiles := preload("res://scripts/biome_hazard_profiles.gd")
+const DifficultyDatabase := preload("res://scripts/difficulty_database.gd")
 
 const TEST_SEED := 8675309
 
@@ -20,7 +21,7 @@ func test_production_biome_profiles_have_required_data() -> void:
 		assert_true(profile.background_palette.has("primary"))
 		assert_false(profile.decoration_identifiers.is_empty())
 		assert_false(profile.hazard_weights.is_empty())
-		assert_true(profile.generator_difficulty.has("map_width"))
+		assert_true(profile.generator_difficulty.has("section_stretch"))
 		assert_ne(String(profile.ambience), "")
 
 
@@ -41,14 +42,16 @@ func test_same_seed_generates_same_valid_eighteen_holes() -> void:
 		assert_eq(int(first_run[index].run_seed), TEST_SEED)
 
 
-func test_each_biome_scales_hazard_count_across_its_three_holes() -> void:
+func test_each_biome_scales_authored_challenge_clusters_without_random_clutter() -> void:
 	var levels: Array[Dictionary] = HoleGenerator.generate_run(BiomeDatabase.get_profiles(), TEST_SEED)
 	for biome_index in range(6):
-		var first_count: int = levels[biome_index * 3].hazards.size()
-		var second_count: int = levels[biome_index * 3 + 1].hazards.size()
-		var third_count: int = levels[biome_index * 3 + 2].hazards.size()
-		assert_true(first_count < second_count)
-		assert_true(second_count < third_count)
+		var first_budget: int = levels[biome_index * 3].challenge_budget
+		var second_budget: int = levels[biome_index * 3 + 1].challenge_budget
+		var third_budget: int = levels[biome_index * 3 + 2].challenge_budget
+		assert_lte(first_budget, second_budget)
+		assert_lte(second_budget, third_budget)
+		for arc in range(3):
+			assert_lte(HoleGenerator.quality_metrics(levels[biome_index * 3 + arc]).occupied_ratio, 0.25, "Pressure keeps recovery space")
 		assert_eq(String(levels[biome_index * 3].difficulty_name), "Introductory")
 		assert_eq(String(levels[biome_index * 3 + 1].difficulty_name), "Normal")
 		assert_eq(String(levels[biome_index * 3 + 2].difficulty_name), "Hardest")
@@ -74,31 +77,49 @@ func test_card_hazard_modifier_is_seeded_bounded_and_valid() -> void:
 	var second: Dictionary = HoleGenerator.apply_hazard_modifier(base_level, 2, &"direction", TEST_SEED + 17)
 
 	assert_eq(first, second)
-	assert_eq(first.hazards.size(), base_level.hazards.size() + 2)
+	assert_eq(first.hazards.filter(func(hazard: Dictionary) -> bool: return bool(hazard.get("curse_added", false))).size(), 2)
 	assert_eq(int(first.card_hazard_count), 2)
 	assert_true(LevelValidator.validate_level(first, 3))
-	for hazard_index in range(base_level.hazards.size(), first.hazards.size()):
-		assert_eq(String(first.hazards[hazard_index].type), "direction")
-		assert_true(first.hazards[hazard_index].has("direction"))
+	for hazard: Dictionary in first.hazards:
+		if bool(hazard.get("curse_added", false)):
+			assert_eq(String(hazard.type), "direction")
+			assert_true(hazard.has("direction"))
 
 	var clamped: Dictionary = HoleGenerator.apply_hazard_modifier(base_level, 99, &"direction", TEST_SEED + 17)
 	assert_lte(int(clamped.card_hazard_count), 4)
 	assert_true(LevelValidator.validate_level(clamped, 3))
 
 
-func test_large_seed_corpus_keeps_every_generated_hole_valid_and_above_quality_floor() -> void:
+func test_large_seed_corpus_across_difficulties_is_valid_interactive_and_varied() -> void:
 	var profiles: Array = BiomeDatabase.get_profiles()
-	for seed_value in range(1, 97):
-		var reproducible_seed := seed_value * 7919
-		var levels: Array[Dictionary] = HoleGenerator.generate_run(profiles, reproducible_seed)
-		assert_eq(levels.size(), 18)
-		for index in range(levels.size()):
-			var failure_context := "seed=%d hole=%d" % [reproducible_seed, index + 1]
-			assert_true(LevelValidator.validate_level(levels[index], index), failure_context)
-			assert_false(bool(levels[index].used_fallback), failure_context)
-			assert_gte(float(levels[index].quality_score), HoleGenerator.MINIMUM_QUALITY_SCORE, failure_context)
-			for placements in LevelValidator.placement_occupancy(levels[index]).values():
-				assert_eq(Array(placements).size(), 1, failure_context)
+	var cluster_sizes_seen := {}
+	var terrain_sizes_seen := {"water": {}, "sand": {}}
+	for difficulty in DifficultyDatabase.get_profiles():
+		for seed_value in range(1, 49):
+			var reproducible_seed := seed_value * 7919
+			var levels: Array[Dictionary] = HoleGenerator.generate_run(profiles, reproducible_seed, difficulty.generation_options())
+			assert_eq(levels.size(), 18)
+			for index in range(levels.size()):
+				var level := levels[index]
+				var failure_context := "difficulty=%s seed=%d hole=%d" % [difficulty.id, reproducible_seed, index + 1]
+				assert_true(LevelValidator.validate_level(level, index), failure_context)
+				assert_false(bool(level.used_fallback), failure_context)
+				assert_gte(float(level.quality_score), HoleGenerator.MINIMUM_QUALITY_SCORE, failure_context)
+				assert_eq(StringName(level.run_difficulty_id), difficulty.id, failure_context)
+				var metrics := HoleGenerator.quality_metrics(level)
+				assert_gte(float(metrics.route_relevant_ratio), 0.65, failure_context)
+				if difficulty.id != &"easy":
+					assert_true(int(metrics.direct_line_interactions) > 0 or bool(metrics.direct_line_blocked_by_geometry), failure_context)
+				assert_gte(int(metrics.challenge_role_count), 1, failure_context)
+				for cluster_size in metrics.hazard_cluster_sizes:
+					cluster_sizes_seen[int(cluster_size)] = true
+				_assert_compact_hazard_clusters(level, failure_context, terrain_sizes_seen)
+				for placements in LevelValidator.placement_occupancy(level).values():
+					assert_eq(Array(placements).size(), 1, failure_context)
+	for expected_size in range(1, 6):
+		assert_true(cluster_sizes_seen.has(expected_size), "Corpus should contain cluster size %d." % expected_size)
+	assert_gte(Dictionary(terrain_sizes_seen.water).size(), 4, "Water should use single, small, and rare larger formations.")
+	assert_gte(Dictionary(terrain_sizes_seen.sand).size(), 3, "Sand should use multiple compact formation sizes.")
 
 
 func test_best_candidate_selection_is_deterministic_and_score_driven() -> void:
@@ -147,10 +168,14 @@ func test_biome_hazard_profiles_map_required_release_semantics() -> void:
 	assert_eq(BiomeHazardProfiles.moving_hazard_for(&"snow", 0), "falling_ice")
 	assert_eq(BiomeHazardProfiles.moving_hazard_for(&"volcanic", 0), "rotating_fire_rod")
 	assert_true(BiomeHazardProfiles.required_static_types(&"snow", 0).has("ice"))
+	assert_true(BiomeHazardProfiles.required_static_types(&"desert", 0).has("sand"))
 
 
 func test_generated_holes_use_no_removed_surface_hazards_and_include_biome_variants() -> void:
-	var levels := HoleGenerator.generate_run(BiomeDatabase.get_profiles(), TEST_SEED)
+	# Availability is an aggregate contract, not a promise that every run has a pad.
+	var levels: Array[Dictionary] = []
+	for seed_offset in range(4):
+		levels.append_array(HoleGenerator.generate_run(BiomeDatabase.get_profiles(), TEST_SEED + seed_offset))
 	var seen_types := {}
 	var seen_moving := {}
 	for level in levels:
@@ -171,7 +196,7 @@ func test_generated_holes_use_no_removed_surface_hazards_and_include_biome_varia
 	assert_true(seen_moving.has("rotating_fire_rod"))
 
 
-func test_secondary_branches_are_routine_valid_and_never_replace_main_route() -> void:
+func test_secondary_branches_are_optional_valid_and_never_replace_main_route() -> void:
 	var levels := HoleGenerator.generate_run(BiomeDatabase.get_profiles(), TEST_SEED)
 	var holes_with_branches := 0
 	var dead_end_count := 0
@@ -187,8 +212,9 @@ func test_secondary_branches_are_routine_valid_and_never_replace_main_route() ->
 				dead_end_count += 1
 		assert_true(LevelValidator.validate_level(level, level_index))
 
-	assert_gte(holes_with_branches, 15)
-	assert_gte(dead_end_count, 5)
+	assert_gte(holes_with_branches, 1)
+	assert_lte(holes_with_branches, 12, "Branches must no longer appear on almost every hole.")
+	assert_lte(dead_end_count, 6)
 
 
 func test_later_generation_adds_discrete_elevation_and_overpasses() -> void:
@@ -196,16 +222,23 @@ func test_later_generation_adds_discrete_elevation_and_overpasses() -> void:
 	var elevation_holes := 0
 	var saw_ramp := false
 	var saw_overpass := false
+	var saw_lower_area := false
 	for level_index in range(3, levels.size()):
 		var level: Dictionary = levels[level_index]
 		if not level.elevation_transitions.is_empty():
 			elevation_holes += 1
 			saw_ramp = true
-		for structure in level.elevation_structures:
-			saw_overpass = saw_overpass or String(structure.type) == "overpass"
-	assert_gte(elevation_holes, 8)
+			for structure in level.elevation_structures:
+				saw_overpass = saw_overpass or String(structure.type) == "overpass"
+				saw_lower_area = saw_lower_area or String(structure.type) == "lower_area"
+				if String(structure.type) == "overpass":
+					assert_lte(int(structure.tunnel_length), 2)
+					assert_lte(Array(structure.cells).size(), 2)
+	assert_gte(elevation_holes, 1)
+	assert_lte(elevation_holes, 8)
 	assert_true(saw_ramp)
-	assert_true(saw_overpass)
+	# Crossings and lower areas are sampled in the expanded grammar corpus;
+	# they are no longer forced onto one fixed hole of every run.
 
 
 func _profile_names(profiles: Array) -> Array:
@@ -224,3 +257,41 @@ func _hazard_types(level: Dictionary) -> Array[String]:
 
 func _manhattan(first: Vector2i, second: Vector2i) -> int:
 	return absi(first.x - second.x) + absi(first.y - second.y)
+
+
+func _cluster_count(level: Dictionary) -> int:
+	var ids := {}
+	for hazard in level.hazards:
+		if String(hazard.type) == "bounce_pad":
+			continue
+		ids[String(hazard.get("cluster_id", "legacy_%d" % ids.size()))] = true
+	return ids.size()
+
+
+func _assert_compact_hazard_clusters(level: Dictionary, context: String, terrain_sizes_seen: Dictionary) -> void:
+	var clusters := {}
+	var cluster_types := {}
+	for hazard in level.hazards:
+		var cluster_id := String(hazard.get("cluster_id", ""))
+		assert_false(cluster_id.is_empty(), context)
+		if not clusters.has(cluster_id):
+			clusters[cluster_id] = []
+		clusters[cluster_id].append(HoleGenerator._world_to_cell(level, Vector2(hazard.pos)))
+		cluster_types[cluster_id] = String(hazard.type)
+	for cluster_id in clusters:
+		var cells: Array = clusters[cluster_id]
+		assert_gte(cells.size(), 1, context)
+		assert_lte(cells.size(), 5, context)
+		var visited := {Vector2i(cells[0]): true}
+		var frontier: Array[Vector2i] = [Vector2i(cells[0])]
+		while not frontier.is_empty():
+			var cell: Vector2i = frontier.pop_front()
+			for other_cell in cells:
+				var typed_cell := Vector2i(other_cell)
+				if not visited.has(typed_cell) and _manhattan(cell, typed_cell) == 1:
+					visited[typed_cell] = true
+					frontier.append(typed_cell)
+		assert_eq(visited.size(), cells.size(), "%s cluster=%s" % [context, cluster_id])
+		var hazard_type := String(cluster_types[cluster_id])
+		if terrain_sizes_seen.has(hazard_type):
+			terrain_sizes_seen[hazard_type][cells.size()] = true

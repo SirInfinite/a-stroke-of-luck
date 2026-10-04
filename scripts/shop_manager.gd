@@ -6,14 +6,17 @@ signal continued
 signal feedback_requested(kind: StringName)
 
 const CardDatabase := preload("res://scripts/card_database.gd")
+const Rarities := preload("res://scripts/card_rarity_profile.gd")
 const UIStyleScript := preload("res://scripts/ui/ui_style.gd")
 const UIIconScript := preload("res://scripts/ui/ui_icon.gd")
 const UIBackdropScript := preload("res://scripts/ui/ui_backdrop.gd")
 const UIActionButtonScript := preload("res://scripts/ui/ui_action_button.gd")
 const UICardScript := preload("res://scripts/ui/ui_card.gd")
 
-const SHOP_CARD_COUNT := 4
-const MAX_PURCHASES_PER_VISIT := 2
+const MIN_SHOP_CARD_COUNT := 4
+const MAX_SHOP_CARD_COUNT := 6
+const DEFAULT_SHOP_CARD_COUNT := 4
+const DEFAULT_MAX_PURCHASES_PER_VISIT := 2
 @export_category("Shop Feedback")
 @export_range(1.0, 1.08, 0.005) var hover_scale := 1.025
 @export_range(0.01, 0.3, 0.01) var hover_duration := 0.08
@@ -32,19 +35,38 @@ var shop_destination_label: Label
 var shop_status_label: Label
 var shop_curse_status_label: Label
 var shop_card_buttons: Array[Button] = []
+var shop_card_slots: Array[Control] = []
+var shop_card_rows: Array[HBoxContainer] = []
 var continue_button: Button
 var curse_warning_flash: ColorRect
 var current_shop_cards: Array[CardDefinition] = []
 var shop_visits := 0
 var shop_intro_tween: Tween
-var tokens := 0
+var _run_state: RunState
+var _standalone_tokens := 0
+var tokens: int:
+	get: return _run_state.tokens if _run_state else _standalone_tokens
+	set(value):
+		if _run_state:
+			_run_state.tokens = value
+		else:
+			_standalone_tokens = value
 var purchases_this_visit := 0
 var minimum_purchases_this_visit := 0
 var purchased_card_indices: Array[int] = []
 var owned_card_ids: Array[StringName] = []
+var current_offer_count := DEFAULT_SHOP_CARD_COUNT
+var current_max_purchases := DEFAULT_MAX_PURCHASES_PER_VISIT
+var current_curse_strength_multiplier := 1.0
+var shared_course_mode := false
 var _card_feedback_tweens: Dictionary = {}
 var _coin_feedback_tween: Tween
 var _curse_feedback_tween: Tween
+var presentation: Node
+
+
+func bind_run_state(state: RunState) -> void:
+	_run_state = state
 
 
 func create_overlay(parent: CanvasLayer) -> void:
@@ -119,7 +141,7 @@ func create_overlay(parent: CanvasLayer) -> void:
 	wallet_margin.add_child(wallet_row)
 	var wallet_icon := UIIconScript.new()
 	wallet_icon.custom_minimum_size = Vector2(38.0, 38.0)
-	wallet_icon.configure(&"coin", UIStyleScript.INK_DEEP, UIStyleScript.GOLD)
+	wallet_icon.configure(&"coin", UIStyleScript.GOLD, UIStyleScript.GOLD)
 	wallet_row.add_child(wallet_icon)
 	var wallet_copy := VBoxContainer.new()
 	wallet_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -139,29 +161,49 @@ func create_overlay(parent: CanvasLayer) -> void:
 	UIStyleScript.apply_ui(shop_destination_label, 15, UIStyleScript.PAPER_MUTED, true)
 	header.add_child(shop_destination_label)
 
-	var cards_row := HBoxContainer.new()
-	cards_row.name = "CardRow"
-	cards_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	cards_row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	cards_row.add_theme_constant_override("separation", 16)
-	layout.add_child(cards_row)
+	var body := HBoxContainer.new()
+	body.name = "ShopBody"
+	body.add_theme_constant_override("separation", 22)
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(body)
+	var cards_layout := VBoxContainer.new()
+	cards_layout.name = "CardRows"
+	cards_layout.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	cards_layout.alignment = BoxContainer.ALIGNMENT_CENTER
+	cards_layout.add_theme_constant_override("separation", 10)
+	cards_layout.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	body.add_child(cards_layout)
+	for row_index in range(2):
+		var cards_row := HBoxContainer.new()
+		cards_row.name = "CardRow%d" % (row_index + 1)
+		cards_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		cards_row.size_flags_vertical = Control.SIZE_FILL
+		cards_row.add_theme_constant_override("separation", 16)
+		cards_layout.add_child(cards_row)
+		shop_card_rows.append(cards_row)
 
-	for i in range(SHOP_CARD_COUNT):
+	for i in range(MAX_SHOP_CARD_COUNT):
 		var card_slot := Control.new()
 		card_slot.name = "CardSlot%d" % (i + 1)
 		card_slot.custom_minimum_size = Vector2(242.0, 438.0)
 		card_slot.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		card_slot.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		card_slot.size_flags_stretch_ratio = 1.0
-		cards_row.add_child(card_slot)
+		shop_card_rows[0].add_child(card_slot)
+		shop_card_slots.append(card_slot)
 
 		var button := UICardScript.new()
 		button.name = "CardButton%d" % (i + 1)
 		card_slot.add_child(button)
 		button.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		# A card's initial minimum height can exceed an unlaid-out slot and
+		# become a persistent bottom offset. Refit after container layout.
+		card_slot.resized.connect(button.set_anchors_and_offsets_preset.bind(Control.PRESET_FULL_RECT))
 		button.pressed.connect(_on_shop_card_pressed.bind(i))
 		button.mouse_entered.connect(_on_card_hovered.bind(button))
 		button.mouse_exited.connect(_on_card_unhovered.bind(button))
+		button.focus_entered.connect(_on_card_hovered.bind(button))
+		button.focus_exited.connect(_on_card_unhovered.bind(button))
 		shop_card_buttons.append(button)
 
 	var footer := HBoxContainer.new()
@@ -203,11 +245,17 @@ func show_shop(
 	next_destination: String = "",
 	explicit_card_pool: Array[CardDefinition] = [],
 	minimum_purchases: int = 0,
-	existing_card_ids: Array[StringName] = []
+	existing_card_ids: Array[StringName] = [],
+	offer_count := DEFAULT_SHOP_CARD_COUNT,
+	max_purchases := DEFAULT_MAX_PURCHASES_PER_VISIT,
+	curse_strength_multiplier := 1.0
 ) -> void:
+	current_offer_count = clampi(offer_count, MIN_SHOP_CARD_COUNT, MAX_SHOP_CARD_COUNT)
+	current_max_purchases = clampi(max_purchases, 1, current_offer_count)
+	current_curse_strength_multiplier = clampf(curse_strength_multiplier, 1.0, 1.75)
 	tokens = token_count
 	purchases_this_visit = 0
-	minimum_purchases_this_visit = clampi(minimum_purchases, 0, MAX_PURCHASES_PER_VISIT)
+	minimum_purchases_this_visit = clampi(minimum_purchases, 0, current_max_purchases)
 	purchased_card_indices.clear()
 	owned_card_ids = existing_card_ids.duplicate()
 	current_shop_cards.clear()
@@ -215,20 +263,28 @@ func show_shop(
 	var available_cards: Array[CardDefinition] = shop_cards.duplicate()
 	for card_name in forced_card_names:
 		var forced_card := _card_by_name(card_name, available_cards)
-		if forced_card != null and current_shop_cards.size() < SHOP_CARD_COUNT:
+		if forced_card != null and current_shop_cards.size() < current_offer_count:
 			current_shop_cards.append(forced_card)
 			available_cards.erase(forced_card)
 
 	var rng := RandomNumberGenerator.new()
 	rng.seed = _shop_offer_seed(offer_seed, next_level_index, shop_visits)
-	while current_shop_cards.size() < SHOP_CARD_COUNT and not available_cards.is_empty():
+	while current_shop_cards.size() < current_offer_count and not available_cards.is_empty():
 		var random_index := rng.randi_range(0, available_cards.size() - 1)
 		current_shop_cards.append(available_cards.pop_at(random_index))
+	if explicit_card_pool.is_empty():
+		# Separate stream: rarity draws never perturb the base-card selection order.
+		var rarity_rng := RandomNumberGenerator.new()
+		rarity_rng.seed = ("rarity/v1/%d" % _shop_offer_seed(offer_seed, next_level_index, shop_visits)).hash()
+		var difficulty := _run_state.difficulty_profile.id if _run_state and _run_state.difficulty_profile else &"normal"
+		for index in range(current_shop_cards.size()):
+			current_shop_cards[index] = Rarities.create(current_shop_cards[index], Rarities.roll(rarity_rng, difficulty))
 
 	shop_visits += 1
 	var fallback_destination := "Hole %d/%d" % [next_level_index % level_count + 1, level_count]
 	shop_destination_label.text = "NEXT TEE  •  %s" % [next_destination if next_destination != "" else fallback_destination]
 	shop_overlay.visible = true
+	_configure_card_layout()
 	_play_shop_intro_animation()
 	_refresh_shop()
 	_fit_overlay_to_viewport()
@@ -253,12 +309,15 @@ func _focus_first_choice() -> void:
 func reset_for_new_run() -> void:
 	_reset_feedback_state()
 	shop_visits = 0
-	tokens = 0
+	_standalone_tokens = 0
 	purchases_this_visit = 0
 	minimum_purchases_this_visit = 0
 	purchased_card_indices.clear()
 	owned_card_ids.clear()
 	current_shop_cards.clear()
+	current_offer_count = DEFAULT_SHOP_CARD_COUNT
+	current_max_purchases = DEFAULT_MAX_PURCHASES_PER_VISIT
+	current_curse_strength_multiplier = 1.0
 	if shop_overlay:
 		shop_overlay.visible = false
 		shop_overlay.position = Vector2.ZERO
@@ -270,6 +329,13 @@ func _play_shop_intro_animation() -> void:
 		shop_intro_tween.kill()
 
 	shop_overlay.position = Vector2.ZERO
+	if not UIStyleScript.motion_enabled(shop_overlay):
+		shop_overlay.modulate = Color.WHITE
+		for card_button in shop_card_buttons:
+			card_button.scale = Vector2.ONE
+			card_button.position = Vector2.ZERO
+			card_button.modulate = Color.WHITE
+		return
 	shop_overlay.modulate = Color(1.0, 1.0, 1.0, 0.0)
 	shop_intro_tween = create_tween().set_parallel(true)
 	shop_intro_tween.tween_property(shop_overlay, "modulate:a", 1.0, 0.18).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -284,11 +350,11 @@ func _play_shop_intro_animation() -> void:
 
 func _refresh_shop() -> void:
 	shop_tokens_label.text = "%02d COINS" % tokens
-	shop_purchase_label.text = "PURCHASES  %d / %d" % [purchases_this_visit, MAX_PURCHASES_PER_VISIT]
-	var picks_left := MAX_PURCHASES_PER_VISIT - purchases_this_visit
-	shop_status_label.text = "PICK UP TO %s" % ["ZERO", "ONE", "TWO"][picks_left]
+	shop_purchase_label.text = "PURCHASES  %d / %d" % [purchases_this_visit, current_max_purchases]
+	var picks_left := current_max_purchases - purchases_this_visit
+	shop_status_label.text = "PICK UP TO %s" % _count_word(picks_left)
 	if minimum_purchases_this_visit > purchases_this_visit:
-		shop_status_label.text = "PICK %s TO CONTINUE" % ["ZERO", "ONE", "TWO"][minimum_purchases_this_visit - purchases_this_visit]
+		shop_status_label.text = "PICK %s TO CONTINUE" % _count_word(minimum_purchases_this_visit - purchases_this_visit)
 	shop_curse_status_label.text = "" if purchases_this_visit == 0 else ("CURSE SELECTED" if purchases_this_visit == 1 else "CURSES SELECTED")
 	if continue_button:
 		continue_button.disabled = purchases_this_visit < minimum_purchases_this_visit
@@ -298,44 +364,63 @@ func _refresh_shop() -> void:
 		var button := shop_card_buttons[i]
 		if i >= current_shop_cards.size():
 			button.visible = false
+			button.disabled = true
 			continue
 		button.visible = true
 		var card := current_shop_cards[i]
 		var cost := card.price
 		var was_purchased := purchased_card_indices.has(i)
-		var purchase_limit_reached := purchases_this_visit >= MAX_PURCHASES_PER_VISIT and not was_purchased
+		var purchase_limit_reached := purchases_this_visit >= current_max_purchases and not was_purchased
 		button.disabled = tokens < cost or was_purchased or purchase_limit_reached
 		var card_view := button as UICard
 		if card_view:
-			card_view.configure_card(card, tokens >= cost, was_purchased, owned_card_ids.count(card.id))
+			card_view.configure_card(
+				card,
+				tokens >= cost,
+				was_purchased,
+				owned_card_ids.count(card.id),
+				current_curse_strength_multiplier,
+				shared_course_mode
+			)
 			card_view.set_card_state(tokens >= cost, was_purchased, purchase_limit_reached)
+	if presentation:
+		presentation.refresh_offers()
 
 
 func _on_shop_card_pressed(card_index: int) -> void:
+	if not shop_overlay or not shop_overlay.visible:
+		return
+	if not try_purchase_card(card_index):
+		feedback_requested.emit(&"error")
+		return
+	_refresh_shop()
+	_play_purchase_feedback(card_index)
+	feedback_requested.emit(&"purchase")
+
+
+func try_purchase_card(card_index: int) -> bool:
+	# Shared transaction for UI and AI; presentation is owned by the caller.
 	if card_index < 0 or card_index >= current_shop_cards.size():
-		feedback_requested.emit(&"error")
-		return
-	if purchased_card_indices.has(card_index) or purchases_this_visit >= MAX_PURCHASES_PER_VISIT:
-		feedback_requested.emit(&"error")
-		return
+		return false
+	if purchased_card_indices.has(card_index) or purchases_this_visit >= current_max_purchases:
+		return false
 
 	var card := current_shop_cards[card_index]
 	var cost := card.price
 	if tokens < cost:
-		feedback_requested.emit(&"error")
-		return
+		return false
 
 	tokens -= cost
 	purchases_this_visit += 1
 	purchased_card_indices.append(card_index)
 	owned_card_ids.append(card.id)
 	card_bought.emit(card)
-	_refresh_shop()
-	_play_purchase_feedback(card_index)
-	feedback_requested.emit(&"purchase")
+	return true
 
 
 func _on_shop_continue_pressed() -> void:
+	if not shop_overlay or not shop_overlay.visible:
+		return
 	if purchases_this_visit < minimum_purchases_this_visit:
 		feedback_requested.emit(&"error")
 		return
@@ -361,6 +446,9 @@ func _play_card_scale(button: Button, target_scale: Vector2, duration: float) ->
 		var active_tween := _card_feedback_tweens[button] as Tween
 		if active_tween:
 			active_tween.kill()
+	if not UIStyleScript.motion_enabled(shop_overlay):
+		button.scale = Vector2.ONE
+		return
 	button.pivot_offset = button.size * 0.5
 	var tween := create_tween()
 	_card_feedback_tweens[button] = tween
@@ -368,6 +456,8 @@ func _play_card_scale(button: Button, target_scale: Vector2, duration: float) ->
 
 
 func _play_purchase_feedback(card_index: int) -> void:
+	if not UIStyleScript.motion_enabled(shop_overlay):
+		return
 	if card_index >= 0 and card_index < shop_card_buttons.size():
 		var button := shop_card_buttons[card_index]
 		button.pivot_offset = button.size * 0.5
@@ -424,6 +514,30 @@ func _reset_feedback_state() -> void:
 	if curse_warning_flash:
 		curse_warning_flash.visible = false
 		curse_warning_flash.color.a = 0.0
+
+
+func _configure_card_layout() -> void:
+	for row_index in range(shop_card_rows.size()):
+		shop_card_rows[row_index].visible = row_index == 0
+		shop_card_rows[row_index].size_flags_vertical = Control.SIZE_EXPAND_FILL
+		shop_card_rows[row_index].add_theme_constant_override("separation", 12)
+	for index in range(shop_card_slots.size()):
+		var slot := shop_card_slots[index]
+		var target_row := shop_card_rows[0]
+		if slot.get_parent() != target_row:
+			slot.reparent(target_row)
+		slot.visible = index < current_offer_count
+		slot.custom_minimum_size = Vector2(220.0, 676.0)
+		var card_view := shop_card_buttons[index] as UICard
+		if card_view:
+			card_view.set_compact_layout(false)
+	if presentation:
+		presentation.refresh_layout()
+
+
+func _count_word(count: int) -> String:
+	var words := ["ZERO", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX"]
+	return words[clampi(count, 0, words.size() - 1)]
 
 
 func _card_by_name(card_name: String, cards: Array[CardDefinition]) -> CardDefinition:

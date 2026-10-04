@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Stroke of Luck — audio style audition</title>
+<style>
+*{box-sizing:border-box}body{margin:0;color:#f5edce;background:#172b30;font:17px/1.55 system-ui,sans-serif}main{width:min(1080px,94vw);margin:40px auto}h1{font-size:32px;line-height:1.15;margin:0 0 10px;color:#ffe098}h2{font-size:23px;margin:0 0 12px}p{margin:8px 0 16px;color:#d4ddd3}.status{color:#ffd785;font-weight:700}.grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}section{padding:24px;background:#0d1c24cc;border:1px solid #ab985a;margin:20px 0}audio,video{width:100%}video{max-height:440px;background:#050f15}.tag{font:700 13px/1.5 system-ui;letter-spacing:.08em;text-transform:uppercase;color:#d7bd72}.fine{font-size:14px;color:#a8bdb6}button{background:#ffe094;border:1px solid #fff3c5;border-bottom:3px solid #886f3d;padding:10px 18px;color:#17262a;font:700 16px system-ui;cursor:pointer;margin:0 8px 8px 0}button:focus-visible,a:focus-visible,audio:focus-visible{outline:3px solid #eaffa5;outline-offset:4px}a{color:#ffe19a}.effects{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}@media(max-width:720px){.grid{grid-template-columns:1fr}.effects{grid-template-columns:1fr 1fr}section{padding:18px}}
+</style>
+<main>
+<div class="tag">A Stroke of Luck · playable style checkpoint</div>
+<h1>Two related audio directions</h1>
+<p class="status">Provisional auditions. Reference listening and owner selection are pending.</p>
+<p>Start with the reference, then hear each complete composition through two repeats. Starting one player pauses the others. The game uses the same files with the existing Master, Music and SFX settings.</p>
+<section>
+<div class="tag">Reference only · Grandpa Golf · supplied recording</div>
+<h2>Recording and listening excerpt</h2>
+<video controls preload="metadata" src="../../../assets/references/Screen%20Recording%202026-09-24%20143837.mp4"></video>
+<p class="fine">Original 34.37 s video. Recorded audio is very quiet: measured −55.26 LUFS. No soundtrack or SFX is reused in our game.</p>
+<audio controls preload="metadata" src="../../../artifacts/reference_review/audio/reference_only_gameplay_plus30db.wav"></audio>
+<p class="fine">Reference excerpt 1.5–26.6 s, +30 dB linear gain for listening only. No compression or other processing. Direct subjective audio listening is unavailable to the agent; waveform/meter evidence is not musical approval.</p>
+</section>
+<div class="grid">
+<section><div class="tag">Candidate A · original score · 48 seconds</div><h2>Sunlit Circuit</h2><p>Rounded pulse lead, half-time bass, warm mallet replies and dry hand percussion. A thinner bridge opens space before the return.</p><audio controls loop preload="metadata" src="../../../assets/reference_slice/audio/a_sunlit_circuit.ogg"></audio><p class="fine">160 BPM · 32 bars · loop enabled · −18.96 LUFS</p></section>
+<section><div class="tag">Candidate B · original score · 49 seconds</div><h2>Amber Canopy</h2><p>A related pulse with acoustic mallet melody, soft synth responses and open phrases. Its melody and harmony are separately written.</p><audio controls loop preload="metadata" src="../../../assets/reference_slice/audio/b_amber_canopy.ogg"></audio><p class="fine">156 BPM · 32 bars · loop enabled · −18.96 LUFS</p></section>
+</div>
+<section><div class="tag">In-game physical and interface accents</div><h2>Material cues</h2><div class="effects" id="effects"></div><p class="fine">The sample retains the approved sand, supplied boosts/failures and one existing purchase cue. These buttons use native decoded file levels; the game applies its authored SFX trim and settings.</p></section>
+<section><div class="tag">Technical evidence · real native WASAPI mixer</div><h2>Lifecycle recording</h2><audio controls preload="metadata" src="../../../artifacts/reference_review/audio/native_lifecycle.wav"></audio><p class="fine">Automated A/B wrap, shot, contact, purchase, success/failure, reset and ambience transitions. 68 checks passed; peak −11.05 dBFS. Playback proves routing, not subjective listening quality.</p></section>
+<section><h2>What matters in your review</h2><p>Which direction is closer to the recording's character? Does its lead leave enough room for the game? After two loops, are the rhythm, melodic repetition and impact sounds comfortable?</p><p class="fine">No direction is selected. The eight-context soundtrack follows style approval. <a href="../../../assets/reference_slice/audio/PROVENANCE.md">Sources and provenance</a> · <a href="REVIEW.md">Technical review and timing contract</a></p><button id="stop">Stop all playback</button></section>
+</main>
+<script>
+const players = [...document.querySelectorAll('audio,video')];
+function register(player){player.addEventListener('play',()=>players.forEach(other=>{if(other!==player)other.pause()}))}
+players.forEach(register);
+for(const [key,label] of [['strike','Shot'],['wall','Wall'],['pendulum','Swinging mass'],['cup','Cup'],['success','Result'],['hover','Focus'],['select','Select'],['back','Back']]){
+ const player=new Audio('../../../assets/reference_slice/audio/'+key+'.ogg');players.push(player);register(player);
+ const button=document.createElement('button');button.textContent=label;button.addEventListener('click',()=>{player.currentTime=0;player.play().catch(()=>{})});document.querySelector('#effects').append(button);
+}
+document.querySelector('#stop').addEventListener('click',()=>players.forEach(player=>{player.pause();player.currentTime=0}));
+</script></html>

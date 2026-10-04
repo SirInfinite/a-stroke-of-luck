@@ -114,6 +114,12 @@
     {"type": "key", "keycode": 4194309, "pressed": false},
     {"type": "wait_seconds", "seconds": 0.35},
     {"type": "assert", "assertion": "node_exists", "node_path": "PresentationCanvas/RunResultsShowcase"},
-    {"type": "screenshot", "path": "user://release_showcase_run_results.png"}
+    {"type": "screenshot", "path": "user://release_showcase_run_results.png"},
+
+    {"type": "key", "keycode": 4194309, "pressed": true},
+    {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_seconds", "seconds": 0.35},
+    {"type": "assert", "assertion": "node_exists", "node_path": "PresentationCanvas/EndingShowcase"},
+    {"type": "screenshot", "path": "user://release_showcase_ending.png"}
   ]
 }

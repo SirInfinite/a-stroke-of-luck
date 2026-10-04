@@ -1,0 +1,28 @@
+{
+  "scene_path": "scenes/main.tscn",
+  "viewport_size": {"width": 1920, "height": 1080},
+  "settle_frames": 6,
+  "steps": [
+    {"type": "key", "keycode": 4194309, "pressed": true}, {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "key", "keycode": 4194309, "pressed": true}, {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "key", "keycode": 4194309, "pressed": true}, {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "key", "keycode": 4194309, "pressed": true}, {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_frames", "frames": 8},
+    {"type": "mouse_button", "button_index": 1, "position": {"x": 1840, "y": 148}, "pressed": true},
+    {"type": "mouse_button", "button_index": 1, "position": {"x": 1840, "y": 148}, "pressed": false},
+    {"type": "wait_seconds", "seconds": 0.35},
+    {"type": "assert", "assertion": "visible", "node_path": "HUD/MainMenuScreen"},
+    {"type": "assert", "assertion": "visible", "node_path": "HUD/MainMenuScreen/TitleAttractMode", "expected": false},
+    {"type": "assert", "assertion": "visible", "node_path": "HUD/MainMenuScreen/PausedRunDim"},
+    {"type": "assert", "assertion": "node_exists", "node_path": "Level"},
+    {"type": "screenshot", "path": "user://pause_menu_live_course_blur.png"},
+    {"type": "key", "keycode": 4194322, "pressed": true}, {"type": "key", "keycode": 4194322, "pressed": false},
+    {"type": "key", "keycode": 4194322, "pressed": true}, {"type": "key", "keycode": 4194322, "pressed": false},
+    {"type": "key", "keycode": 4194322, "pressed": true}, {"type": "key", "keycode": 4194322, "pressed": false},
+    {"type": "key", "keycode": 4194309, "pressed": true}, {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_seconds", "seconds": 0.35},
+    {"type": "assert", "assertion": "visible", "node_path": "HUD/SettingsScreen"},
+    {"type": "assert", "assertion": "visible", "node_path": "HUD/MainMenuScreen/SafeArea/TitleLayout/ActionPanel", "expected": false},
+    {"type": "screenshot", "path": "user://pause_settings_centered_over_course.png"}
+  ]
+}

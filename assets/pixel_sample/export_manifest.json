@@ -1,0 +1,684 @@
+{
+  "sources": [
+    {
+      "file": "card_illustrations.png",
+      "sha256": "0f51ad5210ea7eba7d2e49912d621043817afa5dcf27d41003d370780060cac1",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "file": "meadow_atlas.png",
+      "sha256": "04d19a046727c14cd2d790d8abc59cfb8381c9fff6f57da1220f1b22d407d83b",
+      "size": [
+        1254,
+        1254
+      ]
+    },
+    {
+      "file": "objects_atlas.png",
+      "sha256": "dfa64a923268c9a9e2d799b0aad7632d9ec968dd3fd3235c693361782cdee559",
+      "size": [
+        1448,
+        1086
+      ]
+    },
+    {
+      "file": "title_landscape.png",
+      "sha256": "6a17efaae9291f1accd648a8cdf702a31aa108b1db1a3074ab731b9e8a273524",
+      "size": [
+        1672,
+        941
+      ]
+    },
+    {
+      "file": "ui_atlas.png",
+      "sha256": "bf586bdfa7f41cc25130ac314c9a4fe6ec307c76c7acaa8c4b86966e6ffb37bf",
+      "size": [
+        1774,
+        887
+      ]
+    },
+    {
+      "file": "wordmark.png",
+      "sha256": "da8186896db74106cef4cca984acf0fc729200e5964d9a40c7f401ac1d91aa64",
+      "size": [
+        1536,
+        1024
+      ]
+    }
+  ],
+  "exports": [
+    {
+      "file": "terrain\\fairway_a.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        2,
+        2,
+        311,
+        311
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "085be6633268bb1840de6f2628af939861df2fadd39653dc314aaa8bf936b13a"
+    },
+    {
+      "file": "terrain\\fairway_b.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        315,
+        2,
+        625,
+        311
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "b1275d39488f768dcb659240f52c276450fae5271a57be343a8d1691ec6db629"
+    },
+    {
+      "file": "terrain\\green_a.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        629,
+        2,
+        938,
+        311
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "aa15cbb2bdc5b28ef0d7a8c4ca272599a3834abc25c8b5897e96220e9cdc4910"
+    },
+    {
+      "file": "terrain\\green_b.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        942,
+        2,
+        1252,
+        311
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "68494615b59f3cf4dfd0eb6a1e4310795b6bb9e2ad829c4e330bd524b52dec4c"
+    },
+    {
+      "file": "terrain\\water_a.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        2,
+        315,
+        311,
+        625
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "c06d5ad608a26f9214827ef52b3a90d02165f6757ac124e72b253d0774ce8051"
+    },
+    {
+      "file": "terrain\\water_b.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        315,
+        315,
+        625,
+        625
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "bee64c164d7fe2113e431b30c7b37c593b45bff9c94e13337cc4aa0f35ef5fab"
+    },
+    {
+      "file": "terrain\\sand_a.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        629,
+        315,
+        938,
+        625
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "a010414cb2acb4cd807faae1dcd177504d6fea0512ba24dbe19b9ffa9e09801e"
+    },
+    {
+      "file": "terrain\\sand_b.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        942,
+        315,
+        1252,
+        625
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "619b514564fd3585f2e524feb2e71752c26929bc59d1b58a7b0449a972867c93"
+    },
+    {
+      "file": "terrain\\wall_h.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        2,
+        629,
+        311,
+        914
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "e632c4e6483a27441679288e965e609c6efb6ff11effb6048cb37a9856eb0187"
+    },
+    {
+      "file": "terrain\\wall_v.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        315,
+        629,
+        625,
+        914
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "4feafcb71a286b72c9de80f7b5b08906bb958408afd2362f0b2f70fe4dcdbd76"
+    },
+    {
+      "file": "terrain\\wall_join.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        629,
+        629,
+        938,
+        914
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "b9ea847a02b7f508d43ddb03727466be9fa8f0d6c24e41a17b17110fbd63fca0"
+    },
+    {
+      "file": "terrain\\garden.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        942,
+        629,
+        1252,
+        914
+      ],
+      "size": [
+        50,
+        50
+      ],
+      "sha256": "3ea87677c19ff69a69a8670bf2ac707369ddd86ef63be706e05e87bfb602ac61"
+    },
+    {
+      "file": "props\\willow.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        3,
+        921,
+        310,
+        1254
+      ],
+      "size": [
+        103,
+        112
+      ],
+      "sha256": "aad355620609070a6f554b3b398483bb5302bb7e237cca9c6e61afef421dff0f"
+    },
+    {
+      "file": "props\\flowers.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        316,
+        921,
+        624,
+        1254
+      ],
+      "size": [
+        101,
+        112
+      ],
+      "sha256": "665b5f994174506c003875ebea2e3e3eaef29915a9877ef09d24ab0234121e23"
+    },
+    {
+      "file": "props\\lotus.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        630,
+        921,
+        937,
+        1254
+      ],
+      "size": [
+        104,
+        112
+      ],
+      "sha256": "fa65055f5ad5035a6a722a4a8e1be24d670c169aca28a2e5b6c481d2bf38505a"
+    },
+    {
+      "file": "props\\sign.png",
+      "source": "meadow_atlas.png",
+      "crop": [
+        943,
+        921,
+        1251,
+        1254
+      ],
+      "size": [
+        78,
+        112
+      ],
+      "sha256": "b5a67f04e260859532871973f4034ab5cc9c465064c35c3fd0da13880ba3f37d"
+    },
+    {
+      "file": "props\\pendulum.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        26,
+        13,
+        358,
+        378
+      ],
+      "size": [
+        55,
+        64
+      ],
+      "sha256": "92bc85d37b0945a75a9825e41366a490557e3d9a48b7f5579f245c71276c74de"
+    },
+    {
+      "file": "props\\chain.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        444,
+        48,
+        661,
+        371
+      ],
+      "size": [
+        14,
+        24
+      ],
+      "sha256": "26e81d8a01a2a7b7271dfcd9b25ac2d136bc87f274b99b69be148529110c6592"
+    },
+    {
+      "file": "props\\pivot.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        738,
+        64,
+        1045,
+        370
+      ],
+      "size": [
+        39,
+        40
+      ],
+      "sha256": "48091899f745ed01ecf26398e1841dd5054d82ec53fd54b121ed0a15960f21f9"
+    },
+    {
+      "file": "props\\ball.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        1170,
+        137,
+        1364,
+        330
+      ],
+      "size": [
+        16,
+        16
+      ],
+      "sha256": "ac8480aa506cb9c6a94e9658c1338a0e8f8adf6db42907052824d6d645321760"
+    },
+    {
+      "file": "props\\flag_a.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        101,
+        385,
+        330,
+        710
+      ],
+      "size": [
+        40,
+        64
+      ],
+      "sha256": "f06766b74d2d9c11a278e0cbf70907e6172addffccf826d921ccdd1bcb9bdd70"
+    },
+    {
+      "file": "props\\flag_b.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        439,
+        385,
+        675,
+        710
+      ],
+      "size": [
+        43,
+        64
+      ],
+      "sha256": "c86a2593b11e9dbe9bb33038b720cf8b0e66ef190f36ffb206959763292cf2d0"
+    },
+    {
+      "file": "props\\tee.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        765,
+        470,
+        1025,
+        680
+      ],
+      "size": [
+        32,
+        23
+      ],
+      "sha256": "fffcac4e5313c0a99a844f9d011f7aed53f83ddfa7598b494da039ab596de724"
+    },
+    {
+      "file": "props\\pad.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        1115,
+        432,
+        1415,
+        713
+      ],
+      "size": [
+        48,
+        46
+      ],
+      "sha256": "ff8feac6f7e4d5a6534843c5e934411c546070b2cce3f81684888adde5209c61"
+    },
+    {
+      "file": "props\\coin.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        42,
+        725,
+        328,
+        1064
+      ],
+      "size": [
+        27,
+        32
+      ],
+      "sha256": "975b282c5037fb7bffd393920bbc1a68dc2fac44c352b19369214c1244a821e9"
+    },
+    {
+      "file": "props\\bag.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        435,
+        715,
+        695,
+        1085
+      ],
+      "size": [
+        55,
+        80
+      ],
+      "sha256": "0a2eafd7d9217e0b170e75a53d64aa85538525d1840f0e8f5fa3ce56d066ed39"
+    },
+    {
+      "file": "props\\strike.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        750,
+        778,
+        1080,
+        1080
+      ],
+      "size": [
+        48,
+        40
+      ],
+      "sha256": "b0b400f64f66878630370e4044490a14a099650441a94edf1600bbfae63be59b"
+    },
+    {
+      "file": "props\\dust.png",
+      "source": "objects_atlas.png",
+      "crop": [
+        1100,
+        755,
+        1447,
+        1084
+      ],
+      "size": [
+        48,
+        45
+      ],
+      "sha256": "de77e48f0110e725c6dade9b3a2822a35ce79358c9300d4d80b934abab566c99"
+    },
+    {
+      "file": "cards\\overdrive_driver.png",
+      "source": "card_illustrations.png",
+      "crop": [
+        0,
+        0,
+        627,
+        627
+      ],
+      "size": [
+        144,
+        144
+      ],
+      "sha256": "0ba734e8e46d83e276f6a5362fb05fc25a129512e1d7961ebf352fc1c0a16f3f"
+    },
+    {
+      "file": "cards\\sand_cleats.png",
+      "source": "card_illustrations.png",
+      "crop": [
+        627,
+        0,
+        1254,
+        627
+      ],
+      "size": [
+        144,
+        144
+      ],
+      "sha256": "51fea6b3ec1f38af1a9702ce0348fa2d13f66465583b7945eebe826182d9e1d0"
+    },
+    {
+      "file": "cards\\coin_magnet.png",
+      "source": "card_illustrations.png",
+      "crop": [
+        0,
+        627,
+        627,
+        1254
+      ],
+      "size": [
+        144,
+        144
+      ],
+      "sha256": "4c12414cd28dd1eddba78538a8b2d6900c18f6b853253ab93f6002d666d30338"
+    },
+    {
+      "file": "cards\\rangefinder_lens.png",
+      "source": "card_illustrations.png",
+      "crop": [
+        627,
+        627,
+        1254,
+        1254
+      ],
+      "size": [
+        144,
+        144
+      ],
+      "sha256": "f780e3a6b536116706a9149242cd24d3153f168093a78be60e447c8cfed8e0e6"
+    },
+    {
+      "file": "ui\\felt.png",
+      "source": "ui_atlas.png",
+      "crop": [
+        0,
+        0,
+        444,
+        444
+      ],
+      "size": [
+        64,
+        64
+      ],
+      "sha256": "8d3f81605c2a5355cdecc8c9b4b5c8da5ed407dffd6f4850ae6494c849bd4214"
+    },
+    {
+      "file": "ui\\card.png",
+      "source": "ui_atlas.png",
+      "crop": [
+        444,
+        0,
+        887,
+        444
+      ],
+      "size": [
+        64,
+        64
+      ],
+      "sha256": "9baf3385cd011956c29bb7296ceb3d6f3693973687d60d09b062d748ee24698b"
+    },
+    {
+      "file": "ui\\benefit.png",
+      "source": "ui_atlas.png",
+      "crop": [
+        887,
+        0,
+        1330,
+        444
+      ],
+      "size": [
+        64,
+        64
+      ],
+      "sha256": "662d45f7016c1568501260db7a06183315fee8d25dbdb5eef5e175e0248c33e9"
+    },
+    {
+      "file": "ui\\curse.png",
+      "source": "ui_atlas.png",
+      "crop": [
+        1330,
+        0,
+        1774,
+        444
+      ],
+      "size": [
+        64,
+        64
+      ],
+      "sha256": "174538b734877ee25d92d5998b2076b5d611b6d63c18c686921bed6038f36d08"
+    },
+    {
+      "file": "ui\\gold_button.png",
+      "source": "ui_atlas.png",
+      "crop": [
+        0,
+        444,
+        444,
+        887
+      ],
+      "size": [
+        64,
+        64
+      ],
+      "sha256": "7d830e1e54793640db74442d8796aac9e8a971bcb78444b83751c001672e8db4"
+    },
+    {
+      "file": "ui\\teal_button.png",
+      "source": "ui_atlas.png",
+      "crop": [
+        444,
+        444,
+        887,
+        887
+      ],
+      "size": [
+        64,
+        64
+      ],
+      "sha256": "0682802728b99ace4661c2c6b4a73f8a8eccf9b776258b5e79d415cf26dfafd9"
+    },
+    {
+      "file": "ui\\scorepaper.png",
+      "source": "ui_atlas.png",
+      "crop": [
+        887,
+        444,
+        1330,
+        887
+      ],
+      "size": [
+        64,
+        64
+      ],
+      "sha256": "beb00d3aaa974f6fe5005cb655e6c0071fed35cb07efb3ed000f0eb29fc3caeb"
+    },
+    {
+      "file": "ui\\epic_card.png",
+      "source": "ui_atlas.png",
+      "crop": [
+        1330,
+        444,
+        1774,
+        887
+      ],
+      "size": [
+        64,
+        64
+      ],
+      "sha256": "cf921f41f53da8b0fe5bee478be253b763540c7dfe299ae9ff7da5c2a6ac96e7"
+    },
+    {
+      "file": "ui\\wordmark.png",
+      "source": "wordmark.png",
+      "crop": [
+        20,
+        45,
+        1515,
+        960
+      ],
+      "size": [
+        600,
+        352
+      ],
+      "sha256": "c89e669a81bdd7d148f5c5e09df9afd2c3b60142346239558523da7cf1a385cb"
+    },
+    {
+      "file": "ui\\title_landscape.png",
+      "source": "title_landscape.png",
+      "crop": [
+        0,
+        0,
+        1672,
+        941
+      ],
+      "size": [
+        960,
+        540
+      ],
+      "sha256": "3a98cf1c55610111ef924d67942c29c91e78a830ad768e5016c45a6fdc032dff"
+    }
+  ]
+}

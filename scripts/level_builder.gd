@@ -8,6 +8,9 @@ const GameplayHazardScript := preload("res://scripts/gameplay_hazard.gd")
 const MovingHazardScript := preload("res://scripts/moving_hazard.gd")
 const ElevationRampScript := preload("res://scripts/elevation_ramp.gd")
 const HazardTelegraphScript := preload("res://scripts/hazard_telegraph.gd")
+const Art := preload("res://scripts/presentation/world_art.gd")
+const WorldDistance := preload("res://scripts/presentation/world_distance.gd")
+const WorldPendulum := preload("res://scripts/presentation/world_pendulum.gd")
 
 signal hole_body_entered(body: Node2D)
 signal sand_body_entered(body: Node2D)
@@ -23,6 +26,7 @@ const GRID_CELL_SIZE := 100.0
 const WALL_THICKNESS := 42.0
 const ELEVATION_Z_STRIDE := 8
 const ELEVATION_Z_OFFSET := 1
+const PUTTING_REGION_RADIUS_CELLS := 1
 const GREEN_DARK := Color(0.232, 0.554, 0.248, 1.0)
 const GREEN_DARKER := Color(0.161, 0.447, 0.201, 1.0)
 const BORDER_BROWN := Color(0.34, 0.19, 0.09)
@@ -32,8 +36,11 @@ var active_terrain_palette: Dictionary = {}
 var active_background_palette: Dictionary = {}
 var active_level: Dictionary = {}
 var elevation_lookup: Dictionary = {}
+var putting_region_lookup: Dictionary = {}
+var putting_region_elevation := 0
 var tee_marker: Node2D
 var active_elevation := 0
+var _world_walls: Array[Dictionary] = []
 
 
 func build_level(level: Dictionary, parent: Node) -> Node2D:
@@ -41,7 +48,9 @@ func build_level(level: Dictionary, parent: Node) -> Node2D:
 		push_error("LevelBuilder refused an invalid level definition.")
 		return null
 	active_level = level
+	_world_walls.clear()
 	_rebuild_elevation_lookup(level)
+	_rebuild_putting_region_lookup(level)
 	active_terrain_palette = level.get("terrain_palette", {}).duplicate(true)
 	active_background_palette = level.get("background_palette", {}).duplicate(true)
 	level_root = Node2D.new()
@@ -73,6 +82,7 @@ func build_level(level: Dictionary, parent: Node) -> Node2D:
 			&"blocker",
 			int(obstacle.get("elevation", 0))
 		)
+	_join_world_walls()
 	_create_decorations(level)
 	set_active_elevation(get_start_elevation(level))
 
@@ -93,6 +103,22 @@ func reset_dynamic_hazards() -> void:
 			child.reset_state()
 
 
+func reset_for_competitor() -> void:
+	# Keep the physical instance and definition; reset only transient state.
+	reset_dynamic_hazards()
+	if level_root:
+		for child in level_root.get_children():
+			if child.has_method("reset_for_competitor"):
+				child.reset_for_competitor()
+	restore_tee()
+	set_active_elevation(get_start_elevation(active_level))
+
+
+func restore_tee() -> void:
+	if is_instance_valid(tee_marker):
+		tee_marker.visible = true
+
+
 func get_elevation_presentation_data() -> Dictionary:
 	return {
 		"cells": active_level.get("elevation_cells", []),
@@ -104,6 +130,42 @@ func get_elevation_presentation_data() -> Dictionary:
 
 func get_start_elevation(level: Dictionary) -> int:
 	return int(level.get("start_elevation", 0))
+
+
+func get_playable_bounds() -> Rect2:
+	# Use occupied cells on every layer, not the rectangular map allocation or
+	# scene descendants (which include distant scenery). Definitions are validated
+	# by build_level before they reach this presentation query.
+	if active_level.is_empty() or elevation_lookup.is_empty():
+		return Rect2()
+	var first_cell: Vector2i = elevation_lookup.keys()[0]
+	var bounds := Rect2(_cell_to_world(active_level, first_cell), Vector2.ZERO)
+	for cell: Vector2i in elevation_lookup:
+		var cell_rect := Rect2(_cell_to_world(active_level, cell) - Vector2.ONE * GRID_CELL_SIZE * 0.5, Vector2.ONE * GRID_CELL_SIZE)
+		bounds = bounds.merge(cell_rect.grow(WALL_THICKNESS))
+	var tee := level_point(active_level, "start", "start_cell")
+	var cup := level_point(active_level, "hole", "hole_cell")
+	var radius := float(active_level.get("cup_radius", 28.0))
+	bounds = bounds.merge(Rect2(tee - Vector2(52, 52), Vector2(104, 104)))
+	bounds = bounds.merge(Rect2(cup - Vector2.ONE * radius, Vector2.ONE * radius * 2.0))
+	bounds = bounds.merge(Rect2(cup + Vector2(-4, -86), Vector2(58, 90))) # Flag and pole.
+	for group in ["hazards", "obstacles", "moving_hazards"]:
+		for definition: Dictionary in active_level.get(group, []):
+			var center: Vector2 = definition.pos
+			var extent: Vector2 = definition.size
+			var occupied := Rect2(center - extent * 0.5, extent)
+			match StringName(definition.get("type", "")):
+				&"pendulum":
+					var travel := float(definition.get("travel_radius", 72.0))
+					var angle := clampf(float(definition.get("swing_angle", 0.9)), 0.15, 1.45)
+					var swing_width := sin(angle) * travel
+					occupied = Rect2(center - Vector2(swing_width, 0), Vector2(swing_width * 2.0, travel)).grow(extent.length() * 0.5)
+				&"rotating_fire_rod":
+					occupied = Rect2(center, Vector2.ZERO).grow(extent.length() * 0.5)
+				&"falling_ice":
+					occupied = occupied.merge(Rect2(occupied.position + Vector2.UP * float(definition.get("drop_distance", 120.0)), occupied.size))
+			bounds = bounds.merge(occupied)
+	return level_root.global_transform * bounds if is_instance_valid(level_root) else bounds
 
 
 func is_position_on_playable_surface(world_position: Vector2, elevation: int) -> bool:
@@ -149,37 +211,35 @@ func _create_background(level: Dictionary) -> void:
 
 	var backdrop := Polygon2D.new()
 	backdrop.name = "BiomeBackground"
-	backdrop.z_index = -2
+	backdrop.z_index = -30
 	backdrop.polygon = _rectangle_polygon(surround_size)
 	backdrop.color = _background_color("primary", Color(0.48, 0.66, 0.35))
 	level_root.add_child(backdrop)
 
 	var background_shapes := Node2D.new()
 	background_shapes.name = "BiomeBackgroundVariants"
-	background_shapes.z_index = -1
+	background_shapes.z_index = -28
 	level_root.add_child(background_shapes)
+	var distance := WorldDistance.new()
+	distance.biome = _world_biome()
+	background_shapes.add_child(distance)
 	var secondary := _background_color("secondary", backdrop.color.lightened(0.08))
 	var highlight := _background_color("highlight", secondary.lightened(0.12))
-	for i in range(8):
-		var patch := Polygon2D.new()
-		patch.name = "BackgroundPatch%d" % (i + 1)
-		var side := -1.0 if i % 2 == 0 else 1.0
-		var row := -1.0 if i % 4 < 2 else 1.0
-		patch.position = Vector2(side * (map_size.x * 0.5 + 150.0 + float(i % 3) * 90.0), row * (map_size.y * 0.5 + 100.0 + float(i % 2) * 75.0))
-		patch.rotation = float(i) * 0.43
-		patch.polygon = _ellipse_polygon(Vector2(95.0 + float(i % 3) * 24.0, 42.0 + float(i % 2) * 16.0), 20)
-		patch.color = Color(secondary if i % 3 != 0 else highlight, 0.36)
-		background_shapes.add_child(patch)
+	# BiomeAmbience owns the authored surroundings; no repeated oval decals.
 
 	var ambience = BiomeAmbienceScript.new()
 	ambience.name = "BiomeAmbience"
+	var scenery_cells: Array[Rect2] = []
+	for cell in _playable_cells(level):
+		scenery_cells.append(Rect2(_cell_to_world(level, cell) - Vector2.ONE * GRID_CELL_SIZE * 0.5, Vector2.ONE * GRID_CELL_SIZE))
 	ambience.configure(
 		StringName(level.get("ambience", &"meadow_breeze")),
 		secondary,
 		_background_color("accent", highlight),
 		map_size,
 		surround_size,
-		int(level.get("run_seed", 1)) + int(level.get("overall_hole_number", 1)) * 7919
+		int(level.get("run_seed", 1)) + int(level.get("overall_hole_number", 1)) * 7919,
+		scenery_cells
 	)
 	level_root.add_child(ambience)
 
@@ -190,25 +250,23 @@ func _create_floor(level: Dictionary) -> void:
 	body.collision_layer = 2
 	body.collision_mask = 1
 	body.set_meta(&"elevation", 0)
+	body.set_meta(&"putting_region_cells", get_putting_region_cells())
 	level_root.add_child(body)
 
 	for cell in _playable_cells(level):
 		var cell_center := _cell_to_world(level, cell)
 
-		var visual := Polygon2D.new()
+		var checker_variant := (cell.x + cell.y) % 2
+		var is_putting_surface := _is_putting_region_cell(cell,0)
+		var visual := Art.floor_sprite(_world_biome(),cell,is_putting_surface)
 		visual.position = cell_center
-		visual.name = "FairwayCell_%d_%d" % [cell.x, cell.y]
-		visual.polygon = _rectangle_polygon(Vector2(GRID_CELL_SIZE + 2.0, GRID_CELL_SIZE + 2.0))
-		visual.color = _terrain_color("fairway_a", GREEN_DARK) if (cell.x + cell.y) % 2 == 0 else _terrain_color("fairway_b", GREEN_DARKER)
+		visual.name = "FairwayCell_%d_%d" % [cell.x,cell.y]
+		visual.set_meta(&"cell",cell)
+		visual.set_meta(&"elevation",0)
+		visual.set_meta(&"checker_variant",checker_variant)
+		visual.set_meta(&"putting_surface",is_putting_surface)
+		visual.set_meta(&"surface_color",_terrain_color(_surface_palette_key(cell,0,false),GREEN_DARK))
 		body.add_child(visual)
-		if (cell.x * 3 + cell.y) % 4 == 0:
-			var grain := Line2D.new()
-			grain.name = "FairwayGrain_%d_%d" % [cell.x, cell.y]
-			grain.position = cell_center
-			grain.width = 2.0
-			grain.default_color = Color(_terrain_color("fairway_detail", visual.color.lightened(0.08)), 0.28)
-			grain.points = PackedVector2Array([Vector2(-24.0, 18.0), Vector2(-8.0, 15.0), Vector2(9.0, 18.0)])
-			body.add_child(grain)
 
 		var collision := CollisionShape2D.new()
 		collision.position = cell_center
@@ -226,6 +284,7 @@ func _create_bounds(level: Dictionary) -> void:
 		{"cell": Vector2i(-1, 0), "offset": Vector2(-GRID_CELL_SIZE / 2.0 - WALL_THICKNESS / 2.0, 0.0), "size": Vector2(WALL_THICKNESS, GRID_CELL_SIZE)},
 	]
 	var created_segments := {}
+	var created_corners := {}
 	for cell in elevation_lookup.keys():
 		var cell_center := _cell_to_world(level, cell)
 		for elevation in elevation_lookup[cell]:
@@ -252,6 +311,20 @@ func _create_bounds(level: Dictionary) -> void:
 					int(elevation),
 					_boundary_connections(level, Vector2i(cell), Vector2i(direction.cell), int(elevation))
 				)
+			for corner in [Vector2i(-1, -1), Vector2i(1, -1), Vector2i(-1, 1), Vector2i(1, 1)]:
+				var horizontal: Vector2i = Vector2i(cell) + Vector2i(corner.x, 0)
+				var vertical: Vector2i = Vector2i(cell) + Vector2i(0, corner.y)
+				if _surface_exists(horizontal, int(elevation)) or _surface_exists(vertical, int(elevation)):
+					continue
+				if _surface_exists(Vector2i(cell) + corner, int(elevation)):
+					continue # Never fill an occupied diagonal cell's playable surface.
+				if _has_elevation_transition(Vector2i(cell), horizontal, int(elevation)) or _has_elevation_transition(Vector2i(cell), vertical, int(elevation)):
+					continue
+				var at := cell_center + Vector2(corner) * (GRID_CELL_SIZE + WALL_THICKNESS) * 0.5
+				var key := Vector3i(roundi(at.x), roundi(at.y), int(elevation))
+				if not created_corners.has(key):
+					created_corners[key] = true
+					_create_box(at, Vector2.ONE * WALL_THICKNESS, _terrain_color("border", BORDER_BROWN), &"boundary", int(elevation), {"top": true, "right": true, "bottom": true, "left": true})
 
 
 func _create_box(
@@ -271,8 +344,9 @@ func _create_box(
 	body.set_meta(&"elevation", elevation)
 	level_root.add_child(body)
 
-	var visual := CourseVisualFactory.create_connected_wall_visual(size, color, connections)
+	var visual := CourseVisualFactory.create_connected_wall_visual(size, color, connections, pos, _world_biome())
 	body.add_child(visual)
+	_world_walls.append({"face":visual.get_node("WallSurface"),"rect":Rect2(pos-size*0.5,size),"elevation":elevation})
 
 	var collision := CollisionShape2D.new()
 	var shape := RectangleShape2D.new()
@@ -282,15 +356,6 @@ func _create_box(
 
 
 func _create_hole(pos: Vector2, radius: float, elevation: int) -> void:
-	var green := CourseVisualFactory.create_green_patch(
-		_terrain_color("green", _terrain_color("fairway_a", GREEN_DARK).lightened(0.18)),
-		Color(_terrain_color("outline", BORDER_BROWN.darkened(0.25)), 0.48),
-		radius
-	)
-	green.position = pos
-	green.z_index = _presentation_z_for_elevation(elevation)
-	green.set_meta(&"elevation", elevation)
-	level_root.add_child(green)
 	_create_cup_opening(pos, radius, elevation)
 	_create_hole_flag(pos, elevation)
 
@@ -371,7 +436,8 @@ func _create_gameplay_hazard(definition: Dictionary) -> void:
 		definition.size,
 		base_color,
 		detail_color,
-		Color(_terrain_color("outline", BORDER_BROWN.darkened(0.25)), 0.54)
+		Color(_terrain_color("outline", BORDER_BROWN.darkened(0.25)), 0.8),
+		_visual_hazard_connections(definition)
 	)
 	area.add_child(visual)
 	if hazard_type == "direction":
@@ -388,19 +454,43 @@ func _create_gameplay_hazard(definition: Dictionary) -> void:
 		collision.shape = rectangle
 	area.add_child(collision)
 
+func open_tutorial_water_lane(level: Dictionary) -> void:
+	# Tutorial-only, after its real reset animation. No production/VS mutation.
+	if level.get("lesson", &"") != &"water_reset":
+		return
+	for definition in level.hazards:
+		if not bool(definition.get("tutorial_barrier", false)):
+			continue
+		definition.tutorial_barrier = false
+		definition.size = Vector2(100, 200)
+		for child in level_root.get_children():
+			if child is GameplayHazard and child.hazard_type == &"water":
+				child.queue_free()
+		_create_gameplay_hazard(definition)
 
-func _add_direction_indicator(area: Node2D, direction: Vector2, detail_color: Color) -> void:
-	var arrow := Line2D.new()
-	arrow.width = 5.0
-	arrow.default_color = detail_color
-	arrow.points = PackedVector2Array([-direction * 24.0, direction * 24.0])
+
+func _visual_hazard_connections(definition: Dictionary) -> Dictionary:
+	# Joining the paint does not merge areas or touch their collision shapes.
+	var connections := {}
+	var here: Vector2 = definition.pos
+	var dimensions: Vector2 = definition.size
+	for neighbor in active_level.get("hazards", []):
+		if neighbor.type != definition.type or int(neighbor.get("elevation", 0)) != int(definition.get("elevation", 0)):
+			continue
+		var offset: Vector2 = Vector2(neighbor.pos) - here
+		var neighbor_size: Vector2 = neighbor.size
+		if is_zero_approx(offset.y) and is_equal_approx(dimensions.y, neighbor_size.y) and is_equal_approx(absf(offset.x), (dimensions.x + neighbor_size.x) * 0.5):
+			connections["left" if offset.x < 0.0 else "right"] = true
+		if is_zero_approx(offset.x) and is_equal_approx(dimensions.x, neighbor_size.x) and is_equal_approx(absf(offset.y), (dimensions.y + neighbor_size.y) * 0.5):
+			connections["top" if offset.y < 0.0 else "bottom"] = true
+	return connections
+
+
+func _add_direction_indicator(area: Node2D, direction: Vector2, _detail_color: Color) -> void:
+	var arrow := Art.sprite("objects/direction_arrow",Vector2.ZERO,Vector2(58,58))
+	arrow.name = "ForceDirection"
+	arrow.rotation = direction.angle()
 	area.add_child(arrow)
-	var head := Polygon2D.new()
-	head.position = direction * 24.0
-	head.rotation = direction.angle()
-	head.polygon = PackedVector2Array([Vector2(12.0, 0.0), Vector2(-8.0, -7.0), Vector2(-8.0, 7.0)])
-	head.color = detail_color
-	area.add_child(head)
 
 
 func _create_moving_hazards(level: Dictionary) -> void:
@@ -427,6 +517,13 @@ func _create_moving_hazards(level: Dictionary) -> void:
 
 
 func _create_moving_hazard_telegraph(moving, definition: Dictionary) -> void:
+	if moving.hazard_type == &"pendulum":
+		var support := WorldPendulum.new()
+		support.name = "Telegraph_pendulum"
+		support.z_index = moving.z_index - 1
+		level_root.add_child(support)
+		support.setup(moving)
+		return
 	var data: Dictionary = moving.get_telegraph_data()
 	var local_path := PackedVector2Array()
 	for point in data.path_points:
@@ -445,6 +542,7 @@ func _create_moving_hazard_telegraph(moving, definition: Dictionary) -> void:
 		float(definition.get("phase", 0.0))
 	)
 	level_root.add_child(telegraph)
+	telegraph.follow_hazard(moving)
 	moving.telegraph_started.connect(telegraph.trigger_drop)
 
 
@@ -481,10 +579,8 @@ func _create_elevation_presentation(level: Dictionary) -> void:
 			if elevation == 0 and structure_type == &"" and not rough_lookup.has(cell):
 				continue
 
-			var surface_color := _terrain_color(
-				"rough" if rough_lookup.has(cell) else "fairway_a",
-				_terrain_color("fairway_a", GREEN_DARK)
-			)
+			var surface_key := _surface_palette_key(cell, elevation, rough_lookup.has(cell))
+			var surface_color := _terrain_color(surface_key, _terrain_color("fairway_a", GREEN_DARK))
 			var edge_color := _terrain_color("elevation_edge", _terrain_color("border", BORDER_BROWN))
 			var visual: Node2D
 			match structure_type:
@@ -492,21 +588,32 @@ func _create_elevation_presentation(level: Dictionary) -> void:
 					visual = CourseVisualFactory.create_bridge_visual(
 						Vector2(GRID_CELL_SIZE - 8.0, GRID_CELL_SIZE - 8.0),
 						surface_color,
-						edge_color
+						edge_color,
+						_world_biome(),cell,_is_putting_region_cell(cell,elevation)
 					)
-				&"pit":
-					visual = CourseVisualFactory.create_pit_visual(
+				&"pit", &"lower_area":
+					var lower_connections := {
+						"up": structure_lookup.get(Vector3i(cell.x, cell.y - 1, elevation), &"") in [&"pit", &"lower_area"],
+						"right": structure_lookup.get(Vector3i(cell.x + 1, cell.y, elevation), &"") in [&"pit", &"lower_area"],
+						"down": structure_lookup.get(Vector3i(cell.x, cell.y + 1, elevation), &"") in [&"pit", &"lower_area"],
+						"left": structure_lookup.get(Vector3i(cell.x - 1, cell.y, elevation), &"") in [&"pit", &"lower_area"],
+					}
+					visual = CourseVisualFactory.create_lower_course_visual(
 						Vector2(GRID_CELL_SIZE - 4.0, GRID_CELL_SIZE - 4.0),
 						surface_color,
-						edge_color
+						edge_color,
+						lower_connections,_world_biome(),cell,_is_putting_region_cell(cell,elevation)
 					)
 				_:
-					visual = CourseVisualFactory.create_elevation_cell_visual(
-						Vector2(GRID_CELL_SIZE, GRID_CELL_SIZE),
-						elevation,
-						surface_color,
-						edge_color
-					)
+					if elevation == 0 and rough_lookup.has(cell):
+						visual = CourseVisualFactory.create_hazard_visual("rough", Vector2.ONE * GRID_CELL_SIZE, surface_color, _terrain_color("rough_detail", surface_color.lightened(0.2)), edge_color)
+					else:
+						visual = CourseVisualFactory.create_elevation_cell_visual(
+							Vector2(GRID_CELL_SIZE, GRID_CELL_SIZE),
+							elevation,
+							surface_color,
+							edge_color,_world_biome(),cell,_is_putting_region_cell(cell,elevation)
+						)
 			visual.name = "Elevation_%d_%d_%d" % [cell.x, cell.y, elevation]
 			visual.position = _cell_to_world(level, cell)
 			visual.z_index = _presentation_z_for_elevation(elevation) + (1 if elevation < 0 else 0)
@@ -523,20 +630,22 @@ func _create_elevation_ramps(level: Dictionary) -> void:
 		var to_position := _cell_to_world(level, transition.to_cell)
 		var from_elevation := int(transition.from_elevation)
 		var to_elevation := int(transition.to_elevation)
+		var ramp_width := float(transition.get("width", 72.0))
 		var ramp = ElevationRampScript.new()
 		ramp.name = "ElevationRamp%d" % (transition_index + 1)
-		ramp.configure(from_position, to_position, from_elevation, to_elevation, 72.0)
+		ramp.configure(from_position, to_position, from_elevation, to_elevation, ramp_width)
 		ramp.z_index = _presentation_z_for_elevation(maxi(from_elevation, to_elevation)) + 2
 		ramp.set_meta(&"elevation_span", [from_elevation, to_elevation])
 		ramp.elevation_transitioned.connect(_relay_elevation_transitioned)
 		level_root.add_child(ramp)
 
 		var ramp_visual := CourseVisualFactory.create_ramp_visual(
-			Vector2(from_position.distance_to(to_position), 72.0),
+			Vector2(from_position.distance_to(to_position), ramp_width),
 			from_elevation,
 			to_elevation,
 			_terrain_color("fairway_a", GREEN_DARK),
-			_terrain_color("elevation_edge", _terrain_color("border", BORDER_BROWN))
+			_terrain_color("elevation_edge", _terrain_color("border", BORDER_BROWN)),
+			_world_biome()
 		)
 		ramp.add_child(ramp_visual)
 
@@ -552,6 +661,10 @@ func _moving_hazard_colors(hazard_type: StringName) -> Dictionary:
 
 
 func _create_decorations(level: Dictionary) -> void:
+	# The six biome landscapes now own coherent prop groups and their placement.
+	# Keep the generic decoration fallback for custom/authored non-biome levels.
+	if level.has("ambience"):
+		return
 	var decoration_ids := PackedStringArray(level.get("decoration_identifiers", PackedStringArray()))
 	if decoration_ids.is_empty():
 		return
@@ -597,11 +710,11 @@ func _apply_elevation_treatment(node: Node, inherited_layer: bool) -> void:
 		var canvas_item := node as CanvasItem
 		if node.has_meta(&"elevation"):
 			var node_elevation := int(node.get_meta(&"elevation", 0))
-			canvas_item.self_modulate = _elevation_modulate(node_elevation)
+			canvas_item.modulate = _elevation_modulate(node_elevation)
 			owns_layer = true
 		elif node.has_meta(&"elevation_span"):
 			var span: Array = node.get_meta(&"elevation_span", [])
-			canvas_item.self_modulate = Color.WHITE if span.has(active_elevation) else Color(0.58, 0.61, 0.6, 0.82)
+			canvas_item.modulate = Color.WHITE if span.has(active_elevation) else Color(0.72, 0.74, 0.73, 0.9)
 			owns_layer = true
 	for child in node.get_children():
 		_apply_elevation_treatment(child, inherited_layer or owns_layer)
@@ -611,8 +724,8 @@ func _elevation_modulate(node_elevation: int) -> Color:
 	if node_elevation == active_elevation:
 		return Color.WHITE
 	if node_elevation < active_elevation:
-		return Color(0.46, 0.5, 0.49, 0.74)
-	return Color(0.59, 0.62, 0.61, 0.82)
+		return Color(0.68, 0.7, 0.69, 0.9)
+	return Color(0.74, 0.76, 0.75, 0.92)
 
 
 func _on_hole_body_entered(body: Node2D, elevation: int) -> void:
@@ -735,6 +848,46 @@ func _rebuild_elevation_lookup(level: Dictionary) -> void:
 		elevation_lookup[Vector2i(entry.cell)] = Array(entry.levels).duplicate()
 
 
+func _rebuild_putting_region_lookup(level: Dictionary) -> void:
+	putting_region_lookup.clear()
+	putting_region_elevation = clampi(int(level.get("hole_elevation", 0)), -1, 1)
+	var hole_cell: Vector2i
+	if level.has("hole_cell"):
+		hole_cell = Vector2i(level.hole_cell)
+	else:
+		var hole_position: Vector2 = level.get("hole", Vector2.ZERO)
+		var top_left := _map_top_left(level)
+		hole_cell = Vector2i(
+			floori((hole_position.x - top_left.x) / GRID_CELL_SIZE),
+			floori((hole_position.y - top_left.y) / GRID_CELL_SIZE)
+		)
+	for y_offset in range(-PUTTING_REGION_RADIUS_CELLS, PUTTING_REGION_RADIUS_CELLS + 1):
+		for x_offset in range(-PUTTING_REGION_RADIUS_CELLS, PUTTING_REGION_RADIUS_CELLS + 1):
+			var cell := hole_cell + Vector2i(x_offset, y_offset)
+			if _surface_exists(cell, putting_region_elevation):
+				putting_region_lookup[cell] = true
+
+
+func get_putting_region_cells() -> Array[Vector2i]:
+	var cells: Array[Vector2i] = []
+	for cell in putting_region_lookup:
+		cells.append(Vector2i(cell))
+	cells.sort()
+	return cells
+
+
+func _is_putting_region_cell(cell: Vector2i, elevation: int) -> bool:
+	return elevation == putting_region_elevation and putting_region_lookup.has(cell)
+
+
+func _surface_palette_key(cell: Vector2i, elevation: int, is_rough: bool) -> String:
+	if _is_putting_region_cell(cell, elevation):
+		return "green_a" if (cell.x + cell.y) % 2 == 0 else "green_b"
+	if is_rough:
+		return "rough"
+	return "fairway_a" if (cell.x + cell.y) % 2 == 0 else "fairway_b"
+
+
 func _surface_exists(cell: Vector2i, elevation: int) -> bool:
 	return elevation_lookup.has(cell) and Array(elevation_lookup[cell]).has(elevation)
 
@@ -829,3 +982,20 @@ func _rectangle_polygon(size: Vector2) -> PackedVector2Array:
 		Vector2(half_size.x, half_size.y),
 		Vector2(-half_size.x, half_size.y)
 	])
+
+
+func _world_biome() -> StringName:
+	var biome := StringName(active_level.get("biome_id", &"meadow"))
+	return biome if biome in Art.BIOMES else &"meadow"
+
+
+func _join_world_walls() -> void:
+	var by_elevation: Dictionary = {}
+	for record in _world_walls:
+		var elevation := int(record.elevation)
+		if not by_elevation.has(elevation):
+			var typed: Array[Rect2] = []
+			by_elevation[elevation] = typed
+		by_elevation[elevation].append(record.rect)
+	for record in _world_walls:
+		record.face.join_walls(by_elevation[int(record.elevation)])

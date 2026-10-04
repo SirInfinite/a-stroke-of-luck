@@ -93,10 +93,12 @@ func test_slow_ball_has_no_loop_and_fast_ball_gets_bounded_swoosh() -> void:
 	assert_false(audio.swoosh_player.playing)
 	assert_eq(audio.swoosh_player.volume_db, audio.SILENT_VOLUME_DB)
 	audio.update_ball_roll(audio.SWOOSH_START_SPEED + 100.0, true)
-	assert_gt(audio.swoosh_player.volume_db, -25.0)
-	assert_lte(audio.swoosh_player.volume_db, -12.0)
+	audio._process(1.0)
+	assert_gt(audio.swoosh_player.volume_db, audio.SILENT_VOLUME_DB)
+	assert_lte(audio.swoosh_player.volume_db, -16.0)
 	assert_eq(audio.swoosh_player.playing, audio.playback_enabled)
 	audio.update_ball_roll(0.0, true)
+	audio._process(1.0)
 	assert_false(audio.swoosh_player.playing)
 	audio.update_ball_roll(audio.SWOOSH_FULL_SPEED, false)
 	assert_false(audio.swoosh_player.playing)
@@ -109,7 +111,7 @@ func test_boost_strength_maps_all_three_owner_supplied_streams() -> void:
 	watch_signals(audio)
 
 	audio.play_boost_pad(0.2)
-	audio.play_boost_pad(0.5)
+	audio.play_boost_pad(0.7)
 	audio.play_boost_pad(0.9)
 
 	assert_signal_emit_count(audio, "cue_requested", 3)
@@ -129,7 +131,7 @@ func test_hazard_semantics_are_distinct_and_generic_bounce_does_not_double_play(
 
 	audio.play_hazard_triggered(&"bounce_pad", 0.5)
 	assert_signal_emit_count(audio, "cue_requested", 0)
-	audio.play_boost_pad(0.5)
+	audio.play_boost_pad(0.7)
 	audio.play_hazard_triggered(&"water", 1.0)
 	audio.play_hazard_triggered(&"lava", 1.0)
 	audio.play_hazard_triggered(&"falling_ice", 1.0)
@@ -151,9 +153,12 @@ func test_failure_outcome_triggers_both_supplied_sounds_without_success_cue() ->
 
 	audio.play_hole_outcome(false, &"stroke_ceiling")
 
-	assert_signal_emit_count(audio, "cue_requested", 2)
+	assert_signal_emit_count(audio, "cue_requested", 3)
 	assert_signal_emitted_with_parameters(audio, "cue_requested", [&"failure_1"], 0)
 	assert_signal_emitted_with_parameters(audio, "cue_requested", [&"failure_2"], 1)
+	assert_signal_emitted_with_parameters(audio, "cue_requested", [&"crowd_failure"], 2)
+	audio.play_hole_outcome(true)
+	assert_signal_emit_count(audio, "cue_requested", 3, "Failure suppresses a stale success callback")
 
 
 func test_success_outcome_uses_positive_cue_without_failure_sounds() -> void:
@@ -164,8 +169,9 @@ func test_success_outcome_uses_positive_cue_without_failure_sounds() -> void:
 
 	audio.play_hole_outcome(true, &"cup")
 
-	assert_signal_emit_count(audio, "cue_requested", 1)
-	assert_signal_emitted_with_parameters(audio, "cue_requested", [&"hole_completion"])
+	assert_signal_emit_count(audio, "cue_requested", 2)
+	assert_signal_emitted_with_parameters(audio, "cue_requested", [&"hole_completion"], 0)
+	assert_signal_emitted_with_parameters(audio, "cue_requested", [&"crowd_success"], 1)
 
 
 func test_sand_keeps_the_existing_terrain_impact_asset() -> void:
@@ -206,12 +212,16 @@ func test_special_action_buttons_do_not_layer_generic_click_audio() -> void:
 	var purchase_button := Button.new()
 	purchase_button.set_meta(&"suppress_ui_click_audio", true)
 	add_child_autofree(purchase_button)
+	audio.bind_ui(purchase_button)
 	await wait_process_frames(2)
 	watch_signals(audio)
 
 	purchase_button.pressed.emit()
 
 	assert_signal_not_emitted(audio, "cue_requested")
+	purchase_button.set_meta(&"suppress_ui_click_audio", false)
+	purchase_button.pressed.emit()
+	assert_signal_emitted_with_parameters(audio, "cue_requested", [&"ui_click"])
 
 
 func test_shop_purchase_requests_exactly_one_purchase_cue() -> void:
@@ -230,6 +240,7 @@ func test_shop_purchase_requests_exactly_one_purchase_cue() -> void:
 			audio.play_error()
 	)
 	shop.create_overlay(canvas)
+	audio.bind_ui(canvas)
 	shop.show_shop(3, 99, 18, 424242)
 	await wait_process_frames(2)
 	watch_signals(audio)

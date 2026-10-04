@@ -1,6 +1,7 @@
 extends Node2D
 
 const BiomeDatabase := preload("res://scripts/biome_database.gd")
+const DifficultyDatabase := preload("res://scripts/difficulty_database.gd")
 const HoleGenerator := preload("res://scripts/hole_generator.gd")
 const LevelBuilderScript := preload("res://scripts/level_builder.gd")
 const ReleaseHUDScript := preload("res://scripts/release_hud.gd")
@@ -14,7 +15,7 @@ const UIActionButtonScript := preload("res://scripts/ui/ui_action_button.gd")
 const RELEASE_THEME := preload("res://assets/release_theme.tres")
 
 const SHOWCASE_SEED := 8675309
-const LAST_SHOWCASE_STATE := 18
+const LAST_SHOWCASE_STATE := 19
 
 var profiles: Array = []
 var generated_levels: Array[Dictionary] = []
@@ -32,7 +33,11 @@ var state_index := 0
 
 func _ready() -> void:
 	profiles = BiomeDatabase.get_profiles()
-	generated_levels = HoleGenerator.generate_run(profiles, SHOWCASE_SEED)
+	generated_levels = HoleGenerator.generate_run(
+		profiles,
+		SHOWCASE_SEED,
+		DifficultyDatabase.get_profile(&"hard").generation_options()
+	)
 	camera = Camera2D.new()
 	camera.enabled = true
 	add_child(camera)
@@ -58,8 +63,12 @@ func _show_state() -> void:
 	_clear_state()
 	if state_index <= 5:
 		_show_biome(state_index, state_index * 3 + 2)
-	elif state_index <= 8:
-		_show_elevation_example(state_index - 7)
+	elif state_index == 6:
+		_show_elevation_example(&"lower_area", -1)
+	elif state_index == 7:
+		_show_elevation_example(&"overpass", 0)
+	elif state_index == 8:
+		_show_elevation_example(&"overpass", 1)
 	elif state_index == 9:
 		_show_hazard(&"falling_ice", false)
 	elif state_index == 10:
@@ -78,8 +87,10 @@ func _show_state() -> void:
 		_show_history_result(13)
 	elif state_index == 17:
 		_show_history_result(5)
-	else:
+	elif state_index == 18:
 		_show_results()
+	else:
+		_show_ending()
 
 
 func _show_biome(biome_index: int, level_index: int) -> void:
@@ -107,8 +118,8 @@ func _show_biome(biome_index: int, level_index: int) -> void:
 		_add_snow_trajectory(level)
 
 
-func _show_elevation_example(active_layer: int) -> void:
-	var level_index := _overpass_level_index()
+func _show_elevation_example(structure_type: StringName, active_layer: int) -> void:
+	var level_index := _structure_level_index(structure_type)
 	var level: Dictionary = generated_levels[level_index]
 	var profile_index := floori(float(level_index) / 3.0)
 	level_root = level_builder.build_level(level, self)
@@ -127,7 +138,7 @@ func _show_elevation_example(active_layer: int) -> void:
 		"coins": 13,
 		"seed": SHOWCASE_SEED,
 		"bonuses": ["ACTIVE ELEVATION  %+d" % active_layer],
-		"curses": ["OVERPASS READABILITY"],
+		"curses": ["%s READABILITY" % String(structure_type).replace("_", " ").to_upper()],
 	})
 	release_hud.update_shot(0.46, "31 deg")
 
@@ -139,7 +150,7 @@ func _show_hazard(hazard_type: StringName, landed: bool) -> void:
 	level_root = level_builder.build_level(level, self)
 	var hazard := level_root.get_node_or_null("MovingHazard_%s" % String(hazard_type)) as MovingHazard
 	if hazard and hazard_type == &"falling_ice" and landed:
-		hazard.call("_trigger_falling_ice")
+		hazard.call("_trigger_falling_ice", self)
 		hazard.call("_land_falling_ice")
 	if hazard:
 		level_builder.set_active_elevation(hazard.elevation)
@@ -329,6 +340,19 @@ func _show_results() -> void:
 	})
 
 
+func _show_ending() -> void:
+	release_hud.set_hud_visible(false)
+	var screen := _create_transition_screen(
+		"EndingShowcase",
+		"ANOTHER ROUND?",
+		"Six biomes crossed. Eighteen flags down.\n\nA fresh course is ready.",
+		"NEW RUN"
+	)
+	var presentation = TransitionPresentationScript.new()
+	presentation.setup(screen.overlay, screen.title, screen.body)
+	presentation.show_ending()
+
+
 func _create_transition_screen(screen_name: String, title_text: String, body_text: String, action_text: String) -> Dictionary:
 	results_overlay = PanelContainer.new()
 	results_overlay.name = screen_name
@@ -427,12 +451,12 @@ func _frame_level(level: Dictionary) -> void:
 	camera.zoom = Vector2(0.82, 0.82)
 
 
-func _overpass_level_index() -> int:
+func _structure_level_index(structure_type: StringName) -> int:
 	for level_index in range(3, generated_levels.size()):
 		for structure in generated_levels[level_index].get("elevation_structures", []):
-			if String(structure.get("type", "")) == "overpass":
+			if StringName(structure.get("type", "")) == structure_type:
 				return level_index
-	return 17
+	return 8 if structure_type == &"lower_area" else 17
 
 
 func _clear_state() -> void:

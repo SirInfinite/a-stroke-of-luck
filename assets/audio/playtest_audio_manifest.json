@@ -1,0 +1,44 @@
+{
+  "revision": 1,
+  "assets": [
+    {
+      "file": "crowd_success.wav",
+      "sha256": "010cd5ffed2cdf0e73b34a0636a0b22a03b13b91dba5b46b9a5e44b194c660d6",
+      "source": {
+        "sha256": "0d3bfde5a050f3c5e6685bd7f1efc7ab1d289fbad65c88c1ce9b4691228c69c9",
+        "creator": "eXpl0it3r",
+        "title": "Applause in a large hall or church",
+        "url": "https://opengameart.org/content/applause-in-a-large-hall-or-church"
+      },
+      "license": "CC0-1.0",
+      "modifications": "0.4-3.2 second excerpt; onset/release fades, DC removal, peak normalization",
+      "loop_seam_step": null
+    },
+    {
+      "file": "crowd_failure.wav",
+      "sha256": "397dfdfd2c277ce8c00513e12c4a6a98b7ece8c3d7148258cd5061add360ec00",
+      "source": {
+        "sha256": "6648ca3ec87a6d4ccaafc139bf1c7b6a3629c1888101630c4003428df152ce3b",
+        "creator": "phmiller42",
+        "title": "aww.wav (public HQ MP3 preview)",
+        "url": "https://freesound.org/people/phmiller42/sounds/124996/"
+      },
+      "license": "CC0-1.0",
+      "modifications": "HQ preview decoded to PCM; edge fades, DC removal, peak normalization",
+      "loop_seam_step": null
+    },
+    {
+      "file": "purchase_coins.wav",
+      "sha256": "9ba4ea54b9d9c44ad9e5958f611f0a0fd21bffe82970e7448cad52bfe920b071",
+      "source": {
+        "sha256": "f36250766ac5bc378c13708ddf12a23a8e54a3251f8d482c7536e51b5dbafa18",
+        "creator": "Kenney",
+        "title": "Casino Audio 1.1",
+        "url": "https://kenney.nl/assets/casino-audio"
+      },
+      "license": "CC0-1.0",
+      "modifications": "chips-handle-2 and chips-collide-2, mono mix, original inharmonic register bell, fades and normalization",
+      "loop_seam_step": null
+    }
+  ]
+}

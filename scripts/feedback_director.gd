@@ -1,8 +1,8 @@
 class_name FeedbackDirector
 extends Node2D
 
-signal sound_requested(cue: StringName, intensity: float)
 signal feedback_played(kind: StringName)
+signal cup_emphasis_requested(multiplier: float, duration: float)
 
 @export_category("Shot Feedback")
 @export_range(0.01, 0.5, 0.01) var strike_flash_duration := 0.16
@@ -56,6 +56,7 @@ var last_feedback_kind: StringName = &""
 var screen_shake_scale := 1.0
 var visual_effects_scale := 1.0
 var reduced_motion := false
+var camera_motion_enabled := true
 
 var _trail_points := PackedVector2Array()
 var _last_trail_point := Vector2.ZERO
@@ -64,13 +65,11 @@ var _camera_tween: Tween
 var _trail_tween: Tween
 var _screen_tween: Tween
 var _ball_tween: Tween
-var _base_camera_zoom := Vector2.ONE
 
 
 func setup(new_ball: RigidBody2D, new_camera: Camera2D, overlay_layer: CanvasLayer) -> void:
 	ball = new_ball
 	camera = new_camera
-	_base_camera_zoom = camera.zoom
 
 	transient_root = Node2D.new()
 	transient_root.name = "TransientFeedback"
@@ -79,7 +78,15 @@ func setup(new_ball: RigidBody2D, new_camera: Camera2D, overlay_layer: CanvasLay
 	trail = Line2D.new()
 	trail.name = "BallTrail"
 	trail.width = trail_width
-	trail.default_color = Color(OFF_WHITE, 0.38)
+	trail.default_color = OFF_WHITE
+	var taper := Curve.new()
+	taper.add_point(Vector2(0.0, 0.08))
+	taper.add_point(Vector2(1.0, 1.0))
+	trail.width_curve = taper
+	var fade := Gradient.new()
+	fade.set_color(0, Color(OFF_WHITE, 0.0))
+	fade.set_color(1, Color(OFF_WHITE, 0.82))
+	trail.gradient = fade
 	trail.begin_cap_mode = Line2D.LINE_CAP_ROUND
 	trail.end_cap_mode = Line2D.LINE_CAP_ROUND
 	trail.joint_mode = Line2D.LINE_JOINT_ROUND
@@ -101,10 +108,21 @@ func configure_level(level: Dictionary) -> void:
 	active_biome_id = StringName(level.get("biome_id", &"meadow"))
 
 
+func set_camera_motion_enabled(enabled: bool) -> void:
+	camera_motion_enabled = enabled
+	if _camera_tween:
+		_camera_tween.kill()
+		_camera_tween = null
+	if camera:
+		camera.offset = Vector2.ZERO
+
+
 func apply_player_settings(shake_intensity: float, effects_intensity: float, reduce_motion: bool) -> void:
 	reduced_motion = reduce_motion
 	screen_shake_scale = 0.0 if reduced_motion else clampf(shake_intensity, 0.0, 1.0)
 	visual_effects_scale = clampf(effects_intensity, 0.0, 1.0)
+	if screen_shake_scale <= 0.01:
+		set_camera_motion_enabled(camera_motion_enabled)
 
 
 func reset_feedback() -> void:
@@ -113,7 +131,6 @@ func reset_feedback() -> void:
 	_clear_trail()
 	if camera:
 		camera.offset = Vector2.ZERO
-		camera.zoom = _base_camera_zoom
 	if ball and ball.has_node("BallArt"):
 		ball.get_node("BallArt").scale = Vector2.ONE
 	if screen_flash:
@@ -130,7 +147,6 @@ func play_shot_feedback(position: Vector2, direction: Vector2, power: float) -> 
 	_spawn_radial_burst(position, OFF_WHITE, 6, 14.0 + 9.0 * intensity, strike_flash_duration)
 	_play_ball_punch(0.86, strike_flash_duration)
 	_play_camera_impulse(direction, camera_impulse_strength * intensity, camera_impulse_duration)
-	sound_requested.emit(&"golf_strike", intensity)
 	feedback_played.emit(last_feedback_kind)
 
 
@@ -163,7 +179,8 @@ func play_hazard_feedback(hazard_type: StringName, intensity: float, position: V
 	last_feedback_kind = hazard_type
 	match hazard_type:
 		&"bounce_pad":
-			_spawn_ring(position, active_background_palette.get("accent", GOLD), 10.0, 34.0 + bounded_intensity * 18.0, terrain_burst_duration, 4.0)
+			_spawn_ring(position, GOLD, 10.0, 34.0 + bounded_intensity * 18.0, terrain_burst_duration, 4.0)
+			_spawn_sparkles(position, GOLD, 4, 42.0, terrain_burst_duration)
 			_spawn_radial_burst(position, OFF_WHITE, 8, 24.0 + bounded_intensity * 20.0, terrain_burst_duration)
 		&"falling_ice":
 			_spawn_ice_shards(position, _terrain_feedback_color(&"ice"), 7, terrain_burst_duration)
@@ -182,7 +199,6 @@ func play_terrain_feedback(terrain_kind: StringName, position: Vector2) -> void:
 		&"water":
 			_spawn_ring(position, detail_color, 12.0, 46.0 * terrain_burst_intensity, terrain_burst_duration, 4.0)
 			_spawn_droplets(position, detail_color, 7, terrain_burst_duration)
-			sound_requested.emit(&"water", terrain_burst_intensity)
 		&"rough":
 			_spawn_tufts(position, detail_color, 6, terrain_burst_duration)
 		&"sand":
@@ -191,8 +207,6 @@ func play_terrain_feedback(terrain_kind: StringName, position: Vector2) -> void:
 			_spawn_wind_lines(position, detail_color, terrain_burst_duration)
 		_:
 			_spawn_puffs(position, detail_color, 5, terrain_burst_duration)
-	if terrain_kind != &"water":
-		sound_requested.emit(&"terrain_impact", terrain_burst_intensity)
 	feedback_played.emit(last_feedback_kind)
 
 
@@ -201,10 +215,10 @@ func play_cup_feedback(position: Vector2, is_final_hole: bool) -> void:
 	var color := GOLD if is_final_hole else OFF_WHITE
 	_spawn_ring(position, color, 54.0, 18.0, cup_effect_duration, 5.0)
 	_spawn_radial_burst(position, color, 12 if is_final_hole else 8, 54.0 if is_final_hole else 36.0, cup_effect_duration)
+	_spawn_sparkles(position, GOLD, 10 if is_final_hole else 5, 64.0 if is_final_hole else 42.0, cup_effect_duration * 1.2)
 	_play_cup_camera_emphasis(is_final_hole)
 	if is_final_hole:
 		_play_screen_flash(GOLD, biome_transition_intensity + 0.08, cup_effect_duration)
-	sound_requested.emit(&"cup_sink", 1.0 if is_final_hole else 0.8)
 	feedback_played.emit(last_feedback_kind)
 
 
@@ -213,11 +227,9 @@ func play_progression_feedback(kind: StringName, color: Color) -> void:
 	match kind:
 		&"biome_transition":
 			_play_screen_flash(color, biome_transition_intensity, biome_transition_duration)
-			sound_requested.emit(&"biome_transition", 0.75)
 		&"final_completion":
 			_play_screen_flash(GOLD, ending_transition_intensity, biome_transition_duration * 1.25)
 			_spawn_radial_burst(camera.global_position if camera else Vector2.ZERO, GOLD, 16, 110.0, cup_effect_duration * 1.4)
-			sound_requested.emit(&"final_run_completion", 1.0)
 		&"ending_transition":
 			_play_screen_flash(color, ending_transition_intensity, ending_transition_duration)
 	feedback_played.emit(last_feedback_kind)
@@ -378,11 +390,8 @@ func _spawn_confetti(position: Vector2, color: Color, piece_count: int, duration
 		piece.set_meta(&"feedback_kind", &"stop_confetti")
 		piece.position = position
 		piece.rotation = angle
-		piece.polygon = PackedVector2Array([
-			Vector2(-2.5, -4.5), Vector2(2.5, -4.5),
-			Vector2(2.5, 4.5), Vector2(-2.5, 4.5),
-		])
-		piece.color = color.lightened(0.12 * float(i % 3))
+		piece.polygon = PackedVector2Array([Vector2(-3,0),Vector2(0,-5),Vector2(3,0),Vector2(0,5)]) if i % 3 == 0 else PackedVector2Array([Vector2(-2,-4),Vector2(2,-4),Vector2(2,4),Vector2(-2,4)])
+		piece.color = OFF_WHITE if i % 4 == 0 else color.lightened(0.12 * float(i % 3))
 		transient_root.add_child(piece)
 		var travel := 25.0 + float(i % 4) * 6.0
 		var tween := create_tween().set_parallel(true)
@@ -390,6 +399,24 @@ func _spawn_confetti(position: Vector2, color: Color, piece_count: int, duration
 		tween.tween_property(piece, "rotation", piece.rotation + PI * (0.8 + float(i % 2) * 0.45), duration)
 		tween.tween_property(piece, "modulate:a", 0.0, duration).set_delay(duration * 0.28)
 		tween.chain().tween_callback(piece.queue_free)
+
+
+func _spawn_sparkles(position: Vector2, color: Color, count: int, reach: float, duration: float) -> void:
+	if visual_effects_scale <= 0.01:
+		return
+	for index in range(maxi(1, roundi(count * visual_effects_scale))):
+		var ray := Vector2.RIGHT.rotated(TAU * float(index) / float(count) + 0.28)
+		var sparkle := Polygon2D.new()
+		sparkle.name = "CupSparkle"
+		sparkle.position = position + ray * 12.0
+		sparkle.polygon = PackedVector2Array([Vector2(0,-7),Vector2(2,-2),Vector2(7,0),Vector2(2,2),Vector2(0,7),Vector2(-2,2),Vector2(-7,0),Vector2(-2,-2)])
+		sparkle.color = color if index % 2 == 0 else OFF_WHITE
+		transient_root.add_child(sparkle)
+		var tween := create_tween().set_parallel(true)
+		tween.tween_property(sparkle,"position",position+ray*reach,duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		tween.tween_property(sparkle,"scale",Vector2.ONE*0.15,duration)
+		tween.tween_property(sparkle,"modulate:a",0.0,duration)
+		tween.chain().tween_callback(sparkle.queue_free)
 
 
 func _spawn_ice_shards(position: Vector2, color: Color, shard_count: int, duration: float) -> void:
@@ -458,6 +485,8 @@ func _fade_and_free(item: CanvasItem, duration: float, target_scale: Vector2) ->
 
 
 func _play_ball_punch(target_scale: float, duration: float) -> void:
+	if reduced_motion:
+		return
 	if not ball or not ball.has_node("BallArt"):
 		return
 	if _ball_tween:
@@ -470,6 +499,8 @@ func _play_ball_punch(target_scale: float, duration: float) -> void:
 
 
 func _play_camera_impulse(direction: Vector2, strength: float, duration: float) -> void:
+	if not camera_motion_enabled:
+		return
 	strength *= screen_shake_scale
 	if strength <= 0.01:
 		return
@@ -483,7 +514,7 @@ func _play_camera_impulse(direction: Vector2, strength: float, duration: float) 
 
 
 func _play_camera_shake(normalized_strength: float) -> void:
-	if screen_shake_scale <= 0.01:
+	if not camera_motion_enabled or screen_shake_scale <= 0.01:
 		return
 	if not camera:
 		return
@@ -500,16 +531,11 @@ func _play_camera_shake(normalized_strength: float) -> void:
 
 
 func _play_cup_camera_emphasis(is_final_hole: bool) -> void:
-	if not camera:
+	if not camera_motion_enabled or reduced_motion:
 		return
-	if _camera_tween:
-		_camera_tween.kill()
-	camera.offset = Vector2.ZERO
-	camera.zoom = _base_camera_zoom
+	set_camera_motion_enabled(true)
 	var emphasis := cup_camera_zoom + (0.025 if is_final_hole else 0.0)
-	_camera_tween = create_tween()
-	_camera_tween.tween_property(camera, "zoom", _base_camera_zoom * emphasis, cup_effect_duration * 0.42).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	_camera_tween.tween_property(camera, "zoom", _base_camera_zoom, cup_effect_duration * 0.58).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+	cup_emphasis_requested.emit(emphasis, cup_effect_duration)
 
 
 func _play_screen_flash(color: Color, intensity: float, duration: float) -> void:

@@ -22,36 +22,36 @@ static func get_levels() -> Array[Dictionary]:
 			[],
 			[&"aim_started", &"power_adjusted", &"shot_taken"],
 			[
-				{"event": &"aim_started", "text": "AIM — drag from the ball or use the arrow keys.", "target": "ball"},
-				{"event": &"power_adjusted", "text": "POWER — a short guide means a soft shot; a long guide means a strong shot.", "target": "ball"},
-				{"event": &"shot_taken", "text": "TRAJECTORY — the adaptive dots preview every shot at its real scale.", "target": "ball"},
-				{"event": &"hole_completed", "text": "NORMAL GRASS and the greener cup area use normal physics.", "target": "hole"},
+				{"event": &"aim_started", "text": "Aim with the mouse or arrow keys.", "target": "ball"},
+				{"event": &"power_adjusted", "text": "Drag farther to add power.", "target": "ball"},
+				{"event": &"shot_taken", "text": "The arrow marks a straight-line finish. Release to shoot.", "target": "ball"},
+				{"event": &"hole_completed", "text": "Strokes and time track your round. Now sink the ball.", "target": "hole"},
 			]
 		),
 		_base_level(
 			&"sand",
 			3,
 			[
-				{"type": "sand", "pos": Vector2(0.0, 50.0), "size": Vector2(200.0, 100.0), "elevation": 0},
+				{"type": "sand", "pos": Vector2.ZERO, "size": Vector2(100.0, 600.0), "elevation": 0},
 			],
 			[],
 			[&"entered_sand"],
 			[
-				{"event": &"entered_sand", "text": "SAND is the ordinary slow terrain. Carry extra speed, then recover with control.", "target": "hazard:0"},
-				{"event": &"hole_completed", "text": "Grass that looks rougher is visual variety only; it never changes physics.", "target": "hole"},
+				{"event": &"entered_sand", "text": "Hit into the sand band. Feel how it slows the ball.", "target": "hazard:0"},
+				{"event": &"hole_completed", "text": "Recover and finish the hole.", "target": "hole"},
 			]
 		),
 		_base_level(
 			&"water_reset",
 			4,
 			[
-				{"type": "water", "pos": Vector2(0.0, 50.0), "size": Vector2(200.0, 100.0), "elevation": 0},
+				{"type": "water", "pos": Vector2.ZERO, "size": Vector2(100.0, 600.0), "elevation": 0, "tutorial_barrier": true},
 			],
 			[],
 			[&"entered_water"],
 			[
-				{"event": &"entered_water", "text": "WATER is the main reset hazard. The accepted shot and its cost still count.", "target": "hazard:0"},
-				{"event": &"hole_completed", "text": "Aim around hazards; a reset never erases your score.", "target": "hole"},
+				{"event": &"entered_water", "text": "Hit the water once. It returns you to the tee with a penalty stroke.", "target": "hazard:0"},
+				{"event": &"hole_completed", "text": "The banks are open now. Aim around the remaining water.", "target": "hole"},
 			]
 		),
 		_moving_hazard_level(),
@@ -65,10 +65,10 @@ static func get_levels() -> Array[Dictionary]:
 			[],
 			[&"card_benefit_active", &"card_curse_active", &"shot_taken"],
 			[
-				{"event": &"aim_started", "text": "CARD BENEFIT — the bonus you bought remains active for the run. Aim to continue.", "target": "ball"},
-				{"event": &"power_adjusted", "text": "ACTIVE CURSE — its disclosed drawback lasts for the shown number of holes. Adjust power to continue.", "target": "ball"},
-				{"event": &"shot_taken", "text": "CONTINUE RUN — plan with both sides of your card, then finish the lesson.", "target": "hole"},
-				{"event": &"hole_completed", "text": "Tutorial complete. Continue into the six-biome, 18-hole run.", "target": "hole"},
+				{"event": &"aim_started", "text": "Your bonus stays for the run.", "target": "ball"},
+				{"event": &"power_adjusted", "text": "The curse lasts 3 holes.", "target": "ball"},
+				{"event": &"shot_taken", "text": "Play around both effects.", "target": "hole"},
+				{"event": &"hole_completed", "text": "Tutorial complete.", "target": "hole"},
 			]
 		),
 	]
@@ -94,7 +94,11 @@ static func _base_level(
 	required_events: Array,
 	steps: Array
 ) -> Dictionary:
+	var meadow: BiomeProfile = BiomeDatabase.get_profiles()[0]
 	return {
+		"terrain_palette": meadow.terrain_palette.duplicate(true),
+		"background_palette": meadow.background_palette.duplicate(true),
+		"ambience": meadow.ambience,
 		"lesson": lesson,
 		"map": TUTORIAL_MAP.duplicate(),
 		"start_cell": Vector2i(1, 3),
@@ -125,8 +129,8 @@ static func _moving_hazard_level() -> Dictionary:
 		],
 		[&"shot_taken"],
 		[
-			{"event": &"shot_taken", "text": "HAZARDS — blockers and moving obstacles have readable silhouettes and timing.", "target": "hole"},
-			{"event": &"hole_completed", "text": "Use a safe angle; moving hazards never remove the validated main route.", "target": "hole"},
+			{"event": &"shot_taken", "text": "Shoot around the blocker.", "target": "hole"},
+			{"event": &"hole_completed", "text": "Watch moving obstacles.", "target": "hole"},
 		]
 	)
 	level.moving_hazards = [
@@ -154,10 +158,10 @@ static func _shop_level() -> Dictionary:
 		[],
 		[],
 		[
-			{"event": &"hole_completed", "text": "SHOP — finish this hole to spend the practice coins.", "target": "hole"},
-			{"event": &"shop_opened", "text": "Choose one simple card. Every card clearly pairs a BENEFIT with a CURSE.", "target": "shop"},
-			{"event": &"card_bought", "text": "Purchase one card to learn its persistent benefit and temporary drawback.", "target": "shop"},
-			{"event": &"shop_continued", "text": "Continue to play with both sides of your choice.", "target": "shop"},
+			{"event": &"hole_completed", "text": "Finish to earn coins and open the shop.", "target": "hole"},
+			{"event": &"shop_opened", "text": "Cards give a bonus and a curse.", "target": "shop"},
+			{"event": &"card_bought", "text": "Buy a card to continue.", "target": "shop"},
+			{"event": &"shop_continued", "text": "Continue to the next hole.", "target": "shop"},
 		]
 	)
 	level.forced_tokens = 4

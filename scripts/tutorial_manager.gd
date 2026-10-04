@@ -15,6 +15,8 @@ class Highlight:
 	var pulse := 0.0
 
 	func _process(delta: float) -> void:
+		if not visible or not UIStyleScript.motion_enabled(self):
+			return
 		pulse = fmod(pulse + delta * 2.4, TAU)
 		queue_redraw()
 
@@ -43,7 +45,9 @@ class Highlight:
 
 const SAVE_PATH := "user://tutorial_complete.cfg"
 
-var main: Node
+var ball: RigidBody2D
+var level_point: Callable
+var effect_snapshot: Callable
 var canvas_layer: CanvasLayer
 var hint_panel: PanelContainer
 var hint_label: Label
@@ -61,6 +65,7 @@ var last_aim_power := 0.0
 var last_shot_active := false
 var blocker_text := ""
 var blocker_timer := 0.0
+var presentation_enabled := false
 var _last_presented_hint := ""
 var _hint_tween: Tween
 
@@ -76,12 +81,16 @@ static func mark_tutorial_complete() -> void:
 	config.save(SAVE_PATH)
 
 
-func setup(new_main: Node, new_canvas_layer: CanvasLayer) -> void:
-	main = new_main
+func setup(new_ball: RigidBody2D, new_canvas_layer: CanvasLayer, point_resolver: Callable, effects_reader: Callable) -> void:
+	ball = new_ball
+	level_point = point_resolver
+	effect_snapshot = effects_reader
 	canvas_layer = new_canvas_layer
+	highlight.name = "TutorialHighlight"
 	highlight.z_index = 200
-	main.add_child(highlight)
+	add_child(highlight)
 	_create_overlay()
+	get_viewport().size_changed.connect(_fit_overlay_to_viewport)
 
 
 func set_level(level: Dictionary, index: int, count: int) -> void:
@@ -114,8 +123,15 @@ func can_complete_level() -> bool:
 			return false
 	return true
 
+func hud_concepts() -> Dictionary:
+	return {"score": current_level_index > 0 or completed_events.has(&"shot_taken"),
+		"coins": current_level_index >= 4,
+		"effects": current_level_index >= 5 or completed_events.has(&"shop_opened")}
+
 
 func show_blocker() -> void:
+	if not presentation_enabled:
+		return
 	var missing := _first_missing_required_event()
 	blocker_text = _blocker_text_for_event(missing)
 	blocker_timer = 2.2
@@ -123,16 +139,32 @@ func show_blocker() -> void:
 
 
 func set_visible_enabled(enabled: bool) -> void:
+	presentation_enabled = enabled
 	if hint_panel:
-		hint_panel.visible = enabled
+		hint_panel.visible = enabled and not current_level.is_empty()
 	if skip_button:
 		skip_button.visible = enabled
 	if not enabled:
+		if _hint_tween:
+			_hint_tween.kill()
+			_hint_tween = null
 		highlight.clear()
+	elif not current_level.is_empty():
+		_update_hint()
+
+
+func clear_presentation() -> void:
+	set_visible_enabled(false)
+	current_level.clear()
+	completed_events.clear()
+	current_step_index = 0
+	blocker_text = ""
+	blocker_timer = 0.0
+	_last_presented_hint = ""
 
 
 func _process(delta: float) -> void:
-	if current_level.is_empty() or not main or not main.ball:
+	if not presentation_enabled or current_level.is_empty() or not ball:
 		return
 
 	if blocker_timer > 0.0:
@@ -141,17 +173,17 @@ func _process(delta: float) -> void:
 			blocker_text = ""
 			_update_hint()
 
-	var aim_active: bool = main.ball.has_active_aim()
+	var aim_active: bool = ball.has_active_aim()
 	if aim_active and not last_aim_active:
 		notify_event(&"aim_started")
 		notify_event(&"trajectory_previewed")
-	var aim_power: float = main.ball.get_aim_power()
+	var aim_power: float = ball.get_aim_power()
 	if aim_active and last_aim_active and absf(aim_power - last_aim_power) >= 0.04:
 		notify_event(&"power_adjusted")
 	last_aim_power = aim_power
 	last_aim_active = aim_active
 
-	var shot_active: bool = main.ball.shot_in_progress
+	var shot_active: bool = ball.shot_in_progress
 	if shot_active and not last_shot_active:
 		notify_event(&"shot_taken")
 	last_shot_active = shot_active
@@ -164,12 +196,8 @@ func _create_overlay() -> void:
 	hint_panel.name = "TutorialCoach"
 	hint_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	canvas_layer.add_child(hint_panel)
-	hint_panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	hint_panel.offset_left = -365.0
-	hint_panel.offset_top = 122.0
-	hint_panel.offset_right = 365.0
-	hint_panel.offset_bottom = 230.0
-	hint_panel.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color(UIStyleScript.INK_DEEP, 0.94), Color(UIStyleScript.FOCUS, 0.78), 15, 3, 9))
+	hint_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	hint_panel.add_theme_stylebox_override("panel", UIStyleScript.pixel_frame("card", 4))
 
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 13)
@@ -183,7 +211,7 @@ func _create_overlay() -> void:
 	margin.add_child(row)
 	var icon_stage := PanelContainer.new()
 	icon_stage.custom_minimum_size = Vector2(58.0, 58.0)
-	icon_stage.add_theme_stylebox_override("panel", UIStyleScript.panel_style(Color("234239"), UIStyleScript.FOCUS, 12, 2, 3))
+	icon_stage.add_theme_stylebox_override("panel", UIStyleScript.pixel_frame("panel", 3))
 	row.add_child(icon_stage)
 	var icon_center := CenterContainer.new()
 	icon_stage.add_child(icon_center)
@@ -198,15 +226,15 @@ func _create_overlay() -> void:
 	row.add_child(copy)
 	lesson_label = Label.new()
 	lesson_label.text = "PRACTICE ROUND"
-	UIStyleScript.apply_ui(lesson_label, 11, UIStyleScript.FOCUS, true)
+	UIStyleScript.apply_ui(lesson_label, 14, UIStyleScript.PAPER_MUTED, true)
 	copy.add_child(lesson_label)
 	hint_label = Label.new()
 	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	hint_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	hint_label.custom_minimum_size.y = 44.0
+	hint_label.custom_minimum_size.y = 58.0
 	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_WORD_ELLIPSIS
-	UIStyleScript.apply_ui(hint_label, 18, UIStyleScript.PAPER, true)
+	hint_label.text_overrun_behavior = TextServer.OVERRUN_NO_TRIMMING
+	UIStyleScript.apply_ui(hint_label, 22, UIStyleScript.PAPER, true)
 	copy.add_child(hint_label)
 
 	skip_button = UIActionButtonScript.new()
@@ -220,6 +248,19 @@ func _create_overlay() -> void:
 	skip_button.offset_bottom = -14.0
 	skip_button.pressed.connect(func() -> void: skip_requested.emit())
 	(skip_button as UIActionButton).configure("SKIP", &"continue", &"quiet")
+	_fit_overlay_to_viewport()
+
+
+func _fit_overlay_to_viewport() -> void:
+	if not hint_panel or not is_inside_tree():
+		return
+	var viewport_size: Vector2 = get_viewport().get_visible_rect().size
+	var panel_width := minf(810.0, maxf(viewport_size.x - 440.0, 420.0))
+	var panel_top := -266.0
+	hint_panel.offset_left = -panel_width * 0.5
+	hint_panel.offset_top = panel_top
+	hint_panel.offset_right = panel_width * 0.5
+	hint_panel.offset_bottom = panel_top + 132.0
 
 
 func _advance_completed_steps() -> void:
@@ -232,6 +273,10 @@ func _advance_completed_steps() -> void:
 
 
 func _update_hint() -> void:
+	if not presentation_enabled or not hint_label or not hint_panel:
+		if highlight:
+			highlight.clear()
+		return
 	if blocker_text != "":
 		hint_label.text = blocker_text
 		hint_panel.visible = true
@@ -270,6 +315,8 @@ func _update_hint_presentation() -> void:
 		icon_name = &"sand"
 	elif event_name.contains("water"):
 		icon_name = &"water"
+	elif event_name.contains("wall") or event_name.contains("blocker"):
+		icon_name = &"blocker"
 	elif event_name.contains("curse"):
 		icon_name = &"curse"
 	elif event_name.contains("benefit"):
@@ -280,6 +327,10 @@ func _update_hint_presentation() -> void:
 	_last_presented_hint = hint_label.text
 	if _hint_tween:
 		_hint_tween.kill()
+	if not UIStyleScript.motion_enabled(hint_panel):
+		hint_panel.scale = Vector2.ONE
+		hint_panel.modulate = Color.WHITE
+		return
 	hint_panel.pivot_offset = hint_panel.size * 0.5
 	hint_panel.scale = Vector2(0.985, 0.985)
 	hint_panel.modulate = Color(UIStyleScript.FOCUS, 0.62)
@@ -313,16 +364,16 @@ func _current_step() -> Dictionary:
 func _target_position(target: String) -> Vector2:
 	match target:
 		"ball":
-			return main.ball.global_position
+			return ball.global_position
 		"hole":
-			return main.level_builder.level_point(current_level, "hole", "hole_cell")
+			return level_point.call(current_level, "hole", "hole_cell")
 		_:
 			if target.begins_with("hazard:"):
 				var index := int(target.get_slice(":", 1))
 				var hazards: Array = current_level.get("hazards", [])
 				if index >= 0 and index < hazards.size():
 					return hazards[index].pos
-	return main.ball.global_position
+	return ball.global_position
 
 
 func _target_radius(target: String) -> float:
@@ -331,7 +382,7 @@ func _target_radius(target: String) -> float:
 		var hazards: Array = current_level.get("hazards", [])
 		if index >= 0 and index < hazards.size():
 			var size: Vector2 = hazards[index].size
-			return maxf(size.x, size.y) * 0.55
+			return minf(maxf(size.x, size.y) * 0.55, 72.0)
 	if target == "hole":
 		return float(current_level.get("cup_radius", 28.0)) + 26.0
 	return 46.0
@@ -345,30 +396,29 @@ func _first_missing_required_event() -> String:
 
 
 func _mark_active_card_lessons() -> void:
-	if not main:
+	if not effect_snapshot.is_valid():
 		return
-	var owned_cards = main.get("owned_card_definitions")
-	if owned_cards is Array and not owned_cards.is_empty():
+	var effects: Dictionary = effect_snapshot.call()
+	if bool(effects.get("has_bonus", false)):
 		completed_events[&"card_benefit_active"] = true
-	var active_curses = main.get("active_card_curses")
-	if active_curses is Array and not active_curses.is_empty():
+	if bool(effects.get("has_curse", false)):
 		completed_events[&"card_curse_active"] = true
 
 
 func _blocker_text_for_event(event_name: String) -> String:
 	match event_name:
 		"aim_started":
-			return "Aim from the ball before finishing."
+			return "Aim with the mouse or arrow keys."
 		"shot_taken":
-			return "Take a shot before finishing."
+			return "Take one shot."
 		"entered_sand":
-			return "Touch the sand first."
+			return "Roll through the sand."
 		"entered_water":
-			return "Hit the water once to see the penalty."
+			return "Hit the water once."
 		"entered_direction":
-			return "Cross the wind pad first."
+			return "Cross the direction zone."
 		"card_benefit_active":
-			return "Buy one tutorial card before continuing."
+			return "Buy a card to continue."
 		"card_curse_active":
-			return "Accept the tutorial card's disclosed curse before continuing."
-	return "Complete the highlighted lesson first."
+			return "Buy a card to continue."
+	return "Complete this step first."

@@ -1,0 +1,1426 @@
+{
+  "sources": [
+    {
+      "file": "effects_sheet.png",
+      "size": [
+        1448,
+        1086
+      ],
+      "sha256": "fa86096f5ab607b6c3e9f46773a9be32fae12b9ac1f5973f991565cc4f45cf41"
+    },
+    {
+      "file": "meadow_background.png",
+      "size": [
+        1672,
+        941
+      ],
+      "sha256": "b729152e9bf1f6e5c8fe7337586287b371e0e526ba43b9fbf76d65e76bc44faf"
+    },
+    {
+      "file": "object_sheet.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "sha256": "9237c9884454391ff8c588f91b2e51fac1fe43d1fc1a0783d48b96055f68b5fd"
+    },
+    {
+      "file": "terrain_sheet.png",
+      "size": [
+        1254,
+        1254
+      ],
+      "sha256": "1ba0f929c0cddb36877d8cc7690e2b97ae2b5904291f1a9aec7b8131950fa63d"
+    },
+    {
+      "file": "volcanic_background.png",
+      "size": [
+        1672,
+        941
+      ],
+      "sha256": "27af0eab0efa2b088a938e46e954a5934d142093f24b8a444652e0e6ed84d95d"
+    }
+  ],
+  "exports": [
+    {
+      "file": "d48/terrain/fairway_a_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        99,
+        213,
+        176,
+        290
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "cc4b59e944ae7e38ade92947c77e7119d96958a83a1180f2c72258cdb3a05a84"
+    },
+    {
+      "file": "d48/terrain/fairway_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        3,
+        3,
+        310,
+        309
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "9d3b6a756ed1b97269b581bb6cea72bbae9892b448a9aeb8641abdddf360fb3d"
+    },
+    {
+      "file": "d48/terrain/fairway_b_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        489,
+        60,
+        566,
+        137
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "d4feea1fe213d7663226aa432553a9f07bca1b00058ba509c325a51347dce814"
+    },
+    {
+      "file": "d48/terrain/fairway_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        316,
+        3,
+        624,
+        309
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "d6283634c35188c8b2fda74241cdf869daa084080ce9d496f0a5f7512b865fba"
+    },
+    {
+      "file": "d48/terrain/green_a_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        726,
+        22,
+        803,
+        99
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "a9a818460ddd7c15c1bd9cf26fc60e39ef9874a9e650ac4adc454ea4fb13fa43"
+    },
+    {
+      "file": "d48/terrain/green_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        630,
+        3,
+        937,
+        309
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "c5b93008bba374d2a7255f0264eb68b765d329f9cedb24ba04e281a59971bccb"
+    },
+    {
+      "file": "d48/terrain/green_b_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        1155,
+        60,
+        1232,
+        137
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "39fb873770f19d8a0bfb59cbbbc80710f4b2004ca3a88b33d9a773588adc233f"
+    },
+    {
+      "file": "d48/terrain/green_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        943,
+        3,
+        1251,
+        309
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "e468901cc4e4de6f08ab4c0b1d2042d5f9f91e1884176b82db0dd73e320291a1"
+    },
+    {
+      "file": "d48/terrain/water_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        3,
+        315,
+        310,
+        623
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "337f28a2e7c16476da544970c1f5bc6cc521353c1891530c8ba200d9bc353849"
+    },
+    {
+      "file": "d48/terrain/water_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        3,
+        315,
+        310,
+        623
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "c00b59a8b0f227e3bd76c0a09320cb0d785f029ee328828223b87e81e9fbaf9b"
+    },
+    {
+      "file": "d48/terrain/sand_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        630,
+        315,
+        937,
+        623
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "55d8658c86dc0328d417b5d1924b29e4767643a20b2c19edca830305f0be5674"
+    },
+    {
+      "file": "d48/terrain/sand_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        943,
+        315,
+        1251,
+        623
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "d93712ee9b7cf0e6d980379c3abb7da5381f508912ee3f7f9e861eb675009887"
+    },
+    {
+      "file": "d48/terrain/basalt_a_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        176,
+        647,
+        252,
+        717
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "5a4af0a8c69495cc8d21d0fafd74e836d09766317c088613ee9e1d49b3a2688c"
+    },
+    {
+      "file": "d48/terrain/basalt_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        3,
+        629,
+        310,
+        911
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "02411e1046399de215f947f3c4327b8d96532232a5e1746f260da7946ac25595"
+    },
+    {
+      "file": "d48/terrain/basalt_b_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        412,
+        682,
+        489,
+        752
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "6e658ea7f627729f9cd35a69b1efd8abaef7e8558e2c516f27d80d3221f8a9fa"
+    },
+    {
+      "file": "d48/terrain/basalt_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        316,
+        629,
+        624,
+        911
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "6e658ea7f627729f9cd35a69b1efd8abaef7e8558e2c516f27d80d3221f8a9fa"
+    },
+    {
+      "file": "d48/terrain/basalt_green_a_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        803,
+        682,
+        879,
+        752
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "d100700677d400bd20024ecf91ffb2d4d2d92635dd7b6e69005317f798d7dc24"
+    },
+    {
+      "file": "d48/terrain/basalt_green_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        630,
+        629,
+        937,
+        911
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "861ceac0229c39637f8304d67d7f951a0afedf592867057c93a50ee5632c3587"
+    },
+    {
+      "file": "d48/terrain/basalt_green_b_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        1001,
+        823,
+        1078,
+        893
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "65eb42fa8b9023b9ed06ab1bf552d32cec49bae7f5a8b46793fa4d34caa2fbe3"
+    },
+    {
+      "file": "d48/terrain/basalt_green_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        943,
+        629,
+        1251,
+        911
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "65eb42fa8b9023b9ed06ab1bf552d32cec49bae7f5a8b46793fa4d34caa2fbe3"
+    },
+    {
+      "file": "d48/terrain/lava_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        3,
+        917,
+        310,
+        1251
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "4184ad9a33e63bd6a55999d3ac507711f90c60f2165b2f242f8b2d84f0bcbcab"
+    },
+    {
+      "file": "d48/terrain/lava_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        316,
+        917,
+        624,
+        1251
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "619b061b911f0eb45949849bb883947a0505c0b3baf2493893353fcc36683de9"
+    },
+    {
+      "file": "d48/terrain/wall_meadow.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        630,
+        917,
+        937,
+        1251
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "c2735b67a07007765a36d9e9113335117805ca1f237650f08cfbe34b34259bcd"
+    },
+    {
+      "file": "d48/terrain/wall_volcanic.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        943,
+        917,
+        1251,
+        1251
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "13ec425051e88f849635fbd328a09dc5633288eb840116d9c0405d9097a5a2ca"
+    },
+    {
+      "file": "d32/terrain/fairway_a_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        99,
+        213,
+        176,
+        290
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "6c9cf711aeaf351f87b49019108f3c3e8807162b0078589dfa3d4e0407e8544d"
+    },
+    {
+      "file": "d32/terrain/fairway_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        3,
+        3,
+        310,
+        309
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "a4be7945d76943dd4661cd504dc794f8adeed17e2283655347421afa93cb25bf"
+    },
+    {
+      "file": "d32/terrain/fairway_b_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        489,
+        60,
+        566,
+        137
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "003a63422d98add1a00f7a63dfe52b1b6fe754a618e66608e4a97af516fd3f22"
+    },
+    {
+      "file": "d32/terrain/fairway_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        316,
+        3,
+        624,
+        309
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "c296228a21d67a00d6847babf8b7143d5e0f06e314cb0ae2500ce41fde21016d"
+    },
+    {
+      "file": "d32/terrain/green_a_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        726,
+        22,
+        803,
+        99
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "4c5068fe8c4217edfc0dd87243d437311ac70e14d412a69a7f06c3f73ca384ee"
+    },
+    {
+      "file": "d32/terrain/green_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        630,
+        3,
+        937,
+        309
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "4da4bfefd3149f8c7461e19d97630ccf4f815ac0186b6223b2006b6478210c7f"
+    },
+    {
+      "file": "d32/terrain/green_b_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        1155,
+        60,
+        1232,
+        137
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "0146bc05a1af4f1945b396f3be3b14b22335b8fca64e66b903aad77d9340045b"
+    },
+    {
+      "file": "d32/terrain/green_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        943,
+        3,
+        1251,
+        309
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "ec9072d30bee0b452fcb4653857c88be4f106033e2300b900c335a9ba12d351a"
+    },
+    {
+      "file": "d32/terrain/water_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        3,
+        315,
+        310,
+        623
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "292c4d0de836c778f817e92d1f855ab67c83078382d22883f9a3b59b7cd6af2f"
+    },
+    {
+      "file": "d32/terrain/water_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        3,
+        315,
+        310,
+        623
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "01b338394a8aafa49f2efc47b17574f7232d15bb6cc043cbf134e89864847dc0"
+    },
+    {
+      "file": "d32/terrain/sand_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        630,
+        315,
+        937,
+        623
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "7b511fe03d9f16874caa5d5f812bfcb06d1080e22ec57d8f43a5368936a0db66"
+    },
+    {
+      "file": "d32/terrain/sand_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        943,
+        315,
+        1251,
+        623
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "2532163bf725e9e0fd093df233306ac9df148b65cc86fb10c9915181050c6c6e"
+    },
+    {
+      "file": "d32/terrain/basalt_a_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        176,
+        647,
+        252,
+        717
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "a50c25eda95efb6e1a576fffc937524dd0a1408e91e02318a4bb3513ba9d82a2"
+    },
+    {
+      "file": "d32/terrain/basalt_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        3,
+        629,
+        310,
+        911
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "b035291ebe716ef922bb01ea225ce6d0e011b2e422803311855fcf0ec0fcbe6f"
+    },
+    {
+      "file": "d32/terrain/basalt_b_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        412,
+        682,
+        489,
+        752
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "3c8a59d519888bea3aa02f1b22a1e7787e8255470257a55bb259b09e59a0c5a0"
+    },
+    {
+      "file": "d32/terrain/basalt_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        316,
+        629,
+        624,
+        911
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "3c8a59d519888bea3aa02f1b22a1e7787e8255470257a55bb259b09e59a0c5a0"
+    },
+    {
+      "file": "d32/terrain/basalt_green_a_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        803,
+        682,
+        879,
+        752
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "cd4fe2cf8a4edbab953c9f69da953c9ce036ac857c730d2f3967c5aff543de77"
+    },
+    {
+      "file": "d32/terrain/basalt_green_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        630,
+        629,
+        937,
+        911
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "576959d084141a6f34bface81ec5ff1c178f4717f8fb1fde2076b00e4e4aecb9"
+    },
+    {
+      "file": "d32/terrain/basalt_green_b_quiet.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        1001,
+        823,
+        1078,
+        893
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "53ed914d195fff3c16f0e9dad742a7ff2c62acf3bbce60cb8ecef28be18eb44b"
+    },
+    {
+      "file": "d32/terrain/basalt_green_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        943,
+        629,
+        1251,
+        911
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "53ed914d195fff3c16f0e9dad742a7ff2c62acf3bbce60cb8ecef28be18eb44b"
+    },
+    {
+      "file": "d32/terrain/lava_a.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        3,
+        917,
+        310,
+        1251
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "467672613f881934c540c1a37bcffe0536146e29c28a58b56dc3356660bad9ee"
+    },
+    {
+      "file": "d32/terrain/lava_b.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        316,
+        917,
+        624,
+        1251
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "5778d54d9de317e461d51d9ac9f6456d08024477190e9567476aebfa6239d7dc"
+    },
+    {
+      "file": "d32/terrain/wall_meadow.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        630,
+        917,
+        937,
+        1251
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "1efac054b6c41ab83d955140c2f79f05e04707393d74002af5c6a70ee1bf819b"
+    },
+    {
+      "file": "d32/terrain/wall_volcanic.png",
+      "source": "terrain_sheet.png",
+      "crop": [
+        943,
+        917,
+        1251,
+        1251
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "3dc64b64df088ce6d8af7ccaf6f95b639a6a8513fa36d470f59158f0fbe1948f"
+    },
+    {
+      "file": "d48/props/pendulum.png",
+      "source": "object_sheet.png",
+      "crop": [
+        5,
+        5,
+        505,
+        496
+      ],
+      "size": [
+        44,
+        43
+      ],
+      "sha256": "0d1c81cc5bfcda71eb470a16db19ef3331276c2012f7cb06360837755b75d981"
+    },
+    {
+      "file": "d48/props/bearing.png",
+      "source": "object_sheet.png",
+      "crop": [
+        528,
+        35,
+        1001,
+        448
+      ],
+      "size": [
+        28,
+        24
+      ],
+      "sha256": "8e5ed677923d119e81a8f8ad62762cc7298be94eb08a381b6850211c35760e81"
+    },
+    {
+      "file": "d48/props/chain.png",
+      "source": "object_sheet.png",
+      "crop": [
+        1110,
+        16,
+        1467,
+        478
+      ],
+      "size": [
+        8,
+        13
+      ],
+      "sha256": "557ed85d67a3c402063795c5a948a88c6c50517b5f5ed23239998b303152e59d"
+    },
+    {
+      "file": "d48/props/willow.png",
+      "source": "object_sheet.png",
+      "crop": [
+        18,
+        500,
+        485,
+        1018
+      ],
+      "size": [
+        97,
+        112
+      ],
+      "sha256": "a8cb3cd0b51790c3d8fc47639b56dcacbb73715c072332354a589677e5d35a3f"
+    },
+    {
+      "file": "d48/props/basalt_columns.png",
+      "source": "object_sheet.png",
+      "crop": [
+        553,
+        500,
+        998,
+        984
+      ],
+      "size": [
+        94,
+        112
+      ],
+      "sha256": "0f0f0963fbe23a21da237faeda47dba49ebfc4c4c9bd6d6da7c2ade8b760e785"
+    },
+    {
+      "file": "d48/props/pad.png",
+      "source": "object_sheet.png",
+      "crop": [
+        1042,
+        512,
+        1520,
+        986
+      ],
+      "size": [
+        34,
+        34
+      ],
+      "sha256": "356820b2364799c5a2043a07fb7006d4f530aab0cc1bacd360a83943a0bc3ecd"
+    },
+    {
+      "file": "d48/props/ball.png",
+      "source": "assets/pixel_correction/props/ball.png",
+      "crop": null,
+      "size": [
+        12,
+        12
+      ],
+      "sha256": "05680ecc0af31c352a8ef5f2003bb9d2678e36b69baf0025682e304e6daedd28"
+    },
+    {
+      "file": "d48/props/flag_a.png",
+      "source": "assets/pixel_correction/props/flag_a.png",
+      "crop": null,
+      "size": [
+        28,
+        40
+      ],
+      "sha256": "7beb8d11177c77038771dbf8dddcd69ba26de50e6c973af4782e4b3bfb50023f"
+    },
+    {
+      "file": "d48/props/flag_b.png",
+      "source": "assets/pixel_correction/props/flag_b.png",
+      "crop": null,
+      "size": [
+        24,
+        40
+      ],
+      "sha256": "74ccd7d243536695fc1bde5bbd41e276d0a743f501296d119c1f115d76a14284"
+    },
+    {
+      "file": "d48/props/tee.png",
+      "source": "assets/pixel_correction/props/tee.png",
+      "crop": null,
+      "size": [
+        25,
+        17
+      ],
+      "sha256": "a8deb65694cd29f3e7788edc2f2fe527002ca8df2af11f529de18450456f76d7"
+    },
+    {
+      "file": "d48/props/coin.png",
+      "source": "assets/pixel_correction/props/coin.png",
+      "crop": null,
+      "size": [
+        14,
+        16
+      ],
+      "sha256": "962e6459f5402ac6ef382a2754409cb4e5750d5dd5d1794594e48407e029b28b"
+    },
+    {
+      "file": "d32/props/pendulum.png",
+      "source": "object_sheet.png",
+      "crop": [
+        5,
+        5,
+        505,
+        496
+      ],
+      "size": [
+        29,
+        29
+      ],
+      "sha256": "ca9d38bbf1b8dc90af011b396d62c90c1145c69393d1d85aedfb229c7308f4dd"
+    },
+    {
+      "file": "d32/props/bearing.png",
+      "source": "object_sheet.png",
+      "crop": [
+        528,
+        35,
+        1001,
+        448
+      ],
+      "size": [
+        19,
+        16
+      ],
+      "sha256": "7f41c76471ea9b3721b8db14a94b4abaf5c735d745c8b5bb5afd4408c8b74709"
+    },
+    {
+      "file": "d32/props/chain.png",
+      "source": "object_sheet.png",
+      "crop": [
+        1110,
+        16,
+        1467,
+        478
+      ],
+      "size": [
+        5,
+        9
+      ],
+      "sha256": "d320e4521fc82c84c44ba2a05fcfdd1a39e10b184878bca6e3c344f7b4c2994a"
+    },
+    {
+      "file": "d32/props/willow.png",
+      "source": "object_sheet.png",
+      "crop": [
+        18,
+        500,
+        485,
+        1018
+      ],
+      "size": [
+        65,
+        75
+      ],
+      "sha256": "acf8561151b6775be726d87c8f3fb4c1bfc67ba0d7170858ed838921cc0aa715"
+    },
+    {
+      "file": "d32/props/basalt_columns.png",
+      "source": "object_sheet.png",
+      "crop": [
+        553,
+        500,
+        998,
+        984
+      ],
+      "size": [
+        63,
+        75
+      ],
+      "sha256": "25ef02eb289b6bd8317d768846cffaedeab29369a3adbd0883a135530e71e62e"
+    },
+    {
+      "file": "d32/props/pad.png",
+      "source": "object_sheet.png",
+      "crop": [
+        1042,
+        512,
+        1520,
+        986
+      ],
+      "size": [
+        23,
+        23
+      ],
+      "sha256": "663d7bc0ce4f931c80dbb935fca0cdcc4ca335fc062e9e951d2d890e80f33035"
+    },
+    {
+      "file": "d32/props/ball.png",
+      "source": "assets/pixel_correction/props/ball.png",
+      "crop": null,
+      "size": [
+        8,
+        8
+      ],
+      "sha256": "503a8a3009c55a1473b7ef98656332c1f565bc4edd60e5e95855a660a7096dbe"
+    },
+    {
+      "file": "d32/props/flag_a.png",
+      "source": "assets/pixel_correction/props/flag_a.png",
+      "crop": null,
+      "size": [
+        19,
+        27
+      ],
+      "sha256": "1b29e75ab1c7fb97075bc59c8e4cfd466c3a6b9b59ec6e8986b3e77a107851f0"
+    },
+    {
+      "file": "d32/props/flag_b.png",
+      "source": "assets/pixel_correction/props/flag_b.png",
+      "crop": null,
+      "size": [
+        16,
+        27
+      ],
+      "sha256": "5488a3ea52e09a6cba42af493202a200bdb20b5e9f4c516d2f39bab6106ee4c9"
+    },
+    {
+      "file": "d32/props/tee.png",
+      "source": "assets/pixel_correction/props/tee.png",
+      "crop": null,
+      "size": [
+        17,
+        11
+      ],
+      "sha256": "828585cf592a3206290e671901bdaae116eb1cd1e4d6ea913a31c32bc4d59f98"
+    },
+    {
+      "file": "d32/props/coin.png",
+      "source": "assets/pixel_correction/props/coin.png",
+      "crop": null,
+      "size": [
+        9,
+        11
+      ],
+      "sha256": "375b6eee1644311874065b93a2b244c8eb5b319fc55425d0af705d58f932b3a7"
+    },
+    {
+      "file": "d48/fx/strike_0.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        0,
+        0,
+        362,
+        362
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "58cfcfe9a4cbc90126b99c45b575091954eabfaae347bf59e17565ecc9e43081"
+    },
+    {
+      "file": "d48/fx/strike_1.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        362,
+        0,
+        724,
+        362
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "34a6cb9475239dc8e7501b390d7c86e23fb2a4bd607a791f0fc33a6978db72d9"
+    },
+    {
+      "file": "d48/fx/strike_2.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        724,
+        0,
+        1086,
+        362
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "3db5b0f90b92a20fdcd326e7687b5a8c981dd8ab9de34e791c1f9c15d9490333"
+    },
+    {
+      "file": "d48/fx/strike_3.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        1086,
+        0,
+        1448,
+        362
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "d55a0ef0ebf1bf3ae4a4d0961e6552c9821a9ff40f8ee96c54608387bd959046"
+    },
+    {
+      "file": "d48/fx/dust_0.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        0,
+        362,
+        362,
+        724
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "456d861af940619c17876e6426f3c0e826447f6494040e2e5fd34e6a87e2be9e"
+    },
+    {
+      "file": "d48/fx/dust_1.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        362,
+        362,
+        724,
+        724
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "ea45b0db2b730b8c9c35ed589da8fbef45a4adfa9fc53ad53948da40e3fed4e1"
+    },
+    {
+      "file": "d48/fx/dust_2.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        724,
+        362,
+        1086,
+        724
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "3d948d079bf8204998cb83e42bffcc135732e7bb338eeb87b41d3e0194e7b2e8"
+    },
+    {
+      "file": "d48/fx/dust_3.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        1086,
+        362,
+        1448,
+        724
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "2212591da70e501de75a2832e254cb7cbb85bbfbd41d2ad8dfd32b6800659b3d"
+    },
+    {
+      "file": "d48/fx/water_0.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        0,
+        724,
+        362,
+        1086
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "55a66b367bdefcc7fc68aff836cd7503d9ba416b5841ad1e3283cd2d01c940c5"
+    },
+    {
+      "file": "d48/fx/water_1.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        362,
+        724,
+        724,
+        1086
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "c5884635d5cda3188153c01fbf5d733b5d6e904c8d1af1c6cc04687f46a0bca5"
+    },
+    {
+      "file": "d48/fx/water_2.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        724,
+        724,
+        1086,
+        1086
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "ceb859b71b93378b2e1c0c689cbfcffdbf767e76df10b0e7c6e1f1821bf5f5f5"
+    },
+    {
+      "file": "d48/fx/water_3.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        1086,
+        724,
+        1448,
+        1086
+      ],
+      "size": [
+        48,
+        48
+      ],
+      "sha256": "05cbb8c382539788ad13cf7b82de93050d25430789fff4a2e039fedc2ecd378e"
+    },
+    {
+      "file": "d32/fx/strike_0.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        0,
+        0,
+        362,
+        362
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "2757787bb2885ece257b89d37b7ed953700284c8bca4ed55e564b56b1fe08b36"
+    },
+    {
+      "file": "d32/fx/strike_1.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        362,
+        0,
+        724,
+        362
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "7ef7e05711e348cbac82b3bd56d7de70cfc3c0ab048fa9e559567dfd9ff81ce3"
+    },
+    {
+      "file": "d32/fx/strike_2.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        724,
+        0,
+        1086,
+        362
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "7f059d228cab9af282636c7b5744904170b232666f310db6d367189ec21b7a3e"
+    },
+    {
+      "file": "d32/fx/strike_3.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        1086,
+        0,
+        1448,
+        362
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "ace7ae4347777c85b483dedb701f2cdbeeda4c6d0e9243f4de131d1e411294ab"
+    },
+    {
+      "file": "d32/fx/dust_0.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        0,
+        362,
+        362,
+        724
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "e264df3daecdc949f6b26674cbe2a564e398f9ecfde94c712329da0fde834d1d"
+    },
+    {
+      "file": "d32/fx/dust_1.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        362,
+        362,
+        724,
+        724
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "98d80ad249f06e5be0425d5a8eebbbe2e285deccf56036b6caf6476fd873420b"
+    },
+    {
+      "file": "d32/fx/dust_2.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        724,
+        362,
+        1086,
+        724
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "98a2a6fc199f1da88357569b2ee0031ac74ae82ab42c2dcf890299089cc6b201"
+    },
+    {
+      "file": "d32/fx/dust_3.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        1086,
+        362,
+        1448,
+        724
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "f5db545ea5a6609ad5452942b1d789899276c4d17250e935302b0b13147187ef"
+    },
+    {
+      "file": "d32/fx/water_0.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        0,
+        724,
+        362,
+        1086
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "b05add33d84fdc7be5e4d46c0c67c44ba8925906b8852400397440949d670b10"
+    },
+    {
+      "file": "d32/fx/water_1.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        362,
+        724,
+        724,
+        1086
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "184a2b3d1c7bde2798157c80d71bd97e06d3292c14ed0e423b5defcd7237beaa"
+    },
+    {
+      "file": "d32/fx/water_2.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        724,
+        724,
+        1086,
+        1086
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "a4b4cfa3e6421f3317062fa74c835b5e17ea203c8c6ebba51c7ec021efae75af"
+    },
+    {
+      "file": "d32/fx/water_3.png",
+      "source": "effects_sheet.png",
+      "crop": [
+        1086,
+        724,
+        1448,
+        1086
+      ],
+      "size": [
+        32,
+        32
+      ],
+      "sha256": "99e278a8dad7be7626d63f643f3c12a894517b5f9ac4260a27ce588f563b6093"
+    },
+    {
+      "file": "backgrounds/meadow.png",
+      "source": "meadow_background.png",
+      "crop": null,
+      "size": [
+        768,
+        432
+      ],
+      "sha256": "87db9f6a912065004a169e3e3f88635ee29e02c9b644850e7f150bacb9cd81f2"
+    },
+    {
+      "file": "backgrounds/volcanic.png",
+      "source": "volcanic_background.png",
+      "crop": null,
+      "size": [
+        768,
+        432
+      ],
+      "sha256": "efaf71488180e4216a85db741a509ffe5cd27e59f79f825e0b8ebaf80a328d0a"
+    }
+  ]
+}

@@ -9,6 +9,11 @@ var cycle_duration := 2.0
 var initial_phase := 0.0
 var elapsed := 0.0
 var fall_triggered := false
+var _hazard_ref: WeakRef
+
+
+func follow_hazard(hazard: Node2D) -> void:
+	_hazard_ref = weakref(hazard)
 
 
 func configure(
@@ -31,6 +36,14 @@ func configure(
 
 
 func _process(delta: float) -> void:
+	if hazard_type == &"falling_ice" and _hazard_ref:
+		var hazard := _hazard_ref.get_ref() as MovingHazard
+		if hazard and hazard.fall_state == MovingHazard.FALL_LANDED:
+			visible = false
+			return
+		visible = true
+		if hazard and hazard.fall_state == MovingHazard.FALL_ARMED:
+			fall_triggered = false
 	if hazard_type == &"falling_ice" and fall_triggered:
 		elapsed = minf(elapsed + delta, cycle_duration)
 	else:
@@ -43,6 +56,13 @@ func trigger_drop(_data: Dictionary = {}) -> void:
 		return
 	fall_triggered = true
 	elapsed = 0.0
+	queue_redraw()
+
+
+func reset_for_competitor() -> void:
+	elapsed = 0.0
+	fall_triggered = false
+	visible = true
 	queue_redraw()
 
 
@@ -69,9 +89,8 @@ func _draw_collision_silhouette() -> void:
 	var silhouette := Rect2(-half, region_size)
 	match hazard_type:
 		&"falling_ice":
-			var shadow_points := _ellipse_points(Vector2(half.x * 0.82, half.y * 0.48), 36)
-			draw_colored_polygon(shadow_points, Color("171a21") if fall_triggered else Color(0.07, 0.08, 0.1, 0.72))
-			draw_polyline(shadow_points, Color(danger_color, 0.78), 3.0, true)
+			draw_rect(silhouette, Color(0.07, 0.08, 0.1, 0.60), true)
+			draw_rect(silhouette.grow(-1.5), Color(danger_color, 0.78), false, 3.0)
 		&"rotating_lava_rod", &"rotating_fire_rod", &"pendulum", &"spike_ball":
 			draw_arc(Vector2.ZERO, maxf(region_size.x, region_size.y) * 0.5, 0.0, TAU, 48, Color(danger_color, 0.2), 3.0, true)
 		_:
@@ -80,10 +99,8 @@ func _draw_collision_silhouette() -> void:
 
 func _draw_fall_timing(phase: float) -> void:
 	var warning_phase := phase if fall_triggered else (sin(elapsed * 2.4) + 1.0) * 0.5
-	var radius := lerpf(maxf(region_size.x, region_size.y) * 0.56, maxf(region_size.x, region_size.y) * 0.42, warning_phase)
-	draw_arc(Vector2.ZERO, radius, 0.0, TAU, 36, Color(danger_color, lerpf(0.3, 0.92, warning_phase)), 3.0, true)
-	if fall_triggered and phase >= 0.82:
-		draw_arc(Vector2.ZERO, radius + 7.0, 0.0, TAU, 36, Color("f7fbff"), 3.0, true)
+	var inset := lerpf(12.0, 3.0, warning_phase)
+	draw_rect(Rect2(-region_size * 0.5, region_size).grow(-inset), Color(danger_color, lerpf(0.3, 0.92, warning_phase)), false, 2.0)
 
 
 func _draw_rotation_timing(phase: float) -> void:
@@ -93,15 +110,15 @@ func _draw_rotation_timing(phase: float) -> void:
 	draw_circle(direction * radius, 6.0, Color(danger_color, 0.86))
 
 
-func _draw_pendulum_timing(phase: float) -> void:
-	if path_points.size() < 2:
+func _draw_pendulum_timing(_phase: float) -> void:
+	var hazard := _hazard_ref.get_ref() as Node2D if _hazard_ref else null
+	if not hazard:
 		return
-	var swing := (sin(phase * TAU - PI * 0.5) + 1.0) * 0.5
-	var marker := path_points[0].lerp(path_points[-1], swing)
-	draw_circle(Vector2.ZERO, 6.0, Color(danger_color, 0.86))
-	draw_line(Vector2.ZERO, marker, Color("252a2c"), 4.0, true)
-	draw_circle(marker, 7.0, Color(danger_color, 0.82))
-	draw_circle(marker, 11.0, Color(danger_color, 0.18))
+	var marker := to_local(hazard.global_position)
+	draw_line(Vector2.ZERO, marker, Color("252a2c"), 5.0, true)
+	draw_line(Vector2.ZERO, marker, Color("9b9e92"), 1.5, true)
+	draw_circle(Vector2.ZERO, 7.0, Color("252a2c"))
+	draw_circle(Vector2.ZERO, 3.0, Color("c8c8b9"))
 
 
 func _draw_travel_timing(phase: float) -> void:

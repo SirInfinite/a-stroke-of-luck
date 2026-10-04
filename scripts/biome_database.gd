@@ -13,7 +13,7 @@ static func get_profiles() -> Array:
 		_background(Color("245c3a"), Color("3f7d44"), Color("f2cf5b")),
 		PackedStringArray(["wildflowers", "clover", "shrubs", "buttercups"]),
 		{"water": 4.0, "sand": 2.0, "direction": 1.0, "bounce_pad": 1.0},
-		_difficulty(10, 6, 1, 0),
+		_difficulty(1, 1),
 		&"meadow_breeze"
 	))
 	profiles.append(BiomeProfileScript.new(
@@ -23,7 +23,7 @@ static func get_profiles() -> Array:
 		_background(Color("6b512d"), Color("a77d3e"), Color("f0c45f")),
 		PackedStringArray(["cactus", "rocks", "dry_grass", "sunstone"]),
 		{"sand": 5.0, "water": 1.0, "direction": 2.0, "bounce_pad": 1.5},
-		_difficulty(10, 6, 2, 1),
+		_difficulty(2, 1),
 		&"dry_wind"
 	))
 	profiles.append(BiomeProfileScript.new(
@@ -33,7 +33,7 @@ static func get_profiles() -> Array:
 		_background(Color("442c2a"), Color("6c3e32"), Color("e29a3b")),
 		PackedStringArray(["red_maple", "fallen_leaves", "acorns", "amber_shrub"]),
 		{"water": 2.5, "sand": 2.0, "direction": 2.0, "bounce_pad": 1.5},
-		_difficulty(11, 6, 2, 1),
+		_difficulty(1, 1),
 		&"leaf_rustle"
 	))
 	profiles.append(BiomeProfileScript.new(
@@ -43,27 +43,27 @@ static func get_profiles() -> Array:
 		_background(Color("607785"), Color("8faebb"), Color("eefaff")),
 		PackedStringArray(["pine", "snowdrifts", "ice_crystals", "frost_stones"]),
 		{"ice": 5.0, "water": 2.0, "sand": 1.0, "bounce_pad": 1.0},
-		_difficulty(11, 6, 2, 2),
+		_difficulty(1, 2),
 		&"winter_gust"
 	))
 	profiles.append(BiomeProfileScript.new(
 		&"swamp",
 		"Swamp",
-		_palette(Color("55734a"), Color("405f3d"), Color("3e3526"), Color("89784d"), Color("31553b"), Color("3f7c75"), Color("8f3e45"), Color("718b5f")),
+		_palette(Color("6e8651"), Color("557044"), Color("3e3526"), Color("89784d"), Color("31553b"), Color("3f7c75"), Color("8f3e45"), Color("718b5f")),
 		_background(Color("263a31"), Color("445b3e"), Color("9fbf66")),
 		PackedStringArray(["reeds", "mud_pool", "mushrooms", "lily_pads"]),
 		{"water": 5.0, "sand": 1.5, "direction": 1.5, "bounce_pad": 1.0},
-		_difficulty(11, 7, 3, 2),
+		_difficulty(1, 1),
 		&"swamp_night"
 	))
 	profiles.append(BiomeProfileScript.new(
 		&"volcanic",
 		"Volcanic",
-		_palette(Color("514846"), Color("3b3434"), Color("211d20"), Color("8c6245"), Color("4b3d39"), Color("d55b32"), Color("e13c2d"), Color("a96442")),
+		_palette(Color("70605b"), Color("5a4e52"), Color("41373d"), Color("8c6245"), Color("4b3d39"), Color("d55b32"), Color("e13c2d"), Color("a96442")),
 		_background(Color("211d20"), Color("6f342b"), Color("ff7138")),
 		PackedStringArray(["basalt", "embers", "lava_crack", "smoke_vent"]),
 		{"lava": 5.0, "sand": 1.0, "direction": 1.0, "bounce_pad": 1.5},
-		_difficulty(12, 7, 3, 3),
+		_difficulty(1, 1),
 		&"volcanic_rumble"
 	))
 	return profiles
@@ -79,11 +79,17 @@ static func _palette(
 	danger: Color,
 	direction: Color
 ) -> Dictionary:
+	var checker_b := fairway_a.lerp(fairway_b, 0.42)
+	var putting_a := fairway_a.darkened(0.14)
+	var putting_b := checker_b.darkened(0.14)
 	return {
 		"fairway_a": fairway_a,
-		"fairway_b": fairway_a.lerp(fairway_b, 0.42),
+		"fairway_b": checker_b,
 		"fairway_detail": fairway_a.lightened(0.09),
-		"green": fairway_a.darkened(0.17),
+		"green": putting_a,
+		"green_a": putting_a,
+		"green_b": putting_b,
+		"green_detail": putting_a.lightened(0.12),
 		"tee": fairway_a.lightened(0.24),
 		"border": border,
 		"outline": border.darkened(0.32),
@@ -116,13 +122,11 @@ static func _background(primary: Color, secondary: Color, accent: Color) -> Dict
 	}
 
 
-static func _difficulty(map_width: int, map_height: int, max_bend: int, hazard_bonus: int) -> Dictionary:
+static func _difficulty(section_stretch: int, recovery_radius: int) -> Dictionary:
 	return {
-		"map_width": map_width,
-		"map_height": map_height,
-		"max_bend": max_bend,
-		"hazard_bonus": hazard_bonus,
+		"section_stretch": section_stretch,
+		"recovery_radius": recovery_radius,
 		"lane_radius_easy": 2,
-		"lane_radius_normal": 2,
-		"lane_radius_hard": 1
+		"lane_radius_normal": 1,
+		"lane_radius_hard": 1,
 	}

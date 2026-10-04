@@ -5,6 +5,7 @@ signal hazard_triggered(hazard_type: StringName, intensity: float, position: Vec
 signal body_hit(body: Node2D, hazard_type: StringName, position: Vector2)
 signal telegraph_started(data: Dictionary)
 signal active_state_changed(active: bool)
+signal state_reset
 
 const MIN_PERIOD := 0.6
 const FALL_ARMED := &"armed"
@@ -35,6 +36,9 @@ var fall_elapsed := 0.0
 var visual_node: Node2D
 var _fall_crush_pending := false
 var _fall_trigger_body_ref: WeakRef
+var stable_id := ""
+var _contact_latches: Dictionary = {}
+var _observed_centers: Dictionary = {}
 
 
 func configure(definition: Dictionary) -> void:
@@ -42,6 +46,7 @@ func configure(definition: Dictionary) -> void:
 	elevation = clampi(int(definition.get("elevation", 0)), -1, 1)
 	intensity = maxf(float(definition.get("intensity", 1.0)), 0.0)
 	origin = Vector2(definition.get("pos", Vector2.ZERO))
+	stable_id = String(definition.get("id", "%s/%d/%s" % [hazard_type, elevation, origin]))
 	period = maxf(float(definition.get("period", 2.4)), MIN_PERIOD)
 	phase = wrapf(float(definition.get("phase", 0.0)), 0.0, 1.0)
 	swing_angle = clampf(float(definition.get("swing_angle", 0.9)), 0.15, 1.45)
@@ -58,6 +63,8 @@ func configure(definition: Dictionary) -> void:
 
 
 func setup_collision(size: Vector2, circular := false) -> void:
+	if hazard_type == &"falling_ice":
+		size = Vector2(100, 100)
 	collision_shape = CollisionShape2D.new()
 	if circular:
 		var circle := CircleShape2D.new()
@@ -89,6 +96,8 @@ func set_visual_node(node: Node2D) -> void:
 
 
 func _ready() -> void:
+	if hazard_type == &"pendulum":
+		add_to_group(&"pendulum_contacts")
 	collision_layer = _collision_layer_for_elevation(elevation)
 	collision_mask = 1
 	sync_to_physics = true
@@ -109,6 +118,8 @@ func advance_cycle(delta: float) -> void:
 
 
 func reset_state() -> void:
+	_contact_latches.clear()
+	_observed_centers.clear()
 	elapsed = phase * _cycle_duration()
 	_last_cycle_index = -1
 	fall_elapsed = 0.0
@@ -121,6 +132,74 @@ func reset_state() -> void:
 	_apply_motion_state(0.0)
 	_apply_collision_state()
 	_apply_falling_visual_state()
+	state_reset.emit()
+
+
+static func pendulum_transform(anchor: Vector2, radius: float, arc: float, seconds: float, time: float) -> Transform2D:
+	var angle := sin(fposmod(time, seconds) / seconds * TAU) * arc
+	return Transform2D(angle, anchor + Vector2.DOWN.rotated(angle) * radius)
+
+
+static func relative_contact_fraction(ball_from: Vector2, ball_to: Vector2, mass_from: Vector2, mass_to: Vector2, radius: float) -> float:
+	# Continuous relative travel over one physics step. Starting contact counts;
+	# a fast shot cannot skip an entire circular body between endpoint samples.
+	var relative_from := ball_from - mass_from
+	var relative_to := ball_to - mass_to
+	if relative_from.length_squared() <= radius * radius:
+		return 0.0
+	return GameplayHazard.swept_circle_intersection_fraction(relative_from, relative_to, Vector2.ZERO, radius)
+
+
+func try_swept_contact(body: Node2D, segment_start: Vector2, segment_end: Vector2) -> bool:
+	if hazard_type != &"pendulum" or not collision_shape or not collision_shape.shape is CircleShape2D:
+		return false
+	var key := body.get_instance_id()
+	var current := global_position
+	var previous: Vector2 = _observed_centers.get(key, current)
+	_observed_centers[key] = current
+	if not _body_matches_elevation(body) or (is_inside_tree() and not can_process()):
+		_contact_latches.erase(key)
+		return false
+	var radius := (collision_shape.shape as CircleShape2D).radius + float(body.get_collision_radius())
+	var fraction := relative_contact_fraction(segment_start, segment_end, previous, current, radius)
+	if fraction < 0.0:
+		if segment_end.distance_to(current) > radius + 2.0:
+			_contact_latches.erase(key)
+		return false
+	return register_body_contact(body)
+
+
+func register_body_contact(body: Node2D) -> bool:
+	if not active or not _body_matches_elevation(body) or (is_inside_tree() and not can_process()):
+		return false
+	if ("sunk" in body and body.sunk) or ("simulation_paused" in body and body.simulation_paused):
+		return false
+	var key := body.get_instance_id()
+	if _contact_latches.has(key):
+		return false
+	_contact_latches[key] = true
+	body_hit.emit(body, hazard_type, global_position)
+	return true
+
+
+func get_presentation_state() -> Dictionary:
+	var shape := collision_shape.shape if collision_shape else null
+	var footprint := Vector2.ZERO
+	if shape is CircleShape2D:
+		footprint = Vector2.ONE * shape.radius * 2.0
+	elif shape is RectangleShape2D:
+		footprint = shape.size
+	var fraction := fposmod(elapsed, _cycle_duration()) / _cycle_duration()
+	var angle := sin(fraction * TAU) * swing_angle
+	var velocity := Vector2.DOWN.rotated(angle + PI * 0.5) * (cos(fraction * TAU) * swing_angle * TAU / period * travel_radius) if hazard_type == &"pendulum" else Vector2.ZERO
+	return {"id": stable_id, "type": hazard_type, "elevation": elevation,
+		"anchor": get_parent().to_global(origin) if get_parent() is Node2D else origin,
+		"position": global_position, "orientation": global_rotation, "footprint": footprint,
+		"shape": "circle" if shape is CircleShape2D else "rectangle", "phase": fraction,
+		"initial_phase": phase, "period": _cycle_duration(), "velocity": velocity,
+		"direction": velocity.normalized(), "collision_active": active,
+		"state": fall_state if hazard_type == &"falling_ice" else &"swinging",
+		"paused": is_inside_tree() and not can_process(), "transform": global_transform}
 
 
 func get_telegraph_data() -> Dictionary:
@@ -151,10 +230,9 @@ func get_telegraph_data() -> Dictionary:
 func _apply_motion_state(_delta: float) -> void:
 	match hazard_type:
 		&"pendulum":
-			var cycle_progress := fposmod(elapsed, period) / period
-			var angle := sin(cycle_progress * TAU) * swing_angle
-			position = origin + Vector2.DOWN.rotated(angle) * travel_radius
-			rotation = angle
+			# One atomic write: sync_to_physics rolls a property write back until
+			# the next tick. A following rotation write used to erase translation.
+			transform = pendulum_transform(origin, travel_radius, swing_angle, period, elapsed)
 			_set_active(true)
 		&"rotating_fire_rod":
 			position = origin
@@ -206,7 +284,10 @@ func _on_detector_body_entered(body: Node2D) -> void:
 		return
 	if not active:
 		return
-	body_hit.emit(body, hazard_type, global_position)
+	if hazard_type == &"pendulum":
+		register_body_contact(body)
+	else:
+		body_hit.emit(body, hazard_type, global_position)
 
 
 func _trigger_falling_ice(trigger_body: Node2D) -> void:

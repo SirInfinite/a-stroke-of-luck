@@ -1,0 +1,333 @@
+{
+  "method": "Complete original objects; binary alpha; centered uniform fit; nearest-neighbor export; no clipped-source padding workaround",
+  "cards": [
+    {
+      "id": "overdrive_driver",
+      "origin": "recovered pixel_correction cartoon drawing",
+      "source": "assets/presentation/cards/source/originals/overdrive_driver.png",
+      "source_size": [
+        627,
+        627
+      ],
+      "source_bounds": [
+        29,
+        29,
+        599,
+        616
+      ],
+      "source_sha256": "577ecd579357d8f559e4a936be390f92cc26520674c5ab19d7ae1d1eb254601c",
+      "master": "assets/presentation/cards/source/overdrive_driver.png",
+      "master_size": [
+        1024,
+        1024
+      ],
+      "master_bounds": [
+        77,
+        64,
+        947,
+        960
+      ],
+      "master_sha256": "cce30a7196df5f0314a588fba53b873cfa8ae889d414fab1469b51d6bfd262e0",
+      "runtime": "assets/presentation/cards/overdrive_driver.png",
+      "runtime_size": [
+        80,
+        80
+      ],
+      "runtime_bounds": [
+        6,
+        5,
+        74,
+        75
+      ],
+      "runtime_sha256": "33464bf6046949607d5190c58e789c0704a26c2ccf5ad96458133d0595f3f277",
+      "runtime_bytes": 5648
+    },
+    {
+      "id": "rangefinder_lens",
+      "origin": "recovered pixel_correction cartoon drawing",
+      "source": "assets/presentation/cards/source/originals/rangefinder_lens.png",
+      "source_size": [
+        627,
+        627
+      ],
+      "source_bounds": [
+        29,
+        72,
+        608,
+        577
+      ],
+      "source_sha256": "93623f70435dba250d7ea1bf5cc64d4afbb7e3283874312d8e86956bfe0073d9",
+      "master": "assets/presentation/cards/source/rangefinder_lens.png",
+      "master_size": [
+        1024,
+        1024
+      ],
+      "master_bounds": [
+        64,
+        121,
+        960,
+        902
+      ],
+      "master_sha256": "426f249f417ca5c9423af216f31aa4ac044686464d83ad3cef245402a96b78fb",
+      "runtime": "assets/presentation/cards/rangefinder_lens.png",
+      "runtime_size": [
+        80,
+        80
+      ],
+      "runtime_bounds": [
+        5,
+        9,
+        75,
+        70
+      ],
+      "runtime_sha256": "5f1af754bbd1ec4331085e4ba5c5211c8945216bcbb9d972d6eaf0556e77ce68",
+      "runtime_bytes": 7263
+    },
+    {
+      "id": "sand_cleats",
+      "origin": "recovered pixel_correction cartoon drawing",
+      "source": "assets/presentation/cards/source/originals/sand_cleats.png",
+      "source_size": [
+        627,
+        627
+      ],
+      "source_bounds": [
+        19,
+        85,
+        608,
+        616
+      ],
+      "source_sha256": "45c05dbbae71d1ed9f79b7c4bbae05957339d879c54650714cd9f4e5747af2d8",
+      "master": "assets/presentation/cards/source/sand_cleats.png",
+      "master_size": [
+        1024,
+        1024
+      ],
+      "master_bounds": [
+        64,
+        108,
+        960,
+        916
+      ],
+      "master_sha256": "7cb745716c6616cf00268432835297686b7ec7d630269dc7416d10cb0dcd6bba",
+      "runtime": "assets/presentation/cards/sand_cleats.png",
+      "runtime_size": [
+        80,
+        80
+      ],
+      "runtime_bounds": [
+        5,
+        8,
+        75,
+        71
+      ],
+      "runtime_sha256": "9205461074f0b0918ea91375d28ebfddf1077ef68f40c48b446a0570ac524af6",
+      "runtime_bytes": 6573
+    },
+    {
+      "id": "heavy_core",
+      "origin": "new original matching cartoon illustration",
+      "source": "assets/presentation/cards/source/originals/heavy_core.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_bounds": [
+        97,
+        125,
+        1177,
+        1179
+      ],
+      "source_sha256": "ff9e068cfa25951435ccfb5ac19c168bb74561f66112050ff355bb55cddb1413",
+      "master": "assets/presentation/cards/source/heavy_core.png",
+      "master_size": [
+        1024,
+        1024
+      ],
+      "master_bounds": [
+        64,
+        75,
+        960,
+        949
+      ],
+      "master_sha256": "07d72c51f0cae2a39559fe9ca1fb60fa95c41e6d34b38355bc7cbd5ad61e8d45",
+      "runtime": "assets/presentation/cards/heavy_core.png",
+      "runtime_size": [
+        80,
+        80
+      ],
+      "runtime_bounds": [
+        5,
+        6,
+        75,
+        74
+      ],
+      "runtime_sha256": "8a46901d69d39ab1c56ce67b5abc4ae467a53c53c578ab16b1de6da53191b268",
+      "runtime_bytes": 7468
+    },
+    {
+      "id": "lucky_putter",
+      "origin": "new original matching cartoon illustration",
+      "source": "assets/presentation/cards/source/originals/lucky_putter.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_bounds": [
+        81,
+        116,
+        1173,
+        1167
+      ],
+      "source_sha256": "9b5c8a0566ecc349201a351d9466279c335ca5c9cc21fe0d0f81e4cdeb3092e4",
+      "master": "assets/presentation/cards/source/lucky_putter.png",
+      "master_size": [
+        1024,
+        1024
+      ],
+      "master_bounds": [
+        64,
+        81,
+        960,
+        943
+      ],
+      "master_sha256": "33aa732b5f2084fa3c6dc40f9c584464cad93704c535cd5df6a932f5cc7bbd15",
+      "runtime": "assets/presentation/cards/lucky_putter.png",
+      "runtime_size": [
+        80,
+        80
+      ],
+      "runtime_bounds": [
+        5,
+        6,
+        75,
+        73
+      ],
+      "runtime_sha256": "ea74f49d118da1121224ef06065d11abab00f673c609a133ad73325f04885182",
+      "runtime_bytes": 5764
+    },
+    {
+      "id": "power_club",
+      "origin": "new original matching cartoon illustration",
+      "source": "assets/presentation/cards/source/originals/power_club.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_bounds": [
+        41,
+        120,
+        1212,
+        1182
+      ],
+      "source_sha256": "1a0caa70f767531e3a1288959bc84e98c67b99e6b76a6609c590919c2da9978b",
+      "master": "assets/presentation/cards/source/power_club.png",
+      "master_size": [
+        1024,
+        1024
+      ],
+      "master_bounds": [
+        64,
+        105,
+        960,
+        918
+      ],
+      "master_sha256": "3aedebf4d620da32cdb1a8473e032364b1e7ffab3e95331e11e8a01c57ce2f94",
+      "runtime": "assets/presentation/cards/power_club.png",
+      "runtime_size": [
+        80,
+        80
+      ],
+      "runtime_bounds": [
+        5,
+        8,
+        75,
+        71
+      ],
+      "runtime_sha256": "7128be2d4de08568c58f369ffeade33985f96e60d7bb148eb20b6bf3095402e4",
+      "runtime_bytes": 4841
+    },
+    {
+      "id": "coin_magnet",
+      "origin": "recovered pixel_correction cartoon drawing",
+      "source": "assets/presentation/cards/source/originals/coin_magnet.png",
+      "source_size": [
+        627,
+        627
+      ],
+      "source_bounds": [
+        29,
+        29,
+        598,
+        577
+      ],
+      "source_sha256": "b78909ad0a90b99db19e3c898dc93049344ec4d99e73733742fd98b1d5894e2c",
+      "master": "assets/presentation/cards/source/coin_magnet.png",
+      "master_size": [
+        1024,
+        1024
+      ],
+      "master_bounds": [
+        64,
+        80,
+        960,
+        943
+      ],
+      "master_sha256": "dcf45bb91b1c999b066dba557fcae72fea28e41ed1c09cc34343405f7c86f49f",
+      "runtime": "assets/presentation/cards/coin_magnet.png",
+      "runtime_size": [
+        80,
+        80
+      ],
+      "runtime_bounds": [
+        5,
+        6,
+        75,
+        73
+      ],
+      "runtime_sha256": "e8002d43ad0b2232082049cda7234644ca75ef28318893777c6fd9aae4ddb3c9",
+      "runtime_bytes": 6569
+    },
+    {
+      "id": "gust_guard",
+      "origin": "new original matching cartoon illustration",
+      "source": "assets/presentation/cards/source/originals/gust_guard.png",
+      "source_size": [
+        1254,
+        1254
+      ],
+      "source_bounds": [
+        57,
+        157,
+        1220,
+        1160
+      ],
+      "source_sha256": "d70d114a6a83d0c90db91d7ac8f9cd4361bb8309406e9e9058c0d874c4624d30",
+      "master": "assets/presentation/cards/source/gust_guard.png",
+      "master_size": [
+        1024,
+        1024
+      ],
+      "master_bounds": [
+        64,
+        125,
+        960,
+        898
+      ],
+      "master_sha256": "d44ae08bd12c3afd7ecb7d57e2dcebd362204be8f4dec7c6aa2f0226d9493ad9",
+      "runtime": "assets/presentation/cards/gust_guard.png",
+      "runtime_size": [
+        80,
+        80
+      ],
+      "runtime_bounds": [
+        5,
+        10,
+        75,
+        70
+      ],
+      "runtime_sha256": "1d0c0d6ceac9a9d24bd7dbd0fe55b1761a38701961b3064dbb8fe8c9722bfd2d",
+      "runtime_bytes": 6285
+    }
+  ]
+}

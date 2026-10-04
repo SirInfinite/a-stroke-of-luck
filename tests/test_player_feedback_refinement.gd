@@ -50,8 +50,10 @@ func test_history_selector_exposes_played_holes_and_locks_future_holes() -> void
 	assert_signal_emitted(selector, "selection_changed")
 	assert_eq(selector.selected_hole, 1)
 	selector.set_expanded(true)
-	assert_true(selector.reel.visible)
-	assert_gt(selector.custom_minimum_size.y, 200.0)
+	assert_true(selector.next_label.visible)
+	assert_eq(selector.next_label.text, "02/18")
+	assert_false(selector.previous_label.visible)
+	assert_lt(selector.custom_minimum_size.y, 200.0, "Compact nested reel does not expand into a menu")
 
 
 func test_settings_round_trip_and_screen_only_exposes_live_options() -> void:
@@ -69,6 +71,7 @@ func test_settings_round_trip_and_screen_only_exposes_live_options() -> void:
 	settings.aim_sensitivity = 1.45
 	settings.trajectory_visible = false
 	settings.reduced_motion = true
+	settings.last_difficulty = &"hard"
 	assert_eq(settings.save_to(save_path), OK)
 
 	var loaded = GameSettingsScript.new()
@@ -85,6 +88,7 @@ func test_settings_round_trip_and_screen_only_exposes_live_options() -> void:
 	assert_almost_eq(loaded.aim_sensitivity, 1.45, 0.001)
 	assert_false(loaded.trajectory_visible)
 	assert_true(loaded.reduced_motion)
+	assert_eq(loaded.last_difficulty, &"hard")
 
 	var root := Node.new()
 	add_child_autofree(root)
@@ -97,6 +101,21 @@ func test_settings_round_trip_and_screen_only_exposes_live_options() -> void:
 	assert_not_null(screen.master_slider)
 	assert_not_null(screen.shoot_binding_button)
 	assert_not_null(screen.trajectory_toggle)
+
+	loaded.apply_runtime(false)
+	var shoot_events := InputMap.action_get_events(&"shoot")
+	var reset_events := InputMap.action_get_events(&"reset_level")
+	assert_eq(shoot_events.size(), 1)
+	assert_eq(reset_events.size(), 1)
+	assert_eq((shoot_events[0] as InputEventKey).keycode, KEY_ENTER)
+	assert_eq((reset_events[0] as InputEventKey).keycode, KEY_BACKSPACE)
+	var master_bus := AudioServer.get_bus_index(&"Master")
+	var music_bus := AudioServer.get_bus_index(&"Music")
+	assert_gte(master_bus, 0)
+	assert_gte(music_bus, 0)
+	assert_almost_eq(AudioServer.get_bus_volume_db(master_bus), linear_to_db(0.64), 0.01)
+	assert_true(AudioServer.is_bus_mute(music_bus))
+	GameSettingsScript.new().apply_runtime(false)
 	DirAccess.remove_absolute(ProjectSettings.globalize_path(save_path))
 
 
@@ -105,6 +124,10 @@ func test_seed_input_validation_and_full_run_replay_are_deterministic() -> void:
 	assert_false(SeedCodecScript.parse_seed("luck").valid)
 	assert_false(SeedCodecScript.parse_seed("0").valid)
 	assert_false(SeedCodecScript.parse_seed("2147483648").valid)
+	var blank := SeedCodecScript.parse_optional_seed("")
+	assert_true(blank.valid)
+	assert_true(blank.random)
+	assert_eq(blank.value, 0)
 	var parsed := SeedCodecScript.parse_seed(" 486271 ")
 	assert_true(parsed.valid)
 	assert_eq(parsed.value, 486271)
@@ -158,30 +181,35 @@ func test_elevation_treatment_promotes_only_the_active_layer() -> void:
 		return
 	var raised_elevation := int(raised_surface.get_meta(&"elevation"))
 	builder.set_active_elevation(0)
-	assert_eq(base_surface.self_modulate, Color.WHITE)
-	assert_ne(raised_surface.self_modulate, Color.WHITE)
+	assert_eq(base_surface.modulate, Color.WHITE)
+	assert_ne(raised_surface.modulate, Color.WHITE)
 	builder.set_active_elevation(raised_elevation)
-	assert_ne(base_surface.self_modulate, Color.WHITE)
-	assert_eq(raised_surface.self_modulate, Color.WHITE)
+	assert_ne(base_surface.modulate, Color.WHITE)
+	assert_eq(raised_surface.modulate, Color.WHITE)
 
 
 func test_biome_surface_assets_and_ambience_follow_release_contract() -> void:
 	for profile in BiomeDatabaseScript.get_profiles():
 		assert_lt(Color(profile.terrain_palette.green).get_luminance(), Color(profile.terrain_palette.fairway_a).get_luminance())
-	var putting_surface := CourseVisualFactoryScript.create_green_patch(Color("406b46"), Color("18251c"), 28.0)
-	assert_not_null(putting_surface.get_node_or_null("BiomePuttingTile"))
-	assert_null(putting_surface.get_node_or_null("GreenShadow"))
-	putting_surface.free()
+		assert_true(profile.terrain_palette.has("green_a"))
+		assert_true(profile.terrain_palette.has("green_b"))
+		assert_ne(profile.terrain_palette.green_a, profile.terrain_palette.green_b)
 	var flag := CourseVisualFactoryScript.create_flag(Color.RED, Color.BLACK)
+	add_child_autofree(flag)
 	assert_null(flag.get_node_or_null("FlagShadow"))
 	assert_not_null(flag.get_node_or_null("Pole"))
 	assert_not_null(flag.get_node_or_null("Flag"))
-	flag.free()
+	var flag_sprite := flag.get_node("Flag") as Sprite2D
+	assert_true(flag_sprite.texture.resource_path.begins_with("res://assets/world/objects/flag_"))
+	assert_eq(flag_sprite.texture_filter, CanvasItem.TEXTURE_FILTER_NEAREST)
+	assert_eq(flag_sprite.position.y + flag_sprite.texture.get_height() * flag_sprite.scale.y, 0.0, "The illustrated pole ends at the native cup origin.")
 
 	var ambience = BiomeAmbienceScript.new()
-	add_child_autofree(ambience)
 	ambience.configure(&"volcanic_rumble", Color("542d27"), Color("ff7138"), Vector2(1200, 800), Vector2(7600, 4600), 992)
-	assert_eq(ambience.static_details.size(), BiomeAmbienceScript.STATIC_DETAIL_COUNT)
+	add_child_autofree(ambience)
+	assert_eq(ambience.landscape.size(), BiomeAmbienceScript.LANDSCAPE_GROUPS)
+	assert_gt(ambience.static_details.size(), 0)
 	assert_eq(ambience.particles.size(), BiomeAmbienceScript.PARTICLE_COUNT)
 	assert_gte(ambience.surround_size.x, 7600.0)
 	assert_gte(ambience.surround_size.y, 4600.0)
+	assert_eq(ambience.get_child_count(), ambience.static_details.size(), "Each fixed scenery contact has one original illustrated object.")

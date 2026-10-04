@@ -148,7 +148,7 @@ func test_validator_rejects_duplicate_moving_hazard_anchor_regions() -> void:
 			{
 				"type": "falling_ice",
 				"pos": Vector2.ZERO,
-				"size": Vector2(72.0, 72.0),
+				"size": Vector2(100.0, 100.0),
 				"period": 3.0,
 				"phase": 0.5,
 				"blocks_main_route": false,

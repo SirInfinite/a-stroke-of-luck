@@ -3,6 +3,8 @@ extends RigidBody2D
 const TrajectoryPredictorScript := preload("res://scripts/trajectory_predictor.gd")
 const CourseVisualFactory := preload("res://scripts/course_visual_factory.gd")
 const TrajectoryRendererScript := preload("res://scripts/trajectory_renderer.gd")
+const Motion := preload("res://scripts/ball_motion.gd")
+const PowerColors := preload("res://scripts/ui/power_palette.gd")
 
 signal shot_finished
 signal shot_started(position: Vector2, direction: Vector2, power: float)
@@ -55,6 +57,8 @@ var sunk := false
 var power_gradient: Gradient
 var shot_in_progress := false
 var stopped_frames := 0
+var external_controlled := false
+var opponent_ring: Line2D
 var keyboard_active := false
 var keyboard_direction := Vector2.RIGHT
 var keyboard_power := 0.35
@@ -80,6 +84,17 @@ var _active_ice_sources: Dictionary = {}
 var _last_wall_impact_time_msec := -1000000
 var _trajectory_primary_color := POWER_LOW_COLOR
 var _trajectory_backing_color := Color(0.145, 0.165, 0.173, 0.58)
+var _previous_physics_position := Vector2.ZERO
+var _sink_generation := 0
+var _wall_sweep_origin := Vector2.ZERO
+var _wall_sweep_elevation := 0
+var wall_sweep_corrections := 0
+var _wall_step_velocity := Vector2.ZERO
+var _reset_pending := false
+var _reset_transform := Transform2D.IDENTITY
+var _forecast_surfaces: Array[Dictionary] = []
+var _forecast_sand_damping := 0.0
+var _forecast_sand_entry_scale := 1.0
 
 
 func _ready() -> void:
@@ -88,6 +103,7 @@ func _ready() -> void:
 	base_keyboard_turn_speed = keyboard_turn_speed
 	contact_monitor = true
 	max_contacts_reported = 8
+	body_entered.connect(_on_physical_body_entered)
 	_update_elevation_collision_mask()
 	_create_ball_art()
 	keyboard_power = keyboard_starting_power
@@ -98,19 +114,22 @@ func _ready() -> void:
 	aim_line.set_as_top_level(true)
 	aim_line_backing.set_as_top_level(true)
 	trajectory_prediction_changed.connect(trajectory_renderer.set_prediction_data)
+	_previous_physics_position = global_position
+	_wall_sweep_origin = global_position
 
 
 func _create_ball_art() -> void:
 	for child in ball_art.get_children():
 		child.free()
 
-	_add_ball_circle(BALL_OUTLINE_RADIUS + 1.4, Color(0.02, 0.025, 0.03, 0.36), Vector2(3.0, 4.0))
-	_add_ball_circle(BALL_OUTLINE_RADIUS, BALL_OUTLINE_COLOR)
-	_add_ball_circle(BALL_VISUAL_RADIUS, Color("eef1f2"))
-	_add_ball_circle(11.2, Color(0.52, 0.58, 0.62, 0.16), Vector2(1.8, 2.1))
-	_add_ball_circle(8.8, Color(1.0, 1.0, 1.0, 0.28), Vector2(-2.6, -2.8))
-	_add_ball_circle(4.6, Color(1.0, 1.0, 1.0, 0.25), Vector2(-4.5, -4.2))
-	_add_honeycomb_dimples()
+	# Ball-only art: LevelBuilder owns the single stationary tee beneath it.
+	# Match the collider diameter without moving the authoritative body/origin.
+	var sprite := Sprite2D.new()
+	sprite.name = "BallSprite"
+	sprite.texture = preload("res://assets/world/objects/ball.png")
+	sprite.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	sprite.scale = Vector2.ONE * get_collision_radius() * 2.0 / sprite.texture.get_width()
+	ball_art.add_child(sprite)
 
 
 func _add_ball_circle(radius: float, color: Color, offset := Vector2.ZERO) -> void:
@@ -154,7 +173,7 @@ func _on_input_event(_viewport: Viewport, event: InputEvent, _shape_idx: int) ->
 
 
 func _input(event: InputEvent) -> void:
-	if sunk or simulation_paused:
+	if external_controlled or sunk or simulation_paused:
 		return
 
 	if event.is_action_pressed("shoot") or event.is_action_pressed("ui_accept"):
@@ -182,8 +201,17 @@ func _process(delta: float) -> void:
 
 
 func _physics_process(_delta: float) -> void:
+	var current_physics_position := global_position
+	if not simulation_paused and not sunk and not _reset_pending:
+		for mover in get_tree().get_nodes_in_group(&"pendulum_contacts"):
+			if mover.get_world_2d() == get_world_2d():
+				if mover.try_swept_contact(self, _previous_physics_position, current_physics_position):
+					break
 	if simulation_paused or not shot_in_progress:
+		_previous_physics_position = current_physics_position
 		return
+	_process_bounce_pad_sweep(_previous_physics_position, current_physics_position)
+	_previous_physics_position = global_position
 
 	if _is_stopped():
 		stopped_frames += 1
@@ -192,6 +220,13 @@ func _physics_process(_delta: float) -> void:
 
 	if stopped_frames >= stopped_frames_required:
 		_finish_shot()
+
+
+func _on_physical_body_entered(body: Node) -> void:
+	# Native CCD can stop at contact without overlapping the hazard's Area2D.
+	# Both paths report through the same latched semantic event.
+	if body is MovingHazard and body.hazard_type == &"pendulum":
+		body.register_body_contact(self)
 
 
 func shoot(impulse: Vector2) -> void:
@@ -209,6 +244,9 @@ func shoot(impulse: Vector2) -> void:
 		impulse.normalized(),
 		clampf(impulse.length() / maxf(_effective_max_impulse(), 1.0), 0.0, 1.0)
 	)
+	_wall_sweep_origin = global_position
+	_wall_sweep_elevation = current_elevation
+	_wall_step_velocity = linear_velocity + impulse / mass
 	apply_central_impulse(impulse)
 
 
@@ -283,6 +321,7 @@ func set_gameplay_simulation_paused(paused: bool) -> void:
 
 
 func reset_to(new_position: Vector2, new_elevation := 0, place_on_tee := true) -> void:
+	cancel_sink_animation()
 	selected = false
 	sunk = false
 	shot_in_progress = false
@@ -294,6 +333,13 @@ func reset_to(new_position: Vector2, new_elevation := 0, place_on_tee := true) -
 	linear_velocity = Vector2.ZERO
 	angular_velocity = 0.0
 	position = new_position
+	_reset_transform = global_transform
+	_reset_pending = true
+	sleeping = false
+	_previous_physics_position = global_position
+	_wall_sweep_origin = global_position
+	_wall_sweep_elevation = new_elevation
+	_wall_step_velocity = Vector2.ZERO
 	on_tee = place_on_tee
 	set_current_elevation(new_elevation)
 	_active_ice_sources.clear()
@@ -331,13 +377,24 @@ func is_on_ice() -> bool:
 	return not _active_ice_sources.is_empty()
 
 
-func redirect_from_bounce_pad(outgoing_velocity: Vector2) -> bool:
+func redirect_from_bounce_pad(
+	outgoing_velocity: Vector2,
+	pad_center := Vector2.ZERO,
+	exit_distance := 0.0
+) -> bool:
 	if simulation_paused or sunk or not shot_in_progress or outgoing_velocity.is_zero_approx():
 		return false
+	if exit_distance > 0.0:
+		var exit_target := pad_center + outgoing_velocity.normalized() * exit_distance
+		var separation := Motion.sweep(get_rid(), global_transform, exit_target - global_position, 1.0)
+		global_position = separation.position
 	linear_velocity = outgoing_velocity
+	_wall_step_velocity = outgoing_velocity
 	angular_velocity = 0.0
 	sleeping = false
 	stopped_frames = 0
+	_previous_physics_position = global_position
+	_wall_sweep_origin = global_position
 	return true
 
 
@@ -345,16 +402,58 @@ func get_motion_speed() -> float:
 	return linear_velocity.length()
 
 
+func get_collision_radius() -> float:
+	if not collision_shape or not collision_shape.shape is CircleShape2D:
+		return BALL_VISUAL_RADIUS
+	var circle := collision_shape.shape as CircleShape2D
+	return circle.radius * maxf(absf(global_scale.x), absf(global_scale.y))
+
+
 func is_motion_active() -> bool:
 	return shot_in_progress and not sunk and not simulation_paused
 
 
+func _process_bounce_pad_sweep(segment_start: Vector2, segment_end: Vector2) -> bool:
+	if segment_start.is_equal_approx(segment_end):
+		return false
+	var closest_pad: Node = null
+	var closest_fraction := INF
+	for candidate in get_tree().get_nodes_in_group(GameplayHazard.BOUNCE_PAD_GROUP):
+		var pad := candidate as Node
+		if not pad or not pad.has_method("swept_intersection_fraction"):
+			continue
+		var hit_fraction := float(pad.call(
+			"swept_intersection_fraction",
+			self,
+			segment_start,
+			segment_end
+		))
+		if hit_fraction < 0.0 or hit_fraction >= closest_fraction:
+			continue
+		closest_fraction = hit_fraction
+		closest_pad = pad
+	if not closest_pad:
+		return false
+	return bool(closest_pad.call("try_swept_bounce", self, segment_start, segment_end))
+
+
 func sink_to(hole_position: Vector2) -> void:
-	call_deferred("_apply_sink_to", hole_position)
+	cancel_sink_animation()
+	call_deferred("_apply_sink_to", hole_position, _sink_generation)
 
 
 func sink_for_reset(hazard_position: Vector2) -> void:
-	call_deferred("_apply_hazard_sink", hazard_position)
+	cancel_sink_animation()
+	call_deferred("_apply_hazard_sink", hazard_position, _sink_generation)
+
+
+func cancel_sink_animation() -> void:
+	# Invalidate deferred starts as well as a tween that is already running.
+	# Main owns outcome cancellation; the ball owns its animation lifetime.
+	_sink_generation += 1
+	if _active_transition_tween and _active_transition_tween.is_valid():
+		_active_transition_tween.kill()
+	_active_transition_tween = null
 
 
 func _create_gameplay_transition_tween() -> Tween:
@@ -364,7 +463,9 @@ func _create_gameplay_transition_tween() -> Tween:
 	return _active_transition_tween
 
 
-func _apply_sink_to(hole_position: Vector2) -> void:
+func _apply_sink_to(hole_position: Vector2, generation: int) -> void:
+	if generation != _sink_generation:
+		return
 	if shot_in_progress:
 		_finish_shot(false)
 
@@ -381,15 +482,12 @@ func _apply_sink_to(hole_position: Vector2) -> void:
 	tween.set_parallel(true)
 	tween.tween_property(self, "position", hole_position, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "scale", Vector2.ZERO, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	await tween.finished
-	if _active_transition_tween == tween:
-		_active_transition_tween = null
-
-	visible = false
-	sink_animation_finished.emit()
+	tween.finished.connect(_finish_sink_animation.bind(generation, false), CONNECT_ONE_SHOT)
 
 
-func _apply_hazard_sink(hazard_position: Vector2) -> void:
+func _apply_hazard_sink(hazard_position: Vector2, generation: int) -> void:
+	if generation != _sink_generation:
+		return
 	if shot_in_progress:
 		_finish_shot(false)
 
@@ -406,12 +504,18 @@ func _apply_hazard_sink(hazard_position: Vector2) -> void:
 	tween.set_parallel(true)
 	tween.tween_property(self, "position", hazard_position, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
 	tween.tween_property(self, "scale", Vector2.ZERO, sink_animation_duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
-	await tween.finished
-	if _active_transition_tween == tween:
-		_active_transition_tween = null
+	tween.finished.connect(_finish_sink_animation.bind(generation, true), CONNECT_ONE_SHOT)
 
+
+func _finish_sink_animation(generation: int, is_hazard: bool) -> void:
+	if generation != _sink_generation:
+		return
+	_active_transition_tween = null
 	visible = false
-	hazard_sink_finished.emit()
+	if is_hazard:
+		hazard_sink_finished.emit()
+	else:
+		sink_animation_finished.emit()
 
 
 func can_shoot() -> bool:
@@ -458,12 +562,16 @@ func _drag_vector() -> Vector2:
 
 
 func _select_if_mouse_is_on_ball() -> void:
+	if external_controlled:
+		return
 	if can_shoot() and global_position.distance_to(get_global_mouse_position()) <= drag_pick_radius:
 		selected = true
 		keyboard_active = false
 
 
 func _handle_keyboard_aim(delta: float) -> void:
+	if external_controlled:
+		return
 	if selected or not can_shoot():
 		return
 
@@ -491,13 +599,13 @@ func _update_previews() -> void:
 
 func _update_shot_previews(power_line: Vector2, impulse: Vector2) -> void:
 	var power: float = clampf(impulse.length() / _effective_max_impulse(), 0.0, 1.0)
-	var power_color := _trajectory_primary_color.lerp(POWER_HIGH_COLOR, power)
+	var power_color := PowerColors.color_at(power)
 
 	aim_line.global_position = Vector2.ZERO
 	aim_line.points = PackedVector2Array([global_position, global_position + power_line])
 	aim_line_backing.global_position = Vector2.ZERO
 	aim_line_backing.points = aim_line.points
-	power_gradient.set_color(0, _trajectory_primary_color)
+	power_gradient.set_color(0, PowerColors.LOW)
 	power_gradient.set_color(1, power_color)
 	aim_line.visible = not power_line.is_zero_approx()
 	aim_line_backing.visible = aim_line.visible
@@ -526,6 +634,10 @@ func _hide_previews() -> void:
 
 
 func configure_level(level: Dictionary) -> void:
+	_forecast_surfaces.clear()
+	for hazard: Dictionary in level.get("hazards", []):
+		if hazard.get("type", "") in ["sand", "ice"]:
+			_forecast_surfaces.append({"type": hazard.type, "rect": Rect2(hazard.pos - hazard.size * 0.5, hazard.size), "elevation": int(hazard.get("elevation", 0)), "intensity": float(hazard.get("intensity", 0.22))})
 	var trajectory_style := CourseVisualFactory.trajectory_style(
 		level.get("terrain_palette", {}),
 		level.get("background_palette", {})
@@ -546,14 +658,25 @@ func get_trajectory_prediction(impulse: Vector2) -> Dictionary:
 		global_position,
 		impulse,
 		mass,
-		linear_damp,
+		linear_damp + (float(ProjectSettings.get_setting("physics/2d/default_linear_damp", 0.1)) if linear_damp_mode == DAMP_MODE_COMBINE else 0.0),
 		stopped_speed,
 		trajectory_dot_spacing,
 		trajectory_min_dot_count,
 		_effective_trajectory_dot_count(),
-		1.0 / float(Engine.physics_ticks_per_second),
-		trajectory_max_prediction_time
+		(Engine.time_scale if external_controlled else 1.0) / float(Engine.physics_ticks_per_second),
+		maxf(trajectory_max_prediction_time, 60.0),
+		RID(), # Player aid is deliberately straight-only, not a bank solver.
+		stopped_frames_required,
+		physics_material_override.bounce if physics_material_override else 0.0,
+		physics_material_override.friction if physics_material_override else 1.0,
+		{"surfaces": _forecast_surfaces, "normal_damp": get_normal_linear_damp(), "sand_damp": _forecast_sand_damping,
+		"sand_entry_scale": _forecast_sand_entry_scale, "radius": get_collision_radius(), "elevation": current_elevation,
+		"world_damp": float(ProjectSettings.get_setting("physics/2d/default_linear_damp", 0.1)) if linear_damp_mode == DAMP_MODE_COMBINE else 0.0} if not _forecast_surfaces.is_empty() else {}
 	)
+
+func configure_prediction_terrain(sand_damping: float, sand_entry_scale: float) -> void:
+	_forecast_sand_damping = sand_damping
+	_forecast_sand_entry_scale = sand_entry_scale
 
 
 func get_trajectory_prediction_for_power(direction: Vector2, power: float) -> Dictionary:
@@ -578,6 +701,44 @@ func _effective_max_impulse() -> float:
 	return max_impulse * impulse_multiplier
 
 
+func set_external_control(enabled: bool, accent := Color.WHITE) -> void:
+	external_controlled = enabled
+	keyboard_active = false
+	selected = false
+	if not opponent_ring:
+		opponent_ring = Line2D.new()
+		opponent_ring.name = "OpponentRing"
+		opponent_ring.width = 2.5
+		for index in 33:
+			opponent_ring.add_point(Vector2.RIGHT.rotated(TAU * index / 32.0) * 16.0)
+		ball_art.add_child(opponent_ring)
+	opponent_ring.default_color = accent
+	opponent_ring.visible = enabled
+
+
+func set_external_aim(direction: Vector2, power: float) -> void:
+	if external_controlled and can_shoot():
+		keyboard_direction = direction.normalized()
+		keyboard_power = clampf(power, 0.0, 1.0)
+		keyboard_active = true
+
+
+func shoot_normalized(direction: Vector2, power: float) -> bool:
+	if not can_shoot() or not direction.is_finite() or direction.is_zero_approx() or not is_finite(power) or power <= 0.0:
+		return false
+	shoot(direction.normalized() * clampf(power, 0.0, 1.0) * _effective_max_impulse())
+	return true
+
+
+func shot_parameters() -> Dictionary:
+	return {"max_impulse": _effective_max_impulse(), "mass": mass,
+		"normal_damp": get_normal_linear_damp(), "world_damp": float(ProjectSettings.get_setting("physics/2d/default_linear_damp", 0.1)),
+		"sand_damp": _forecast_sand_damping, "sand_entry_scale": _forecast_sand_entry_scale,
+		"stop_speed": stopped_speed, "stop_frames": stopped_frames_required,
+		"radius": get_collision_radius(), "bounce": physics_material_override.bounce if physics_material_override else 0.0,
+		"friction": physics_material_override.friction if physics_material_override else 1.0}
+
+
 func _effective_max_drag_distance() -> float:
 	return max_drag_distance * drag_multiplier
 
@@ -598,8 +759,53 @@ func _finish_shot(emit_stopped_event := true) -> void:
 
 
 func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
-	if simulation_paused or not shot_in_progress:
+	if _reset_pending:
+		# A reset requested during physics_frame can otherwise be overwritten by
+		# the previous body's server transform. Commit it at the physics boundary.
+		state.transform = _reset_transform
+		state.linear_velocity = _wall_step_velocity if shot_in_progress else Vector2.ZERO
+		state.angular_velocity = 0.0
+		_reset_pending = false
+		_wall_sweep_origin = state.transform.origin
+		_wall_sweep_elevation = current_elevation
+		_previous_physics_position = state.transform.origin
 		return
+	if simulation_paused or not shot_in_progress:
+		_wall_sweep_origin = state.transform.origin
+		_wall_sweep_elevation = current_elevation
+		_wall_step_velocity = state.linear_velocity
+		return
+	# Sweep the completed step. Native contacts can already have discarded the
+	# tangential velocity: reconstruct those from the incoming step, not that
+	# distorted result. Moving-body contacts remain native.
+	if _wall_sweep_elevation == current_elevation:
+		var travelled := state.transform.origin - _wall_sweep_origin
+		# A deeply penetrated CCD contact can retain a large solver separation bias
+		# on the following tick. That is not velocity/travel earned by the shot.
+		var plausible_travel := maxf(_wall_step_velocity.length(), state.linear_velocity.length()) * state.step + get_collision_radius()
+		var invalid_separation := travelled.length() > plausible_travel
+		if invalid_separation:
+			travelled = state.linear_velocity * state.step
+		for contact_index in range(state.get_contact_count()):
+			var collider = state.get_contact_collider_object(contact_index)
+			if collider is StaticBody2D and not collider is AnimatableBody2D:
+				travelled = _wall_step_velocity * state.step
+				break
+		if invalid_separation or travelled.length_squared() > 0.001:
+			var swept := Motion.sweep(get_rid(), Transform2D(state.transform.get_rotation(), _wall_sweep_origin), travelled / state.step, state.step,
+				physics_material_override.bounce if physics_material_override else 0.0,
+				physics_material_override.friction if physics_material_override else 1.0)
+			if invalid_separation or not swept.contacts.is_empty():
+				var corrected := state.transform
+				corrected.origin = swept.position
+				state.transform = corrected
+				state.linear_velocity = swept.velocity
+				wall_sweep_corrections += 1
+				if not swept.contacts.is_empty():
+					_emit_wall_impact(float(swept.contacts[0].speed), swept.contacts[0].position)
+	_wall_sweep_origin = state.transform.origin
+	_wall_sweep_elevation = current_elevation
+	_wall_step_velocity = state.linear_velocity
 	var now_msec := Time.get_ticks_msec()
 	if now_msec - _last_wall_impact_time_msec < roundi(wall_impact_cooldown * 1000.0):
 		return
@@ -628,6 +834,14 @@ func _integrate_forces(state: PhysicsDirectBodyState2D) -> void:
 		_last_wall_impact_time_msec = now_msec
 		wall_impact.emit(strength, impact_position)
 		break
+
+
+func _emit_wall_impact(speed: float, at: Vector2) -> void:
+	var now := Time.get_ticks_msec()
+	if speed < wall_impact_min_speed or now - _last_wall_impact_time_msec < wall_impact_cooldown * 1000.0:
+		return
+	_last_wall_impact_time_msec = now
+	wall_impact.emit(clampf(inverse_lerp(wall_impact_min_speed, wall_impact_full_speed, speed), 0.0, 1.0), at)
 
 
 func _refresh_surface_damping() -> void:

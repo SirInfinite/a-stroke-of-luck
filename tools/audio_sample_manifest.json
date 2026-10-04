@@ -1,0 +1,135 @@
+{
+  "library": "Versilian Community Sample Library",
+  "creator": "Versilian Studios / VCSL contributors",
+  "license": "CC0-1.0",
+  "license_url": "https://github.com/sgossner/VCSL/blob/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/LICENSE",
+  "source": "https://versilian-studios.com/vcsl/",
+  "revision": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+  "samples": [
+    {
+      "path": "Aerophones/Edge-blown Aerophones/Baroque Alto Recorder/Staccato/AltRecorder_Stac_C4_rr1_Main.wav",
+      "sha": "db96e84032789b062e96c08a7e616885beacce72",
+      "size": 82104
+    },
+    {
+      "path": "Aerophones/Edge-blown Aerophones/Baroque Alto Recorder/Staccato/AltRecorder_Stac_C5_rr1_Main.wav",
+      "sha": "9947788164422a4b89f966f09783abb7cb6d8b32",
+      "size": 94044
+    },
+    {
+      "path": "Chordophones/Composite Chordophones/Folk Harp/EWHarp_Normal_C2_v2_RR1.wav",
+      "sha": "086a2c7ffc1097a4809cdc3ec100075d2530a231",
+      "size": 1807522
+    },
+    {
+      "path": "Chordophones/Composite Chordophones/Folk Harp/EWHarp_Normal_C3_v2_RR1.wav",
+      "sha": "3ac7ac020fc58cf16430fc249e5776d9c4a71702",
+      "size": 1382798
+    },
+    {
+      "path": "Chordophones/Composite Chordophones/Folk Harp/EWHarp_Normal_C4_v2_RR1.wav",
+      "sha": "7118eaa188436970e23b28019b5b6e7fe6a1b5ef",
+      "size": 775134
+    },
+    {
+      "path": "Chordophones/Composite Chordophones/Strumstick/Finger/Strumstick_Finger_Str1_Main_D2_vl2_rr1.wav",
+      "sha": "d9f4387ff90c1f38cc38c9be86657a836ff52977",
+      "size": 3466544
+    },
+    {
+      "path": "Chordophones/Composite Chordophones/Strumstick/Finger/Strumstick_Finger_Str3_Main_A3_vl2_rr1.wav",
+      "sha": "048e6015df8f564b94e6d98f66ea4f89b308e963",
+      "size": 2144744
+    },
+    {
+      "path": "Chordophones/Composite Chordophones/Strumstick/Finger/Strumstick_Finger_Str3_Main_D4_vl2_rr1.wav",
+      "sha": "c9ede39d1cd5db1bad20e0213ea80de6b64355ce",
+      "size": 1729442
+    },
+    {
+      "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C2_v2_rr1_Player.wav",
+      "sha": "3e64901412fe7935e3a1152b0b7a2d93645e53ef",
+      "size": 4116252
+    },
+    {
+      "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C3_v2_rr1_Player.wav",
+      "sha": "2449d26c97873705e234ad85b94e0c651018d4a5",
+      "size": 4283328
+    },
+    {
+      "path": "Chordophones/Zithers/Grand Piano, Kawai/Sustains/GPiano_sus_C4_v2_rr1_Player.wav",
+      "sha": "09dfd90293a537066bd825dac73f823bf46d0aa9",
+      "size": 2613976
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Cajon/Cajon_hit1_mp_rr1.wav",
+      "sha": "8006037147713e4013b7e56eebc134ac0620ffb4",
+      "size": 238690
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Cajon/Cajon_hit1_mp_rr2.wav",
+      "sha": "479b7867e122f074dd230aaaf8a32a78d0145591",
+      "size": 184350
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Claves/Claves1_Hit_v2_rr1_Mid.wav",
+      "sha": "4b5fd3123833f205db154e4aeed85fc5b627b9f9",
+      "size": 191812
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Marimba/Marimba_hit_Outrigger_C4_med_01.wav",
+      "sha": "85c657dd0a8f58808efad5e9184d5b9124285512",
+      "size": 655244
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Marimba/Marimba_hit_Outrigger_F3_med_01.wav",
+      "sha": "2c74c56eba169268ec3e74bc2de31fb282716a58",
+      "size": 1382924
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Marimba/Marimba_hit_Outrigger_G2_med_01.wav",
+      "sha": "f27193e84ff36d8c16ddc4a59bc89acc79d426ae",
+      "size": 1513244
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Shaker, Small/Mid_ShakerDouble_Down_rr1.wav",
+      "sha": "f99341479f355a909f0cee16880e8a60d6bf925b",
+      "size": 46844
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Shaker, Small/Mid_ShakerDouble_Up_rr1.wav",
+      "sha": "5a815875b3459e384b65884fa863d2fe578e6ecb",
+      "size": 22352
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_F2_v1_rr1_Main.wav",
+      "sha": "859f9625a662560facae4de31e8af82f78469492",
+      "size": 973692
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_F4_v1_rr1_Main.wav",
+      "sha": "0e230262665e212a99cab1a11cfdad30b9977492",
+      "size": 1368508
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Vibraphone/Soft Mallets/Vibes_soft_G3_v1_rr1_Main.wav",
+      "sha": "36a655b6f107c87cd5e7ed06aa1805449600576a",
+      "size": 2519544
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Woodblock/wood_click_f_rr1.wav",
+      "sha": "ee846604e1c6850582d6aad3d4cd9983e1c73d49",
+      "size": 497338
+    },
+    {
+      "path": "Idiophones/Struck Idiophones/Woodblock/wood_click_f_rr2.wav",
+      "sha": "25739527f54e1a2f1bea670cdf3eece04f414946",
+      "size": 516568
+    },
+    {
+      "path": "Membranophones/Struck Membranophones/Bass Drum 1/BDrumNew_hit_v2_rr1_Sum.wav",
+      "sha": "90e36064984ad741962e2f033e286bc16758b46c",
+      "size": 281616
+    }
+  ]
+}

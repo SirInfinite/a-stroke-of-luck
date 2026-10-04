@@ -2,6 +2,7 @@ class_name GameSettings
 extends RefCounted
 
 const SAVE_PATH := "user://settings.cfg"
+const DEFAULT_DIFFICULTY := &"normal"
 const DEFAULT_RESOLUTION := Vector2i(1920, 1080)
 const RESOLUTIONS: Array[Vector2i] = [
 	Vector2i(1280, 720),
@@ -23,9 +24,12 @@ var music_muted := false
 var sfx_muted := false
 var shoot_keycode := KEY_SPACE
 var reset_keycode := KEY_R
+var overview_keycode := KEY_TAB
 var aim_sensitivity := 1.0
 var trajectory_visible := true
 var reduced_motion := false
+var ui_appearance: StringName = &"dark"
+var last_difficulty: StringName = DEFAULT_DIFFICULTY
 
 
 func reset_to_defaults() -> void:
@@ -42,9 +46,12 @@ func reset_to_defaults() -> void:
 	sfx_muted = false
 	shoot_keycode = KEY_SPACE
 	reset_keycode = KEY_R
+	overview_keycode = KEY_TAB
 	aim_sensitivity = 1.0
 	trajectory_visible = true
 	reduced_motion = false
+	ui_appearance = &"dark"
+	last_difficulty = DEFAULT_DIFFICULTY
 
 
 func load_from(path := SAVE_PATH) -> Error:
@@ -66,9 +73,12 @@ func load_from(path := SAVE_PATH) -> Error:
 	sfx_muted = bool(config.get_value("audio", "sfx_muted", sfx_muted))
 	shoot_keycode = int(config.get_value("controls", "shoot_keycode", shoot_keycode))
 	reset_keycode = int(config.get_value("controls", "reset_keycode", reset_keycode))
+	overview_keycode = int(config.get_value("controls", "overview_keycode", overview_keycode))
 	aim_sensitivity = float(config.get_value("controls", "aim_sensitivity", aim_sensitivity))
 	trajectory_visible = bool(config.get_value("accessibility", "trajectory_visible", trajectory_visible))
 	reduced_motion = bool(config.get_value("accessibility", "reduced_motion", reduced_motion))
+	ui_appearance = StringName(str(config.get_value("accessibility", "ui_appearance", ui_appearance)))
+	last_difficulty = StringName(config.get_value("gameplay", "last_difficulty", last_difficulty))
 	_validate()
 	return OK
 
@@ -89,9 +99,12 @@ func save_to(path := SAVE_PATH) -> Error:
 	config.set_value("audio", "sfx_muted", sfx_muted)
 	config.set_value("controls", "shoot_keycode", shoot_keycode)
 	config.set_value("controls", "reset_keycode", reset_keycode)
+	config.set_value("controls", "overview_keycode", overview_keycode)
 	config.set_value("controls", "aim_sensitivity", aim_sensitivity)
 	config.set_value("accessibility", "trajectory_visible", trajectory_visible)
 	config.set_value("accessibility", "reduced_motion", reduced_motion)
+	config.set_value("accessibility", "ui_appearance", ui_appearance)
+	config.set_value("gameplay", "last_difficulty", last_difficulty)
 	return config.save(path)
 
 
@@ -114,9 +127,12 @@ func apply_runtime(include_display := true) -> void:
 	_apply_audio_bus(&"SFX", sfx_volume, sfx_muted)
 	_apply_key_binding(&"shoot", shoot_keycode)
 	_apply_key_binding(&"reset_level", reset_keycode)
+	_apply_key_binding(&"toggle_course_overview", overview_keycode)
 
 
 func _validate() -> void:
+	if ui_appearance not in [&"dark", &"light"]:
+		ui_appearance = &"dark"
 	if not RESOLUTIONS.has(resolution):
 		resolution = DEFAULT_RESOLUTION
 	screen_shake_intensity = clampf(screen_shake_intensity, 0.0, 1.0)
@@ -125,10 +141,36 @@ func _validate() -> void:
 	music_volume = clampf(music_volume, 0.0, 1.0)
 	sfx_volume = clampf(sfx_volume, 0.0, 1.0)
 	aim_sensitivity = clampf(aim_sensitivity, 0.5, 2.0)
+	if not last_difficulty in [&"easy", &"normal", &"hard"]:
+		last_difficulty = DEFAULT_DIFFICULTY
 	if shoot_keycode <= 0:
 		shoot_keycode = KEY_SPACE
 	if reset_keycode <= 0:
 		reset_keycode = KEY_R
+	# Preserve older custom Shoot/Reset bindings, including an already-used Tab.
+	if not binding_conflict(&"toggle_course_overview", overview_keycode).is_empty():
+		for candidate in [KEY_TAB, KEY_M, KEY_O, KEY_V]:
+			if binding_conflict(&"toggle_course_overview", candidate).is_empty():
+				overview_keycode = candidate
+				break
+
+
+func binding_conflict(action: StringName, keycode: int) -> String:
+	if keycode <= 0:
+		return "CHOOSE A KEY"
+	var bindings := {&"shoot": shoot_keycode, &"reset_level": reset_keycode, &"toggle_course_overview": overview_keycode}
+	for other: StringName in bindings:
+		if other != action and int(bindings[other]) == keycode:
+			return "KEY ALREADY IN USE"
+	# Tab's menu focus action is intentionally allowed; the gameplay shortcut
+	# consumes it only during HOLE_PLAY. Fixed aiming/confirm/debug keys stay safe.
+	if action == &"toggle_course_overview":
+		var event := InputEventKey.new()
+		event.keycode = keycode as Key
+		for reserved in [&"ui_accept", &"ui_cancel", &"ui_left", &"ui_right", &"ui_up", &"ui_down", &"toggle_debug"]:
+			if InputMap.event_is_action(event, reserved):
+				return "KEY RESERVED FOR GAME CONTROLS"
+	return ""
 
 
 func _apply_audio_bus(bus_name: StringName, linear_volume: float, muted: bool) -> void:

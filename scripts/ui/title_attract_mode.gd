@@ -15,6 +15,8 @@ var background: Dictionary = {}
 var elapsed := 0.0
 var parallax := Vector2.ZERO
 var reduced_motion := false
+var _pointer_normalized := Vector2.ZERO
+var _scenic_art: Texture2D
 
 
 func _ready() -> void:
@@ -24,6 +26,8 @@ func _ready() -> void:
 	level = HoleGenerator.generate_hole(profile, SAFE_SEED, 0, 2)
 	terrain = profile.terrain_palette.duplicate(true)
 	background = profile.background_palette.duplicate(true)
+	_scenic_art = load("res://assets/world/backgrounds/meadow.png") as Texture2D
+	texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	set_process(true)
 
 
@@ -34,21 +38,31 @@ func set_reduced_motion(enabled: bool) -> void:
 	queue_redraw()
 
 
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and is_visible_in_tree() and size.x > 0 and size.y > 0:
+		# Event coordinates belong to this viewport (including stretch/embedding),
+		# unlike desktop cursor polling. UI children must not consume parallax input.
+		var local: Vector2 = get_global_transform_with_canvas().affine_inverse() * event.position
+		_pointer_normalized = ((local / size - Vector2(0.5, 0.5)) * 2.0).clamp(Vector2(-1, -1), Vector2.ONE)
+
+
 func _process(delta: float) -> void:
+	if not is_visible_in_tree(): return
 	if not reduced_motion:
 		elapsed = fmod(elapsed + delta, LOOP_SECONDS)
-		var mouse := get_viewport().get_mouse_position()
-		var viewport_size := get_viewport_rect().size
-		var normalized := Vector2.ZERO
-		if viewport_size.x > 0.0 and viewport_size.y > 0.0:
-			normalized = (mouse / viewport_size - Vector2(0.5, 0.5)) * 2.0
-		var target := normalized.clamp(Vector2(-1.0, -1.0), Vector2.ONE) * 14.0
-		parallax = parallax.lerp(target, 1.0 - exp(-delta * 4.0))
+		var target := _pointer_normalized * 32.0
+		parallax = parallax.lerp(target, 1.0 - exp(-delta * 5.0))
 	queue_redraw()
 
 
 func _draw() -> void:
 	var rect := Rect2(Vector2.ZERO, size)
+	if _scenic_art:
+		var cover := size + Vector2(64, 64)
+		var fit := maxf(cover.x / _scenic_art.get_width(), cover.y / _scenic_art.get_height())
+		var extent := _scenic_art.get_size() * fit
+		draw_texture_rect(_scenic_art, Rect2((size - extent) * 0.5 + parallax * 0.65, extent), false)
+		return
 	var base: Color = background.get("primary", Color("245c3a"))
 	var secondary: Color = background.get("secondary", Color("3f7d44"))
 	var accent: Color = background.get("accent", UIStyleScript.GOLD)
@@ -63,7 +77,7 @@ func _draw_sky_layers(rect: Rect2, secondary: Color, accent: Color) -> void:
 	var w := rect.size.x
 	var h := rect.size.y
 	var distant_offset := parallax * -0.22
-	var mid_offset := parallax * -0.46
+	var mid_offset := parallax * -0.72
 	draw_colored_polygon(PackedVector2Array([
 		Vector2(w * 0.42, h * 0.62) + distant_offset,
 		Vector2(w * 0.60, h * 0.42) + distant_offset,
@@ -99,7 +113,7 @@ func _draw_course(rect: Rect2) -> void:
 	var map_size := Vector2(float(_map_columns()), float(level.map.size())) * CELL_SIZE
 	var target_width := clampf(rect.size.x * 0.47, 540.0, 900.0)
 	var scale_factor := minf(target_width / map_size.x, rect.size.y * 0.76 / map_size.y)
-	var course_center := Vector2(rect.size.x * 0.73, rect.size.y * 0.56) + parallax * 0.34
+	var course_center := Vector2(rect.size.x * 0.73, rect.size.y * 0.56) + parallax * 0.78
 	var course_top_left := course_center - map_size * scale_factor * 0.5
 
 	for cell in _playable_cells():

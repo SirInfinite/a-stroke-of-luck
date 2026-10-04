@@ -1,0 +1,303 @@
+{
+  "creator": "A Stroke of Luck project / Codex; original scores and synthesis",
+  "license": "Original project work plus VCSL CC0-1.0 instrument recordings",
+  "reference_audio_used_in_production": false,
+  "listening_status": "No subjective listening available in agent tooling; owner review pending",
+  "source_library": "Versilian Community Sample Library / Versilian Studios and contributors",
+  "source_revision": "c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e",
+  "license_url": "https://raw.githubusercontent.com/sgossner/VCSL/c1ea7bcc3c7309650ab0da9d15c9cd1fbc4a4c7e/LICENSE",
+  "modifications": "Verified note sampling, pitch resampling, envelopes, stereo placement, original synthesis, original scores, cyclic short room, linear loudness/headroom mastering, Vorbis encoding.",
+  "verified_source_samples": [
+    {
+      "file": "AltRecorder_Stac_C4_rr1_Main.wav",
+      "sha256": "34c08414dc6f02eb37f97fbbaf9be1a92c27643ccf51ba20c8eabe8cd1357625",
+      "git_blob": "db96e84032789b062e96c08a7e616885beacce72"
+    },
+    {
+      "file": "AltRecorder_Stac_C5_rr1_Main.wav",
+      "sha256": "7f52cfd817d81285539eed7b1cb25121373dd2794707f987cecb8cef90bda0df",
+      "git_blob": "9947788164422a4b89f966f09783abb7cb6d8b32"
+    },
+    {
+      "file": "EWHarp_Normal_C2_v2_RR1.wav",
+      "sha256": "086c0b5fcc3e41bee173e53620d38f21a7dee4f59dfd75d8c8bbdf409ecbc5ee",
+      "git_blob": "086a2c7ffc1097a4809cdc3ec100075d2530a231"
+    },
+    {
+      "file": "EWHarp_Normal_C3_v2_RR1.wav",
+      "sha256": "bfc5a2cae93793ac46bfe50c1b71d1e64e29eba34e71164c47c29e67488abd96",
+      "git_blob": "3ac7ac020fc58cf16430fc249e5776d9c4a71702"
+    },
+    {
+      "file": "EWHarp_Normal_C4_v2_RR1.wav",
+      "sha256": "79774644727f61bd535e4b49f7eae0c31b0cac4d2714d33d8f6cd84e5db081d3",
+      "git_blob": "7118eaa188436970e23b28019b5b6e7fe6a1b5ef"
+    },
+    {
+      "file": "Strumstick_Finger_Str1_Main_D2_vl2_rr1.wav",
+      "sha256": "28488d220f9ef0868906dee44d45d5c60529757dd2b972f719542ecdcb84fbfa",
+      "git_blob": "d9f4387ff90c1f38cc38c9be86657a836ff52977"
+    },
+    {
+      "file": "Strumstick_Finger_Str3_Main_A3_vl2_rr1.wav",
+      "sha256": "7099bf15310393098b5171b1442c8da130894c255c558061efbbb0cdf3c8703e",
+      "git_blob": "048e6015df8f564b94e6d98f66ea4f89b308e963"
+    },
+    {
+      "file": "Strumstick_Finger_Str3_Main_D4_vl2_rr1.wav",
+      "sha256": "1bc9669c702913751350d23b5cf176d72bf450447f07b355064aed4dfb0aa9b5",
+      "git_blob": "c9ede39d1cd5db1bad20e0213ea80de6b64355ce"
+    },
+    {
+      "file": "GPiano_sus_C2_v2_rr1_Player.wav",
+      "sha256": "00838dbdbcb0dffd02529c38fa84bc514931634b485fc2ad6ecc62fe98d27a62",
+      "git_blob": "3e64901412fe7935e3a1152b0b7a2d93645e53ef"
+    },
+    {
+      "file": "GPiano_sus_C3_v2_rr1_Player.wav",
+      "sha256": "fce33012fe900309abafd1a4d6d254d142b0cbf33834c7a72c2fd1ada4e746e1",
+      "git_blob": "2449d26c97873705e234ad85b94e0c651018d4a5"
+    },
+    {
+      "file": "GPiano_sus_C4_v2_rr1_Player.wav",
+      "sha256": "69845de40a38ed6501746520f9f385ae56200a4372faed48178e64a32a75e58c",
+      "git_blob": "09dfd90293a537066bd825dac73f823bf46d0aa9"
+    },
+    {
+      "file": "Cajon_hit1_mp_rr1.wav",
+      "sha256": "4103c4a847a8cc8860b9449ef26619b56825e972f1bfa0427bdd3f5e36ca81aa",
+      "git_blob": "8006037147713e4013b7e56eebc134ac0620ffb4"
+    },
+    {
+      "file": "Cajon_hit1_mp_rr2.wav",
+      "sha256": "f28fcadf95557619fe9f8a1b8ad1af511fbccba67608960c7b2a78040f03f01e",
+      "git_blob": "479b7867e122f074dd230aaaf8a32a78d0145591"
+    },
+    {
+      "file": "Claves1_Hit_v2_rr1_Mid.wav",
+      "sha256": "bcabe27330761309eb4b4f6207e6e3b4be59815df86449ac05bfb9b81f19efc9",
+      "git_blob": "4b5fd3123833f205db154e4aeed85fc5b627b9f9"
+    },
+    {
+      "file": "Marimba_hit_Outrigger_C4_med_01.wav",
+      "sha256": "3e88c006eef05e8f7891f8f6027042006199a4ec3b53a0ad7308f9782a52d4df",
+      "git_blob": "85c657dd0a8f58808efad5e9184d5b9124285512"
+    },
+    {
+      "file": "Marimba_hit_Outrigger_F3_med_01.wav",
+      "sha256": "a493b31ac2e588ed961c522a66b790acc584b59a08918bd7193d6e6fa8df4756",
+      "git_blob": "2c74c56eba169268ec3e74bc2de31fb282716a58"
+    },
+    {
+      "file": "Marimba_hit_Outrigger_G2_med_01.wav",
+      "sha256": "e9c2d33b9f50f0689b349dc9aee20a5b621961cf8294abb5ac4ba5a4674bd7c2",
+      "git_blob": "f27193e84ff36d8c16ddc4a59bc89acc79d426ae"
+    },
+    {
+      "file": "Mid_ShakerDouble_Down_rr1.wav",
+      "sha256": "0df7c271e1dba4de7304f7df81886390dd9ae698bfdd6df570026af4f2223574",
+      "git_blob": "f99341479f355a909f0cee16880e8a60d6bf925b"
+    },
+    {
+      "file": "Mid_ShakerDouble_Up_rr1.wav",
+      "sha256": "69a10776db0b838bc6555be2dbdb41e1521bb28bba2e89963d1bf779bfb5b61f",
+      "git_blob": "5a815875b3459e384b65884fa863d2fe578e6ecb"
+    },
+    {
+      "file": "Vibes_soft_F2_v1_rr1_Main.wav",
+      "sha256": "df5cfcc72af80fac2191300d09922474c4ac25c5cbc43ff387953d607f7c1320",
+      "git_blob": "859f9625a662560facae4de31e8af82f78469492"
+    },
+    {
+      "file": "Vibes_soft_F4_v1_rr1_Main.wav",
+      "sha256": "95b7d6eeb71d77cce607c0c52b0a6dfd23d0eeedc2eb393fb9a6c5a5768f4aa5",
+      "git_blob": "0e230262665e212a99cab1a11cfdad30b9977492"
+    },
+    {
+      "file": "Vibes_soft_G3_v1_rr1_Main.wav",
+      "sha256": "9b479e4c84fb1caafba8c1c106a8922cea20bba81c37d65f93afae339626767f",
+      "git_blob": "36a655b6f107c87cd5e7ed06aa1805449600576a"
+    },
+    {
+      "file": "wood_click_f_rr1.wav",
+      "sha256": "86b690a393ad62d65dc6832948adb0cc164fe22f544a8065809f000c65d615fc",
+      "git_blob": "ee846604e1c6850582d6aad3d4cd9983e1c73d49"
+    },
+    {
+      "file": "wood_click_f_rr2.wav",
+      "sha256": "661e25cc1233a9d3d85bde188762d23fbbd69ac6af68af5c8db8fdd36fe25608",
+      "git_blob": "25739527f54e1a2f1bea670cdf3eece04f414946"
+    },
+    {
+      "file": "BDrumNew_hit_v2_rr1_Sum.wav",
+      "sha256": "56827fe9b55f282a0db851e242bc24660d339a0e358b182966aea047240c1136",
+      "git_blob": "90e36064984ad741962e2f033e286bc16758b46c"
+    }
+  ],
+  "protected_sources": {
+    "terrain_impact.wav": "2e371ca8e048dd0ebca67bad303a77a4426ee67e933032484bd568427ad66de4",
+    "boost_pad_slow.wav": "2ebf220b4d1b9cedd3e2a42af1739e105c14f1877e1bddb80145124a61f38cc1",
+    "boost_pad_med.wav": "2915a27ba866acbad3ed8ccfc2488a6ae5cece5aea1f06bb584e33fc3d25e996",
+    "boost_pad_fast.wav": "c872e472f03c01380daab3686fce0ff8d5047819bcc9fe1d0b396b7fc8876b12",
+    "fail_sound_1.wav": "7a41c6a80596db9ae26e44dae5498905bedab6a77889eca963ac2a14aa50da1b",
+    "fail_sound_2.wav": "f5d2ac2b046e7f9277dde0dcd55e341e7177d0c792bf5740f94fd80ba46e8292"
+  },
+  "assets": [
+    {
+      "file": "assets/reference_slice/audio/a_sunlit_circuit.ogg",
+      "seconds": 48.0,
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop": true,
+      "loop_seam_step": 0.004514794796705246,
+      "boundary_step_p99": 0.010191264562308788,
+      "sample_peak_dbfs": -8.033989906311035,
+      "sha256": "4e6232d48f0ffece7d989463e124e01fb5bdcf20cc2a721a5ffea7f613ab23be",
+      "integrated_lufs": -18.96,
+      "true_peak_dbtp": -8.03,
+      "loudness_range_lu": 1.1,
+      "title": "Sunlit Circuit",
+      "bpm": 160,
+      "bars": 32,
+      "beats_per_bar": 4,
+      "form": "AABACDBE",
+      "description": "Rounded pulse lead, half-time bass pocket, warm mallet replies and dry hand percussion.",
+      "score_sha256": "a639ae47fbb2e3fd6d0fff76c055a679debd7b9f40aa03513d80c5e42750e296",
+      "approval": "Provisional. Direct reference listening and owner musical approval pending."
+    },
+    {
+      "file": "assets/reference_slice/audio/b_amber_canopy.ogg",
+      "seconds": 49.23077097505669,
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop": true,
+      "loop_seam_step": 0.006345536094158888,
+      "boundary_step_p99": 0.008160031400620937,
+      "sample_peak_dbfs": -6.363544464111328,
+      "sha256": "bf3c19059dc6f7ccbe00eec8b3fc0565569d42a73edc4afa0f80c48af9dd70df",
+      "integrated_lufs": -18.96,
+      "true_peak_dbtp": -6.36,
+      "loudness_range_lu": 1.3,
+      "title": "Amber Canopy",
+      "bpm": 156,
+      "bars": 32,
+      "beats_per_bar": 4,
+      "form": "ABACDBAE",
+      "description": "The same quick pulse with acoustic mallet melody, soft pulse counterlines and more open responses.",
+      "score_sha256": "7220caa41d85314e399c065bd78f35e9a9becd3e73d960680e05c650ca9d2b9d",
+      "approval": "Provisional. Direct reference listening and owner musical approval pending."
+    },
+    {
+      "file": "assets/reference_slice/audio/strike.ogg",
+      "seconds": 0.19,
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop": false,
+      "loop_seam_step": null,
+      "boundary_step_p99": null,
+      "sample_peak_dbfs": -4.058737754821777,
+      "sha256": "f9fc3645c4ca9915384a526d304262572f7e7405051c8d03f7cbe2dbd79bf3cc",
+      "integrated_lufs": null,
+      "true_peak_dbtp": -3.98,
+      "loudness_range_lu": 0.0
+    },
+    {
+      "file": "assets/reference_slice/audio/wall.ogg",
+      "seconds": 0.24,
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop": false,
+      "loop_seam_step": null,
+      "boundary_step_p99": null,
+      "sample_peak_dbfs": -3.927156686782837,
+      "sha256": "8c1ee4117fc11b436c239b22755210a8d1f34f676e6d1c2ed4bfb7324322dbda",
+      "integrated_lufs": null,
+      "true_peak_dbtp": -3.93,
+      "loudness_range_lu": 0.0
+    },
+    {
+      "file": "assets/reference_slice/audio/pendulum.ogg",
+      "seconds": 0.49,
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop": false,
+      "loop_seam_step": null,
+      "boundary_step_p99": null,
+      "sample_peak_dbfs": -3.8936872482299805,
+      "sha256": "846eb92406541dc7f88168ed52e2d03fefc0e7c3ba6ddbdf06e82e36648fb6da",
+      "integrated_lufs": -19.55,
+      "true_peak_dbtp": -3.89,
+      "loudness_range_lu": 0.0
+    },
+    {
+      "file": "assets/reference_slice/audio/cup.ogg",
+      "seconds": 0.36,
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop": false,
+      "loop_seam_step": null,
+      "boundary_step_p99": null,
+      "sample_peak_dbfs": -4.058825492858887,
+      "sha256": "6e9798b90ad6c41af3fdca2dfb3d6770b472c65a7a0a020be88b35914d99364f",
+      "integrated_lufs": null,
+      "true_peak_dbtp": -3.98,
+      "loudness_range_lu": 0.0
+    },
+    {
+      "file": "assets/reference_slice/audio/success.ogg",
+      "seconds": 1.2,
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop": false,
+      "loop_seam_step": null,
+      "boundary_step_p99": null,
+      "sample_peak_dbfs": -10.541386604309082,
+      "sha256": "57af4586547c930ec58589d85be362a1b764d693a20b53860efea652f02128ff",
+      "integrated_lufs": -19.94,
+      "true_peak_dbtp": -10.52,
+      "loudness_range_lu": 0.0
+    },
+    {
+      "file": "assets/reference_slice/audio/hover.ogg",
+      "seconds": 0.04498866213151927,
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop": false,
+      "loop_seam_step": null,
+      "boundary_step_p99": null,
+      "sample_peak_dbfs": -11.624519348144531,
+      "sha256": "4bea9e5208aec19c4ac6adc7303f3c803f953fc11d8c9454e859cf9bdaa39a7d",
+      "integrated_lufs": null,
+      "true_peak_dbtp": -11.57,
+      "loudness_range_lu": 0.0
+    },
+    {
+      "file": "assets/reference_slice/audio/select.ogg",
+      "seconds": 0.08,
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop": false,
+      "loop_seam_step": null,
+      "boundary_step_p99": null,
+      "sample_peak_dbfs": -11.174606323242188,
+      "sha256": "8f0deb2391586d8a38e1cc0eae541a4fce88c65d9c1beb2cdbf964513f173416",
+      "integrated_lufs": null,
+      "true_peak_dbtp": -11.15,
+      "loudness_range_lu": 0.0
+    },
+    {
+      "file": "assets/reference_slice/audio/back.ogg",
+      "seconds": 0.11,
+      "sample_rate": 44100,
+      "channels": 2,
+      "loop": false,
+      "loop_seam_step": null,
+      "boundary_step_p99": null,
+      "sample_peak_dbfs": -11.064430236816406,
+      "sha256": "4e3f6e2e344c8113632eca2160a690551b3c1e1c620928802e4faf85e053897d",
+      "integrated_lufs": null,
+      "true_peak_dbtp": -11.05,
+      "loudness_range_lu": 0.0
+    }
+  ]
+}

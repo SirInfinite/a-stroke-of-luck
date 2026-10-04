@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>A Stroke of Luck · presentation approval</title>
+<style>
+:root{color-scheme:dark;font:17px/1.5 system-ui;background:#101e21;color:#f5ecd8}body{max-width:1440px;margin:auto;padding:24px}h1,h2{line-height:1.15}h1{font-size:2rem}h2{font-size:1.3rem;margin-top:36px}a{color:#f5c975}p{max-width:85ch}button{font:inherit;background:#e9bb61;color:#172322;border:0;padding:8px 16px;cursor:pointer}button:focus-visible,a:focus-visible{outline:3px solid #fff;outline-offset:3px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:20px}figure{margin:0}figcaption{margin:8px 0;color:#decba1}video,img{display:block;width:100%;background:#071113}img{image-rendering:pixelated}audio{width:100%}.note{color:#c7c6b9}.toolbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.gallery{display:grid;grid-template-columns:1fr 1fr;gap:20px}@media(max-width:850px){.pair,.gallery{grid-template-columns:1fr}body{padding:16px}}
+</style>
+<h1>A Stroke of Luck · presentation sample</h1>
+<p>One playable Meadow hole, four illustrated cards, a golf/card wordmark, and two music candidates. Review the art and feedback intensity before a wider rollout.</p>
+<div class="toolbar"><button id="compare">Play both, after audio</button><button id="pause">Pause both</button><button id="restart">Restart comparison</button><a href="../../docs/PIXEL_SAMPLE_REVIEW.md">Evidence and launch instructions</a></div>
+<div class="pair">
+<figure><figcaption>Before · original presentation, same course and inputs</figcaption><video id="before" controls preload="metadata" src="../../artifacts/pixel_sample/baseline.mp4"></video></figure>
+<figure><figcaption>After · pixel-art sample, music A</figcaption><video id="after" controls preload="metadata" src="../../artifacts/pixel_sample/after.mp4"></video></figure>
+</div>
+<p class="note">Engine Movie Maker captures include mixed audio. Timeline: title → overview → aim/strike → wall/stop → pendulum/reset → putt/sink → actual results → purchase. No simulated outcome is substituted for a failed shot.</p>
+<h2>Art at game scale</h2>
+<div class="gallery">
+<figure><figcaption>Title and wordmark · <a href="../../artifacts/pixel_sample/baseline/01_title.png">Before screenshot</a></figcaption><a href="../../artifacts/pixel_sample/after/01_title.png"><img src="../../artifacts/pixel_sample/after/01_title.png" alt="Pixel golf wordmark above a dusk clubhouse garden"></a></figure>
+<figure><figcaption>Meadow, putting region, timber and pendulum · <a href="../../artifacts/pixel_sample/baseline/02_hole.png">Before screenshot</a></figcaption><a href="../../artifacts/pixel_sample/after/02_hole.png"><img src="../../artifacts/pixel_sample/after/02_hole.png" alt="Complete textured Meadow sample course"></a></figure>
+<figure><figcaption>Four equipment illustrations and full tradeoffs · <a href="../../artifacts/pixel_sample/baseline/05_shop.png">Before screenshot</a></figcaption><a href="../../artifacts/pixel_sample/after/05_shop.png"><img src="../../artifacts/pixel_sample/after/05_shop.png" alt="Four illustrated upgrade cards with benefits, curses, stacks and prices"></a></figure>
+<figure><figcaption>Light mode at 1440p</figcaption><a href="../../artifacts/pixel_sample/1440p/09_shop_light.png"><img src="../../artifacts/pixel_sample/1440p/09_shop_light.png" alt="Light shop with ivory background and readable dark benefit and curse bands"></a></figure>
+</div>
+<h2>Two soundtrack candidates</h2>
+<div class="pair">
+<figure><figcaption>A · Peppers Funk · 30-second excerpt</figcaption><audio controls preload="metadata" src="../../artifacts/pixel_sample/a_pepper_funk_excerpt.mp3"></audio><p>Proposed direction: groove-led guitar/bass/drums with room for physical game sounds. The source is only 35.8 seconds; it is an audition, not a long-session loop.</p></figure>
+<figure><figcaption>B · Rocker Chicks · 45-second excerpt</figcaption><audio controls preload="metadata" src="../../artifacts/pixel_sample/b_rocker_chicks_excerpt.mp3"></audio><p>Alternative brief: more assertive riff-led rock. The integrated source is 90.1 seconds. No full soundtrack selection has been made.</p></figure>
+</div>
+<p>Both tracks: Jason Shaw / <a href="https://audionautix.com/free-music/rock">Audionautix</a>, <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>. Modified by loudness normalization, resampling, encoding and excerpt fades. <a href="../../assets/pixel_sample/audio/SOURCES.md">Full provenance</a>.</p>
+<p class="note">The agent could measure the mix and timing but could not listen. Please judge musical character, repetition, physical SFX and the overall mix on speakers or headphones. The optional isometric experiment was deferred; this sample preserves the original top-down camera.</p>
+<script>
+const before=document.querySelector('#before'),after=document.querySelector('#after');
+document.querySelector('#compare').onclick=()=>{document.querySelectorAll('audio').forEach(player=>player.pause());before.currentTime=after.currentTime;before.muted=true;after.muted=false;Promise.allSettled([before.play(),after.play()]);};
+document.querySelector('#pause').onclick=()=>{before.pause();after.pause();};
+document.querySelector('#restart').onclick=()=>{before.pause();after.pause();before.currentTime=0;after.currentTime=0;};
+document.querySelectorAll('audio').forEach(player=>player.addEventListener('play',()=>{before.pause();after.pause();document.querySelectorAll('audio').forEach(other=>{if(other!==player)other.pause();});}));
+</script>
+</html>

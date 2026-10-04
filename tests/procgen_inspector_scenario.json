@@ -1,0 +1,20 @@
+{
+  "scene_path": "tests/procgen_inspector.tscn",
+  "viewport_size": {"width": 1920, "height": 1080},
+  "settle_frames": 5,
+  "steps": [
+    {"type": "assert", "assertion": "node_exists", "node_path": "Level"},
+    {"type": "screenshot", "path": "user://procgen_overhaul_20260906/inspector.png"},
+    {"type": "key", "keycode": 68, "pressed": true},
+    {"type": "key", "keycode": 68, "pressed": false},
+    {"type": "key", "keycode": 67, "pressed": true},
+    {"type": "key", "keycode": 67, "pressed": false},
+    {"type": "wait_frames", "frames": 3},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "difficulty", "expected": 2},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "curse_count", "expected": 1},
+    {"type": "screenshot", "path": "user://procgen_overhaul_20260906/inspector_hard_curse.png"}
+  ],
+  "log_assertions": [
+    {"label": "No engine errors", "regex": "SCRIPT ERROR|ERROR:|PARSE ERROR", "min_count": 0, "max_count": 0}
+  ]
+}

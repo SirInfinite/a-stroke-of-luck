@@ -1,18 +1,20 @@
 class_name LevelValidator
 extends RefCounted
 
+const GameplayHazardScript := preload("res://scripts/gameplay_hazard.gd")
+
 const GRID_CELL_SIZE := 100.0
 const MIN_ELEVATION := -1
 const MAX_ELEVATION := 1
 const STATIC_HAZARD_TYPES := ["sand", "water", "lava", "ice", "direction", "bounce_pad"]
 const MOVING_HAZARD_TYPES := ["pendulum", "falling_ice", "rotating_fire_rod"]
-const STRUCTURE_TYPES := ["hill", "pit", "bridge", "overpass"]
+const STRUCTURE_TYPES := ["hill", "pit", "lower_area", "bridge", "overpass"]
 const BRANCH_TYPES := ["alternate", "dead_end", "shortcut"]
 const REQUIRED_BUILDER_FIELDS := ["map", "start_cell", "hole_cell", "par", "hazards", "obstacles"]
 
 
-static func validate_level(level: Dictionary, level_index: int) -> bool:
-	var label := "Level %d" % [level_index + 1]
+static func validate_level(level: Dictionary, level_index: int, report_errors := true) -> bool:
+	var label := "Level %d" % [level_index + 1] if report_errors else ""
 	if not _has_valid_map(level, label):
 		return false
 
@@ -61,6 +63,11 @@ static func validate_level(level: Dictionary, level_index: int) -> bool:
 		_warn(label, "has no valid elevation path from start to cup.")
 		is_valid = false
 
+	if is_valid and int(level.get("grammar_version", 0)) >= 2:
+		var errors := generation_errors(level)
+		for error in errors:
+			_warn(label, error)
+		is_valid = errors.is_empty()
 	return is_valid
 
 
@@ -73,7 +80,11 @@ static func required_builder_fields() -> Array[String]:
 
 static func cell_elevations(level: Dictionary, cell: Vector2i) -> Array[int]:
 	if not level.has("elevation_cells"):
-		return [0] if _is_playable_cell(level, cell) else []
+		# A conditional array expression loses its element type in Godot 4.6.
+		var flat_levels: Array[int] = []
+		if _is_playable_cell(level, cell):
+			flat_levels.append(0)
+		return flat_levels
 	for entry in level.elevation_cells:
 		if entry is Dictionary and entry.get("cell") is Vector2i and Vector2i(entry.cell) == cell:
 			var result: Array[int] = []
@@ -180,9 +191,27 @@ static func _validate_endpoint_safety(level: Dictionary, label: String) -> bool:
 static func _definition_surfaces(level: Dictionary, definition: Dictionary) -> Array[Vector3i]:
 	var surfaces: Array[Vector3i] = []
 	var size := Vector2(definition.size)
+	var center := Vector2(definition.pos)
+	if not size.is_finite() or not center.is_finite() or not _is_elevation_value(definition.get("elevation", 0)):
+		return surfaces
+	var map_extent := _map_top_left(level).abs() * 2.0 + Vector2.ONE * GRID_CELL_SIZE
+	if size.x > map_extent.x or size.y > map_extent.y or center.abs().x > map_extent.x or center.abs().y > map_extent.y:
+		return surfaces
 	if String(definition.get("type", "")) == "pendulum":
-		size += Vector2(float(definition.get("travel_radius", 0.0)) * 2.0, 0.0)
-	var rect := Rect2(Vector2(definition.pos) - size / 2.0, size)
+		if not _number(definition.get("travel_radius", 0.0)) or not _number(definition.get("swing_angle", 0.9)):
+			return surfaces
+		var radius := maxf(float(definition.get("travel_radius", 0.0)), 0.0)
+		var angle := clampf(float(definition.get("swing_angle", 0.9)), 0.15, 1.45)
+		var drop_min := cos(angle) * radius
+		center.y += (drop_min + radius) * 0.5
+		size += Vector2(sin(angle) * radius * 2.0, radius - drop_min)
+	elif String(definition.get("type", "")) == "rotating_fire_rod":
+		# All orientations, not just the unrotated rectangle.
+		size = Vector2.ONE * size.length()
+	# Motion parameters are content too: bound the expanded sweep before loops.
+	if not size.is_finite() or not center.is_finite() or size.x > map_extent.x or size.y > map_extent.y:
+		return surfaces
+	var rect := Rect2(center - size / 2.0, size)
 	var top_left := _map_top_left(level)
 	var min_cell := Vector2i(
 		floori((rect.position.x - top_left.x) / GRID_CELL_SIZE),
@@ -327,6 +356,9 @@ static func _validate_transition(
 	if not _surface_exists(elevation_lookup, from_cell, from_elevation) or not _surface_exists(elevation_lookup, to_cell, to_elevation):
 		_warn(label, "elevation transition %d references a missing surface." % (transition_index + 1))
 		return false
+	if transition.has("width") and (not _positive_number(transition.width) or float(transition.width) < 24.0 or float(transition.width) > GRID_CELL_SIZE):
+		_warn(label, "elevation transition %d width must fit its cell." % (transition_index + 1))
+		return false
 	return true
 
 
@@ -407,10 +439,23 @@ static func _validate_static_hazards(level: Dictionary, elevation_lookup: Dictio
 			if not hazard.get("seed", 0) is int or int(hazard.get("seed", 0)) == 0:
 				_warn(label, "bounce pad %d requires a nonzero deterministic seed." % (hazard_index + 1))
 				valid = false
-			if not _positive_number(hazard.get("retention", 0.76)):
-				_warn(label, "bounce pad %d retention must be positive." % (hazard_index + 1))
+			if not _positive_number(hazard.get("minimum_exit_speed", GameplayHazardScript.MIN_BOUNCE_SPEED)):
+				_warn(label, "bounce pad %d minimum exit speed must be positive." % (hazard_index + 1))
 				valid = false
-			if not _positive_number(hazard.get("retrigger_cooldown", 0.22)):
+			if not _positive_number(hazard.get("speed_multiplier", GameplayHazardScript.DEFAULT_BOUNCE_SPEED_MULTIPLIER)):
+				_warn(label, "bounce pad %d speed multiplier must be positive." % (hazard_index + 1))
+				valid = false
+			if not _positive_number(hazard.get("maximum_exit_speed", GameplayHazardScript.MAX_BOUNCE_SPEED)):
+				_warn(label, "bounce pad %d maximum exit speed must be positive." % (hazard_index + 1))
+				valid = false
+			if (
+				_positive_number(hazard.get("minimum_exit_speed", GameplayHazardScript.MIN_BOUNCE_SPEED))
+				and _positive_number(hazard.get("maximum_exit_speed", GameplayHazardScript.MAX_BOUNCE_SPEED))
+				and float(hazard.get("minimum_exit_speed", GameplayHazardScript.MIN_BOUNCE_SPEED)) > float(hazard.get("maximum_exit_speed", GameplayHazardScript.MAX_BOUNCE_SPEED))
+			):
+				_warn(label, "bounce pad %d minimum exit speed cannot exceed its maximum." % (hazard_index + 1))
+				valid = false
+			if not _positive_number(hazard.get("retrigger_cooldown", GameplayHazardScript.DEFAULT_RETRIGGER_COOLDOWN)):
 				_warn(label, "bounce pad %d retrigger cooldown must be positive." % (hazard_index + 1))
 				valid = false
 		if hazard_type == "ice" and not _positive_number(hazard.get("intensity", 0.22)):
@@ -444,6 +489,9 @@ static func _validate_moving_hazards(level: Dictionary, elevation_lookup: Dictio
 			_warn(label, "moving hazard %d size must be positive." % (hazard_index + 1))
 			valid = false
 			continue
+		if hazard_type == "falling_ice" and Vector2(hazard.size) != Vector2.ONE * GRID_CELL_SIZE:
+			_warn(label, "falling ice must occupy exactly one full tile.")
+			valid = false
 		var elevation_value = hazard.get("elevation", 0)
 		if not _is_elevation_value(elevation_value):
 			_warn(label, "moving hazard %d elevation is invalid." % (hazard_index + 1))
@@ -455,7 +503,7 @@ static func _validate_moving_hazards(level: Dictionary, elevation_lookup: Dictio
 		if not _positive_number(hazard.get("period", 0.0)):
 			_warn(label, "moving hazard %d period must be positive." % (hazard_index + 1))
 			valid = false
-		if not (hazard.get("phase", 0.0) is float or hazard.get("phase", 0.0) is int):
+		if not _number(hazard.get("phase", 0.0)):
 			_warn(label, "moving hazard %d phase must be numeric." % (hazard_index + 1))
 			valid = false
 		if bool(hazard.get("blocks_main_route", true)):
@@ -472,6 +520,9 @@ static func _validate_moving_hazards(level: Dictionary, elevation_lookup: Dictio
 			if hazard.has(optional_numeric_name) and not _number(hazard[optional_numeric_name]):
 				_warn(label, "moving hazard %d %s must be numeric." % [hazard_index + 1, optional_numeric_name])
 				valid = false
+		if _definition_surfaces(level, hazard).is_empty():
+			_warn(label, "moving hazard %d has an invalid or unbounded swept footprint." % (hazard_index + 1))
+			valid = false
 	return valid
 
 
@@ -565,7 +616,7 @@ static func _validate_optional_builder_fields(level: Dictionary, elevation_looku
 		if not tee is Dictionary or not tee.get("cell") is Vector2i or not _is_elevation_value(tee.get("elevation", 0)):
 			_warn(label, "tee requires a playable cell and valid elevation.")
 			valid = false
-		elif Vector2i(tee.cell) != Vector2i(level.start_cell) or not _surface_exists(elevation_lookup, tee.cell, int(tee.elevation)):
+		elif Vector2i(tee.cell) != Vector2i(level.start_cell) or not _surface_exists(elevation_lookup, tee.cell, int(tee.get("elevation", 0))):
 			_warn(label, "tee must match the start surface.")
 			valid = false
 
@@ -574,6 +625,7 @@ static func _validate_optional_builder_fields(level: Dictionary, elevation_looku
 		_warn(label, "elevation_structures must be an Array.")
 		valid = false
 	else:
+		var overpass_count := 0
 		for structure_index in range(structures.size()):
 			var structure = structures[structure_index]
 			if not structure is Dictionary or not STRUCTURE_TYPES.has(String(structure.get("type", ""))) or not structure.get("cells") is Array:
@@ -585,12 +637,20 @@ static func _validate_optional_builder_fields(level: Dictionary, elevation_looku
 				valid = false
 				continue
 			for cell in structure.cells:
-				if not cell is Vector2i or not _surface_exists(elevation_lookup, cell, int(structure.elevation)):
+				if not cell is Vector2i or not _surface_exists(elevation_lookup, cell, int(structure.get("elevation", 0))):
 					_warn(label, "elevation structure %d references a missing surface." % (structure_index + 1))
 					valid = false
 					break
 			if String(structure.type) == "overpass":
+				overpass_count += 1
 				var lower_elevation = structure.get("lower_elevation", 0)
+				var tunnel_length = structure.get("tunnel_length", Array(structure.cells).size())
+				if not tunnel_length is int or int(tunnel_length) < 1 or int(tunnel_length) > 2:
+					_warn(label, "overpass %d tunnel_length must be 1 or 2." % (structure_index + 1))
+					valid = false
+				if Array(structure.cells).size() > 2:
+					_warn(label, "overpass %d may cover at most two crossing cells." % (structure_index + 1))
+					valid = false
 				if not _is_elevation_value(lower_elevation):
 					valid = false
 				else:
@@ -598,6 +658,9 @@ static func _validate_optional_builder_fields(level: Dictionary, elevation_looku
 						if not _surface_exists(elevation_lookup, cell, int(lower_elevation)):
 							_warn(label, "overpass %d has no lower crossing surface." % (structure_index + 1))
 							valid = false
+		if overpass_count > 1:
+			_warn(label, "a generated hole may contain at most one elevation crossing.")
+			valid = false
 	return valid
 
 
@@ -699,9 +762,11 @@ static func _rect_fits_surface(
 	elevation: int,
 	elevation_lookup: Dictionary
 ) -> bool:
-	if rect.size.x <= 0.0 or rect.size.y <= 0.0:
+	if not rect.position.is_finite() or not rect.size.is_finite() or rect.size.x <= 0.0 or rect.size.y <= 0.0:
 		return false
 	var top_left := _map_top_left(level)
+	if rect.position.x < top_left.x - 0.001 or rect.position.y < top_left.y - 0.001 or rect.end.x > -top_left.x + 0.001 or rect.end.y > -top_left.y + 0.001:
+		return false
 	var min_cell := Vector2i(
 		floori((rect.position.x - top_left.x) / GRID_CELL_SIZE),
 		floori((rect.position.y - top_left.y) / GRID_CELL_SIZE)
@@ -726,7 +791,7 @@ static func _is_elevation_value(value) -> bool:
 
 
 static func _positive_number(value) -> bool:
-	return (value is float or value is int) and float(value) > 0.0
+	return _number(value) and float(value) > 0.0
 
 
 static func _nonnegative_number(value) -> bool:
@@ -734,7 +799,7 @@ static func _nonnegative_number(value) -> bool:
 
 
 static func _number(value) -> bool:
-	return value is float or value is int
+	return (value is float or value is int) and is_finite(float(value))
 
 
 static func _map_top_left(level: Dictionary) -> Vector2:
@@ -749,4 +814,233 @@ static func _manhattan_distance(first: Vector2i, second: Vector2i) -> int:
 
 
 static func _warn(label: String, message: String) -> void:
-	push_warning("%s %s" % [label, message])
+	if not label.is_empty():
+		push_warning("%s %s" % [label, message])
+
+
+## Independent authored-grammar checks. No generator or reservation metadata is
+## trusted to establish reachability, occupancy, cluster size or motion bounds.
+## Call after the base builder schema is valid (validate_level does this).
+static func generation_errors(level: Dictionary) -> Array[String]:
+	var errors: Array[String] = []
+	var route: Array = level.get("main_route_cells", [])
+	if route.size() < 2:
+		errors.append("generated primary route is missing or unreachable")
+	var lookup := {}
+	for entry: Dictionary in level.get("elevation_cells", []):
+		lookup[entry.cell] = entry.levels
+	var occupancy := placement_occupancy(level)
+	_validate_generation_contract(level, lookup, errors)
+	for endpoint: Vector2i in [level.start_cell, level.hole_cell]:
+		for y in range(endpoint.y - 1, endpoint.y + 2):
+			for x in range(endpoint.x - 1, endpoint.x + 2):
+				if not _surface_exists(lookup, Vector2i(x, y), 0) or occupancy.has(Vector3i(x, y, 0)):
+					_add_error(errors, "tee/cup requires a clear 3 by 3 landing region")
+	for definition: Dictionary in level.get("moving_hazards", []):
+		for surface in _definition_surfaces(level, definition):
+			if not _surface_exists(lookup, Vector2i(surface.x, surface.y), surface.z):
+				_add_error(errors, "moving hazard swept footprint leaves its elevation surface")
+	for transition: Dictionary in level.get("elevation_transitions", []):
+		for prefix in ["from", "to"]:
+			var cell: Vector2i = transition[prefix + "_cell"]
+			if occupancy.has(Vector3i(cell.x, cell.y, transition[prefix + "_elevation"])):
+				_add_error(errors, "elevation transition landing is occupied")
+	var visited := _reachable_clear_surfaces(level, lookup, occupancy)
+	for cell: Vector2i in lookup:
+		for elevation: int in lookup[cell]:
+			var surface := Vector3i(cell.x, cell.y, elevation)
+			if not occupancy.has(surface) and not visited.has(surface):
+				_add_error(errors, "unrecoverable pocket or disconnected elevation surface")
+	for branch: Dictionary in level.get("branches", []):
+		var entry: Vector2i = branch.entry_cell
+		var escape: Vector2i = branch.escape_cell
+		if not visited.has(Vector3i(entry.x, entry.y, 0)) or not visited.has(Vector3i(escape.x, escape.y, 0)):
+			_add_error(errors, "branch entry/escape is not reachable")
+		if String(branch.kind) == "dead_end":
+			var end: Vector2i = branch.cells[-1]
+			var open_neighbors := 0
+			for direction in [Vector2i.UP, Vector2i.DOWN, Vector2i.LEFT, Vector2i.RIGHT]:
+				var neighbor: Vector2i = end + direction
+				if visited.has(Vector3i(neighbor.x, neighbor.y, 0)):
+					open_neighbors += 1
+			if open_neighbors < 3:
+				_add_error(errors, "dead end has no useful turnaround pocket")
+	var zones = level.get("shot_zones", [])
+	if not zones is Array or zones.size() < 2:
+		_add_error(errors, "generated hole requires tee, recovery and cup shot zones")
+	else:
+		for zone in zones:
+			if not zone is Dictionary or not zone.get("cell") is Vector2i or not zone.get("cells") is Array or zone.cells.size() < 9 or not _is_elevation_value(zone.get("elevation", 0)):
+				_add_error(errors, "shot zone contract is malformed")
+				continue
+			for y in range(zone.cell.y - 1, zone.cell.y + 2):
+				for x in range(zone.cell.x - 1, zone.cell.x + 2):
+					if not zone.cells.has(Vector2i(x, y)):
+						_add_error(errors, "shot zone is missing its turnaround footprint")
+			for cell in zone.cells:
+				if not cell is Vector2i:
+					_add_error(errors, "shot zone must contain typed cells")
+				elif not _surface_exists(lookup, cell, int(zone.get("elevation", 0))) or occupancy.has(Vector3i(cell.x, cell.y, int(zone.get("elevation", 0)))):
+					_add_error(errors, "shot recovery zone is not clear")
+	var clusters := {}
+	var terrain_cells := {}
+	for hazard: Dictionary in level.hazards:
+		if String(hazard.type) == "bounce_pad" and not bounce_exit_is_safe(level, hazard, occupancy, lookup):
+			_add_error(errors, "bounce pad has no safe initial launch runway")
+		var cluster_id := String(hazard.get("cluster_id", ""))
+		if cluster_id.is_empty():
+			_add_error(errors, "generated hazard is missing its formation identity")
+			continue
+		if not clusters.has(cluster_id):
+			clusters[cluster_id] = []
+		clusters[cluster_id].append(hazard)
+		if String(hazard.type) in ["water", "lava", "sand", "ice"]:
+			for surface in _definition_surfaces(level, hazard):
+				terrain_cells[surface] = hazard
+	for surface: Vector3i in terrain_cells:
+		for direction in [Vector3i(1, 0, 0), Vector3i(0, 1, 0)]:
+			var neighbor: Vector3i = surface + direction
+			if terrain_cells.has(neighbor) and terrain_cells[surface].type == terrain_cells[neighbor].type and terrain_cells[surface].cluster_id != terrain_cells[neighbor].cluster_id:
+				_add_error(errors, "touching terrain guards must form one bounded cluster")
+	for group: Array in clusters.values():
+		var cells := {}
+		for hazard: Dictionary in group:
+			var footprint := _definition_surfaces(level, hazard)
+			if footprint.size() != 1 or String(hazard.type) != String(group[0].type) or int(hazard.get("cluster_size", 0)) != group.size():
+				_add_error(errors, "hazard formation footprint/type/size is malformed")
+			for surface in footprint:
+				cells[Vector2i(surface.x, surface.y)] = true
+		if cells.size() > 5 or not _connected_cells(cells):
+			_add_error(errors, "hazard formation must be connected and contain 1 to 5 cells")
+	for structure: Dictionary in level.get("elevation_structures", []):
+		var elevation := int(structure.get("elevation", 0))
+		if structure.cells.is_empty():
+			_add_error(errors, "empty elevation structure")
+		if String(structure.type) == "overpass":
+			var cells := {}
+			for cell: Vector2i in structure.cells:
+				cells[cell] = true
+			if int(structure.get("tunnel_length", cells.size())) != cells.size() or not _connected_cells(cells) or int(structure.get("lower_elevation", 0)) >= elevation:
+				_add_error(errors, "tunnel length or crossing levels do not match actual surfaces")
+		else:
+			for cell: Vector2i in structure.cells:
+				var horizontal := _surface_exists(lookup, cell + Vector2i.LEFT, elevation) or _surface_exists(lookup, cell + Vector2i.RIGHT, elevation)
+				var vertical := _surface_exists(lookup, cell + Vector2i.UP, elevation) or _surface_exists(lookup, cell + Vector2i.DOWN, elevation)
+				if not horizontal or not vertical:
+					_add_error(errors, "elevated playable surfaces require at least two-cell width")
+	return errors
+
+static func _validate_generation_contract(level: Dictionary, lookup: Dictionary, errors: Array[String]) -> void:
+	var primary := {}
+	for field in ["design_route_cells", "primary_corridor_cells"]:
+		var cells = level.get(field)
+		if not cells is Array or cells.size() < 2:
+			_add_error(errors, "generated route/corridor contract is missing")
+			continue
+		for cell in cells:
+			if not cell is Vector2i or not lookup.has(cell):
+				_add_error(errors, "generated route/corridor references invalid terrain")
+			elif field == "primary_corridor_cells":
+				primary[cell] = true
+		if field == "design_route_cells":
+			if cells[0] != level.start_cell or cells[-1] != level.hole_cell:
+				_add_error(errors, "design route must run from tee to cup")
+			for index in range(1, cells.size()):
+				if cells[index] is Vector2i and cells[index - 1] is Vector2i and _manhattan_distance(cells[index], cells[index - 1]) != 1:
+					_add_error(errors, "design route must be cardinal and contiguous")
+	for cell in level.get("main_route_cells", []):
+		if not primary.has(cell):
+			_add_error(errors, "validated main route leaves its primary corridor")
+	# At least two cells across the underlying main terrain, independent of the
+	# supplied width label. Obstacles may guard part of that playable width.
+	for cell: Vector2i in primary:
+		var horizontal := lookup.has(cell + Vector2i.LEFT) or lookup.has(cell + Vector2i.RIGHT)
+		var vertical := lookup.has(cell + Vector2i.UP) or lookup.has(cell + Vector2i.DOWN)
+		if not horizontal or not vertical:
+			_add_error(errors, "primary terrain has an unusable one-cell strip")
+	var corridors = level.get("shot_corridors")
+	if not corridors is Array or corridors.is_empty():
+		_add_error(errors, "generated shot corridors are missing")
+	else:
+		for corridor in corridors:
+			if not corridor is Dictionary or not corridor.get("from_cell") is Vector2i or not corridor.get("to_cell") is Vector2i or not corridor.get("width") is int:
+				_add_error(errors, "shot corridor contract is malformed")
+				continue
+			var delta: Vector2i = corridor.to_cell - corridor.from_cell
+			if delta == Vector2i.ZERO or (delta.x != 0 and delta.y != 0) or int(corridor.width) < 3 or int(corridor.width) > 5:
+				_add_error(errors, "shot corridor requires a useful cardinal lane")
+				continue
+			if not lookup.has(corridor.from_cell) or not lookup.has(corridor.to_cell):
+				_add_error(errors, "shot corridor endpoints must be playable")
+				continue
+			var cell: Vector2i = corridor.from_cell
+			var direction := delta.sign()
+			var side := Vector2i(-direction.y, direction.x)
+			for _step in range(absi(delta.x) + absi(delta.y) + 1):
+				for lateral in range(-int(corridor.width) / 2, int(corridor.width) / 2 + 1):
+					if not lookup.has(cell + side * lateral):
+						_add_error(errors, "shot corridor width disagrees with actual terrain")
+				cell += direction
+	var options = level.get("generation_options")
+	if not options is Dictionary or not options.get("added_hazard_count", 0) is int:
+		_add_error(errors, "generation options are malformed")
+	else:
+		var expected := clampi(int(options.get("added_hazard_count", 0)), 0, 4)
+		var actual := 0
+		for group in ["hazards", "obstacles"]:
+			for definition: Dictionary in level.get(group, []):
+				actual += 1 if bool(definition.get("curse_added", false)) else 0
+		if actual != expected or not level.get("card_hazard_count") is int or int(level.card_hazard_count) != expected:
+			_add_error(errors, "requested curse placements were not fulfilled")
+
+static func _reachable_clear_surfaces(level: Dictionary, lookup: Dictionary, occupancy: Dictionary) -> Dictionary:
+	var start := Vector3i(level.start_cell.x, level.start_cell.y, int(level.get("start_elevation", 0)))
+	var visited := {start: true}
+	var queue: Array[Vector3i] = [start]
+	var transitions := _transition_neighbor_lookup(level)
+	var cursor := 0
+	while cursor < queue.size():
+		var current := queue[cursor]
+		cursor += 1
+		var neighbors: Array = transitions.get(current, []).duplicate()
+		for direction in [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]:
+			var cell := Vector2i(current.x, current.y) + Vector2i(direction)
+			if _surface_exists(lookup, cell, current.z):
+				neighbors.append(Vector3i(cell.x, cell.y, current.z))
+		for next: Vector3i in neighbors:
+			if not visited.has(next) and not occupancy.has(next):
+				visited[next] = true
+				queue.append(next)
+	return visited
+
+static func bounce_exit_is_safe(level: Dictionary, pad: Dictionary, occupancy: Dictionary, lookup: Dictionary) -> bool:
+	var velocity := GameplayHazardScript.deterministic_bounce_velocity(Vector2.RIGHT * 650.0, int(pad.seed), 0)
+	var direction := velocity.normalized()
+	var own_surfaces := _definition_surfaces(level, pad)
+	for distance in [60.0, 100.0, 150.0, 200.0]:
+		var point: Vector2 = Vector2(pad.pos) + direction * float(distance)
+		var cell := Vector2i(((point - _map_top_left(level)) / GRID_CELL_SIZE).floor())
+		var surface := Vector3i(cell.x, cell.y, int(pad.get("elevation", 0)))
+		if not _surface_exists(lookup, cell, surface.z) or (occupancy.has(surface) and not own_surfaces.has(surface)):
+			return false
+	return true
+
+static func _connected_cells(cells: Dictionary) -> bool:
+	if cells.is_empty():
+		return false
+	var queue: Array[Vector2i] = [Vector2i(cells.keys()[0])]
+	var visited := {queue[0]: true}
+	var cursor := 0
+	while cursor < queue.size():
+		var current := queue[cursor]
+		cursor += 1
+		for direction in [Vector2i.UP, Vector2i.RIGHT, Vector2i.DOWN, Vector2i.LEFT]:
+			var next: Vector2i = current + direction
+			if cells.has(next) and not visited.has(next):
+				visited[next] = true
+				queue.append(next)
+	return visited.size() == cells.size()
+
+static func _add_error(errors: Array[String], error: String) -> void:
+	if not errors.has(error):
+		errors.append(error)

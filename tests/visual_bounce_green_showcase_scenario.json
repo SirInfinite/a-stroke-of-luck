@@ -1,0 +1,39 @@
+{
+  "scene_path": "tests/visual_bounce_green_showcase.tscn",
+  "viewport_size": {"width": 1920, "height": 1080},
+  "settle_frames": 8,
+  "steps": [
+    {"type": "assert", "assertion": "node_exists", "node_path": "Level/CupOpening"},
+    {"type": "screenshot", "path": "user://bounce_green_01_meadow_full.png"},
+
+    {"type": "key", "keycode": 4194309, "pressed": true},
+    {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_frames", "frames": 4},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "state_index", "expected": 1},
+    {"type": "screenshot", "path": "user://bounce_green_02_meadow_cup_close.png"},
+
+    {"type": "key", "keycode": 4194309, "pressed": true},
+    {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_frames", "frames": 4},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "state_index", "expected": 2},
+    {"type": "screenshot", "path": "user://bounce_green_03_yellow_pad.png"},
+
+    {"type": "key", "keycode": 4194309, "pressed": true},
+    {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_frames", "frames": 4},
+    {"type": "assert", "assertion": "node_exists", "node_path": "ShowcaseBall"},
+    {"type": "screenshot", "path": "user://bounce_green_04_pad_approach.png"},
+
+    {"type": "key", "keycode": 4194309, "pressed": true},
+    {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_frames", "frames": 4},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "state_index", "expected": 4},
+    {"type": "screenshot", "path": "user://bounce_green_05_immediately_after.png"},
+
+    {"type": "key", "keycode": 4194309, "pressed": true},
+    {"type": "key", "keycode": 4194309, "pressed": false},
+    {"type": "wait_frames", "frames": 4},
+    {"type": "assert", "assertion": "property", "node_path": ".", "property": "state_index", "expected": 5},
+    {"type": "screenshot", "path": "user://bounce_green_06_desert_cup_close.png"}
+  ]
+}
